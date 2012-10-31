@@ -1,0 +1,15 @@
+* Story ${story_id} - ${summary}
+** Attributes
+- created at :: ${created}
+- created by :: ${creator}
+- assigned to :: ${assignee}
+- status :: ${status}
+% if points!='?':
+- points :: ${points}
+% endif
+% if detail:
+** Detail
+${detail}
+% endif
+
+
