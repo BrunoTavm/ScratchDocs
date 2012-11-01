@@ -6,6 +6,7 @@ import codecs
 import os
 from mako.template import Template
 from tasks import get_task
+import sys
 
 usermap = {'andysnagovsky':'andrey.s',
            'milez':'guy',
@@ -49,6 +50,7 @@ statuses = {1:'TODO',
 
 db = my.connect(host='localhost',user='root',db='backlog')
 c = db.cursor() #cursorclass=my.cursors.CursorTupleRowsMixIn())
+c2 = db.cursor()
 c.execute("""select * from projects_iteration where project_id=1""")
 d={}
 for i in range(len(c.description)):
@@ -62,6 +64,7 @@ while True:
 
 
 c.execute("""select 
+s.id,
 i.name as iteration,
 s.local_id as story_id,
 s.created,
@@ -101,6 +104,16 @@ while True:
         elif r[fn] and '.' not in r[fn]: raise Exception(r[fn])
     r['status']=statuses[r['status']]
 
+    #fetch tags
+    storytags=[]
+    c2.execute("select name from projects_storytag where project_id=1 and id in (select tag_id from projects_storytagging where story_id=%d)"%(r['id']))
+    while True:
+        trow = c2.fetchone()
+        if not trow: break
+        tag = trow[0]
+        if 'pivotal' in tag: continue
+        if tag not in storytags: storytags.append(tag)
+
     iterdir = os.path.join(cfg.DATADIR,r['iteration'])
     if not os.path.exists(iterdir): os.mkdir(iterdir)
 
@@ -111,9 +124,10 @@ while True:
 
     assert r['story_id']
     #make sure we are not overwriting
-    t = get_task(r['story_id'],exc=False)
-    if t:
-        continue
+    if 'force' not in sys.argv:
+        t = get_task(r['story_id'],exc=False)
+        if t:
+            continue
     storydir = os.path.join(iterdir,str(r['story_id']))
 
     if not os.path.exists(storydir): os.mkdir(storydir)
@@ -123,6 +137,7 @@ while True:
         #raise Exception(type(r['detail']))
     except UnicodeDecodeError:
         r['detail']= r['detail'].decode('cp1251')
+    r['tags']=storytags
     #r['detail'] = r['detail'].decode('utf-8')
     storycont = tpl.render(**r)
     storyfn = os.path.join(storydir,cfg.TASKFN)

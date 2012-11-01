@@ -1,6 +1,6 @@
 * import
 ** import stories
-*** TODO story tags
+*** DONE story tags
 ** DONE import iterations
 *** DONE iteration dates
 ** import odesk hours tracking

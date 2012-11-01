@@ -58,11 +58,13 @@ def parse_story_fn(fn,read=False):
                 attrs = dict([a[2:].split(' :: ') for a in unicode(node).split('\n') if a.startswith('- ')])
                 for k,v in attrs.items():
                     rt[k]=v
+                    if k=='tags':
+                        rt[k]=v.split(', ')
 
 
         #storycont = open(
     return rt
-def get_task_files(iteration=None,assignee=None,status=None,recurse=True):
+def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True):
     if iteration:
         itcnd=' -wholename "%s/*"'%(os.path.join(cfg.DATADIR,str(iteration)))
     else:
@@ -76,7 +78,7 @@ def get_task_files(iteration=None,assignee=None,status=None,recurse=True):
     files = [fn for fn in op.split('\n') if fn!='']
 
     #filter by assignee. heavy.
-    if assignee or status:
+    if assignee or status or tag:
         rt = []
         for fn in files:
             s = parse_story_fn(fn,read=True)
@@ -84,6 +86,8 @@ def get_task_files(iteration=None,assignee=None,status=None,recurse=True):
             if assignee and s['assigned to'] and s['assigned to']==assignee:
                 incl=True
             if status and s['status']==status:
+                incl=True
+            if tag and 'tags' in s and tag in s['tags']:
                 incl=True
             if incl:
                 rt.append(fn)
@@ -297,9 +301,9 @@ def makeindex(iteration):
     fp = open(idxfn,'w') ; fp.write(itlist) ; fp.close()
     print 'written main idx %s'%pfn(idxfn)
 
-def list_stories(iteration=None,assignee=None,status=None):
-    files = get_task_files(iteration=iteration,assignee=assignee,status=status)
-    pt = PrettyTable(['iteration','id','summary','assigned to','status'])
+def list_stories(iteration=None,assignee=None,status=None,tag=None):
+    files = get_task_files(iteration=iteration,assignee=assignee,status=status,tag=tag)
+    pt = PrettyTable(['iteration','id','summary','assigned to','status','tags','fn'])
     pt.align['summary']='l'
     cnt=0
     for fn in files:
@@ -307,7 +311,7 @@ def list_stories(iteration=None,assignee=None,status=None):
         if iteration and sd['iteration']!=str(iteration): continue
         if len(sd['summary'])>40: summary=sd['summary'][0:40]+'..'
         else: summary = sd['summary']
-        pt.add_row([sd['iteration'],sd['story'],summary,sd['assigned to'],sd['status']])
+        pt.add_row([sd['iteration'],sd['story'],summary,sd['assigned to'],sd['status'],','.join(sd['tags']),pfn(sd['path'])])
         cnt+=1
     pt.sortby = 'status'
     print pt
@@ -321,6 +325,7 @@ if __name__=='__main__':
     list.add_argument('--iteration',dest='iteration')
     list.add_argument('--assignee',dest='assignee')
     list.add_argument('--status',dest='status')
+    list.add_argument('--tag',dest='tag')
 
     gen = subparsers.add_parser('index')
     gen.add_argument('--iteration',dest='iteration')
@@ -350,7 +355,7 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     if args.command=='list':
-        list_stories(iteration=args.iteration,assignee=args.assignee,status=args.status)
+        list_stories(iteration=args.iteration,assignee=args.assignee,status=args.status,tag=args.tag)
     if args.command=='index':
         makeindex(args.iteration)
     if args.command=='makehtml':

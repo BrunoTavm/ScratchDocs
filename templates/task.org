@@ -9,6 +9,9 @@
 % if points!='?':
 - points :: ${points}
 % endif
+% if len(tags):
+- tags :: ${', '.join(tags)}
+% endif
 % if detail:
 ** Detail
 ${detail}
