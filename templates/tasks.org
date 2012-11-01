@@ -1,0 +1,13 @@
+#+OPTIONS: toc:nil        (no TOC at all)
+#+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
+* ${term} ${value} tasks
+% for sfn,sv in stories:
+% if relpath:
+** [[file:${sv['story']}/index.org][${sv['story']}]]\
+% else:
+** [[file:${sv['iteration']}/${sv['story']}/index.org][${sv['story']}]]\
+% endif
+ :: ${sv['summary']} - ${sv['status']}
+
+% endfor
+

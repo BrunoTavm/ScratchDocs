@@ -4,3 +4,7 @@
 % for it,path in iterations:
 ** [[file:${it}/][${it}]]
 % endfor
+* Assigned list
+% for person,file in assigned_files.items():
+** [[file:${file}][${person}]] (${assignees[person]})
+% endfor

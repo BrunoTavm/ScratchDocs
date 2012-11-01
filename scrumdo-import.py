@@ -1,9 +1,11 @@
+#!/usr/bin/env python
 import MySQLdb as my
 import prettytable
 import config as cfg
 import codecs
 import os
 from mako.template import Template
+from tasks import get_task
 
 usermap = {'andysnagovsky':'andrey.s',
            'milez':'guy',
@@ -108,6 +110,10 @@ while True:
         fp = open(iterfn,'w'); fp.write(itercont); fp.close()
 
     assert r['story_id']
+    #make sure we are not overwriting
+    t = get_task(r['story_id'],exc=False)
+    if t:
+        continue
     storydir = os.path.join(iterdir,str(r['story_id']))
 
     if not os.path.exists(storydir): os.mkdir(storydir)

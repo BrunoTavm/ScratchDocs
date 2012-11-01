@@ -1,6 +1,15 @@
-ScratchDocs is a development process management tool
+* ScratchDocs is a development process management tool
 
 - uses a file based data format to enjoy revision control with git.
 - task documents are in emacs' org-mode format for easy and quick editing.
 - mako templates is used to render the whole thing to html.
 - ScrumDo importer provided.
+
+** Installation
+
+1. sudo apt-get install emacs23-nox           # optional: the task docs are in org-mode. also, if you want to render your .org pages as html for the web, you need this.
+2. pip -r requirements.txt                    # install dependencies
+3. mkdir data && cd data && git init && cd .. # initialize your scrumboard
+4. touch config_local.py                      # create a instance local config override
+5. python scrumdo-import.py                   # optional: import your ScrumDo data
+6. ./tasks.py --help                          # start working!
