@@ -1,0 +1,11 @@
+* TODO contain stories
+* TODO render the whole storyboard to html
+** show what stories are in an iteration
+** show who is assigned what story
+* TODO add a new story
+** from commandline
+** from web interface
+* notes
+- iteration ids are unique
+- main story ids are unique
+- sub story ids are uniqe to the story namespace 

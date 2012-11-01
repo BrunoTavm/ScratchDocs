@@ -1,1 +1,2 @@
 DATADIR='data'
+OUTDIR='render'

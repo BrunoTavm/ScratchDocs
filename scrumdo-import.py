@@ -100,7 +100,7 @@ while True:
         r['detail']= r['detail'].decode('cp1251')
     #r['detail'] = r['detail'].decode('utf-8')
     storycont = tpl.render(**r)
-    storyfn = os.path.join(storydir,'task.org')
+    storyfn = os.path.join(storydir,'index.org')
     fp = codecs.open (storyfn,'w','utf-8')
     fp.write(storycont)
     fp.close()

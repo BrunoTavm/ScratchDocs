@@ -1,0 +1,4 @@
+* Iterations list
+% for it,path in iterations:
+** [[file:${it}/][${it}]]
+% endfor

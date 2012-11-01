@@ -1,0 +1,5 @@
+* Iteration ${iteration[0]} stories
+% for sfn,sv in stories:
+** [[file:${sv['story']}/index.org][${sv['story']}]]
+% endfor
+
