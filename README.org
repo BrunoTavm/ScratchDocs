@@ -1,0 +1,6 @@
+ScratchDocs is a development process management tool
+
+- uses a file based data format to enjoy revision control with git.
+- task documents are in emacs' org-mode format for easy and quick editing.
+- mako templates is used to render the whole thing to html.
+- ScrumDo importer provided.
