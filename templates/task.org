@@ -1,7 +1,7 @@
 #+OPTIONS: toc:nil        (no TOC at all)
-* Story ${story_id} - ${summary}
+* ${summary}
 ** Attributes
-- created at :: ${created}
+- created at :: <${created}>
 - created by :: ${creator}
 - assigned to :: ${assignee}
 - status :: ${status}

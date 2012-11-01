@@ -1,8 +1,11 @@
 #+OPTIONS: toc:nil        (no TOC at all)
-* Story [[file:${TASKFN}][${story['story']}]]
+#+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
+* Task ${story['story']}
+** [[file:../index.org][Up one level]]
 % if len(children):
 * Sub tasks
 % for st in children:
-** [[file:${st['relpath']}][${st['story']}]]
+** [[file:${st['relpath']}][${st['story']}]] :: ${st['summary']}
 % endfor
 % endif
+

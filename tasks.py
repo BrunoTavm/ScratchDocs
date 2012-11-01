@@ -66,20 +66,28 @@ def pfn(fn):
     else:
         return fn
 
-def parse_story_fn(fn):
+def parse_story_fn(fn,read=False):
     assert len(fn)
     parts = fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR)
     assert len(parts)>1,"%s"%"error parsing %s"%fn
     it = parts[1]
     story = cfg.STORY_SEPARATOR.join(parts[2:-1])
-    return {'iteration':it,'story':story,'path':fn}
-
+    rt = {'iteration':it,'story':story,'path':fn}
+    if read:
+        import orgparse
+        root = orgparse.load(fn)
+        for node in root[1:]:
+            heading = node.get_heading()
+            rt['summary']=heading
+            break
+        #storycont = open(
+    return rt
 def get_task_files(iteration=None):
     if iteration:
         itcnd=' -wholename "%s*"'%(os.path.join(cfg.DATADIR,str(iteration)))
     else:
         itcnd=''
-    cmd = "find %s %s -type f -name '%s'"%(cfg.DATADIR,itcnd,cfg.TASKFN)
+    cmd = "find %s -maxdepth 3 %s -type f -name '%s'"%(cfg.DATADIR,itcnd,cfg.TASKFN)
     st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
     files = [fn for fn in op.split('\n') if fn!='']
     return files
@@ -100,17 +108,18 @@ def get_iterations():
     rt = [(os.path.basename(path),path) for path in dirs if len(path.split('/'))>1]
     rt.sort(sort_iterations,reverse=True)
     return rt
-def get_task(number):
-    tf = [parse_story_fn(fn) for fn in get_task_files()]
+def get_task(number,read=False):
+    tf = [parse_story_fn(fn,read=read) for fn in get_task_files()]
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
     assert number in tasks
-    return tasks[number]
+    rt =  tasks[number]
+    return rt
 def get_children(number):
     t = get_task(number)
     cmd = 'find %s -maxdepth 2 -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
     st,op = gso(cmd) ; assert st==0
     chfiles = [ch for ch in op.split('\n') if ch!='']
-    tf = [parse_story_fn(fn) for fn in chfiles]
+    tf = [parse_story_fn(fn,read=True) for fn in chfiles]
     return tf
 def get_new_idx(parent=None):
     if parent:
@@ -206,17 +215,20 @@ if args.command=='index':
     print 'written main idx %s'%pfn(idxfn)
     sttpl = Template(open('templates/stories.org').read())
     for it in iterations:
-        print 'cycling through iteration %s'%it[0]
+        #print 'cycling through iteration %s'%it[0]
         if args.iteration and str(it[0])!=str(args.iteration): 
             #print 'skipping iteration %s'%(it[0])
             continue
         #print 'walking iteration %s'%it[0]
         taskfiles = get_task_files(iteration=it[0])
-        stories = [(fn,parse_story_fn(fn)) for fn in taskfiles]
+        stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
+
         vardict = {'iteration':it,'stories':stories}
         stlist = sttpl.render(**vardict)
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
-        fp = open(itidxfn,'w') ; fp.write(stlist) ; fp.close()
+
+        fp = open(itidxfn,'w') ; fp.write(open(os.path.join(cfg.DATADIR,it[0],'iteration.org')).read()) ; fp.write(stlist) ; fp.close()
+        
         print 'written iteration idx %s'%pfn(itidxfn)
 
         for st in stories:
@@ -225,13 +237,13 @@ if args.command=='index':
             #print storyidxfn
             ch = get_children(st[1]['story'])
             for c in ch:
-                c['relpath']=ch[1]['path'].replace(os.path.dirname(st[1]['path'])+'/','')
+                c['relpath']=os.path.dirname(c['path'].replace(os.path.dirname(st[1]['path'])+'/',''))
             print 'written story idx %s'%pfn(storyidxfn)
             tidxpl = Template(open('templates/taskindex.org').read())            
             pars = {'children':ch,'story':st[1],'TASKFN':cfg.TASKFN}
             idxcont = tidxpl.render(**pars)
             #print idxcont
-            fp = open(storyidxfn,'w') ; fp.write(idxcont) ; fp.close()
+            fp = open(storyidxfn,'w') ; fp.write(idxcont) ; fp.write(open(st[1]['path']).read()) ; fp.close()
 if args.command=='makehtml':
     #find all the .org files generated
     if args.iteration:
@@ -243,7 +255,7 @@ if args.command=='makehtml':
     cnt=0
     for orgf in orgfiles:
         cnt+=1
-        if args.notasks and os.path.basename(orgf)==cfg.TASKFN or os.path.exists(os.path.join(os.path.dirname(orgf),cfg.TASKFN)):
+        if args.notasks and (os.path.basename(orgf)==cfg.TASKFN or os.path.exists(os.path.join(os.path.dirname(orgf),cfg.TASKFN))):
             continue
         cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(orgf)
         outfile = os.path.join(os.path.dirname(orgf),os.path.basename(orgf).replace('.org','.html'))
@@ -255,7 +267,7 @@ if args.command=='makehtml':
                 needrun=True
         else:
             needrun=True
-        
+        #print('needrun %s on %s'%(needrun,outfile))
         if needrun:
             st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,op)
             print 'written %s'%pfn(outfile)

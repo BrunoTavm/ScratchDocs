@@ -47,6 +47,18 @@ statuses = {1:'TODO',
 
 db = my.connect(host='localhost',user='root',db='backlog')
 c = db.cursor() #cursorclass=my.cursors.CursorTupleRowsMixIn())
+c.execute("""select * from projects_iteration where project_id=1""")
+d={}
+for i in range(len(c.description)):
+    d[i]=c.description[i][0]
+iterinfo={}
+while True:
+    row = c.fetchone()
+    if not row: break
+    r = dict([(d[i],row[i]) for i in range(len(row))])
+    iterinfo[r['name']]=r
+
+
 c.execute("""select 
 i.name as iteration,
 s.local_id as story_id,
@@ -71,6 +83,8 @@ d={}
 for i in range(len(c.description)):
     d[i]=c.description[i][0]
 
+itertpl = Template(open('templates/iteration.org').read())
+
 tpl = Template(open('templates/task.org').read())
 
 pt = prettytable.PrettyTable(d.values())
@@ -87,6 +101,11 @@ while True:
 
     iterdir = os.path.join(cfg.DATADIR,r['iteration'])
     if not os.path.exists(iterdir): os.mkdir(iterdir)
+
+    iterfn = os.path.join(iterdir,'iteration.org')
+    if not os.path.exists(iterfn):
+        itercont = itertpl.render(**iterinfo[r['iteration']])
+        fp = open(iterfn,'w'); fp.write(itercont); fp.close()
 
     assert r['story_id']
     storydir = os.path.join(iterdir,str(r['story_id']))
