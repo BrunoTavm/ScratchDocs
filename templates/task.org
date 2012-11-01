@@ -1,3 +1,4 @@
+#+OPTIONS: toc:nil        (no TOC at all)
 * Story ${story_id} - ${summary}
 ** Attributes
 - created at :: ${created}

@@ -1,0 +1,8 @@
+#+OPTIONS: toc:nil        (no TOC at all)
+* Story [[file:${TASKFN}][${story['story']}]]
+% if len(children):
+* Sub tasks
+% for st in children:
+** [[file:${st['relpath']}][${st['story']}]]
+% endfor
+% endif
