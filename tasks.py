@@ -62,13 +62,16 @@ def parse_story_fn(fn,read=False):
 
         #storycont = open(
     return rt
-def get_task_files(iteration=None,assignee=None,status=None):
+def get_task_files(iteration=None,assignee=None,status=None,recurse=True):
     if iteration:
         itcnd=' -wholename "%s/*"'%(os.path.join(cfg.DATADIR,str(iteration)))
     else:
         itcnd=''
-    #@FIXME: why was -maxdepth 3 here??
-    cmd = "find  %s  ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,itcnd,cfg.TASKFN)
+    if not recurse:
+        add=' -maxdepth 3'
+    else:
+        add=''
+    cmd = "find  %s  %s ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,add,itcnd,cfg.TASKFN)
     st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
     files = [fn for fn in op.split('\n') if fn!='']
 
@@ -90,12 +93,23 @@ def get_task_files(iteration=None,assignee=None,status=None):
 
 def sort_iterations(i1,i2):
     try:i1v = int(i1[0])
-    except ValueError: i1v = 1000
+    except ValueError: 
+        i1v = 1000
     try: i2v = int(i2[0])
-    except ValueError: i2v = 1000
+    except ValueError: 
+        i2v = 1000
         
     rt= cmp(i1v,i2v)
     return rt
+def status_srt(s1,s2):
+    cst = dict([(cfg.STATUSES[i],i) for i in range(len(cfg.STATUSES))])
+    return cmp(cst[s1[1]['status']],cst[s2[1]['status']])
+def taskid_srt(s1,s2):
+    cst = dict([(cfg.STATUSES[i],i) for i in range(len(cfg.STATUSES))])
+    s1i = int(s1[1]['story'].split(cfg.STORY_SEPARATOR)[0])
+    s2i = int(s2[1]['story'].split(cfg.STORY_SEPARATOR)[0])
+    return cmp(s1i,s2i)
+
 def get_iterations():
     cmd = 'find %s -maxdepth 1 ! -wholename "*.git*"  -type d'%(cfg.DATADIR)
     st,op = gso(cmd) ; assert st==0
@@ -234,9 +248,9 @@ def makeindex(iteration):
             #print 'skipping iteration %s'%(it[0])
             continue
         #print 'walking iteration %s'%it[0]
-        taskfiles = get_task_files(iteration=it[0])
+        taskfiles = get_task_files(iteration=it[0],recurse=False)
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
-        
+        stories.sort(taskid_srt,reverse=True)        
         vardict = {'term':'Iteration','value':it[0],'stories':stories,'relpath':True}
         stlist = tasks_tpl.render(**vardict)
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
@@ -269,11 +283,8 @@ def makeindex(iteration):
         afn = 'assigned-'+assignee+'.org'
         ofn = os.path.join(cfg.DATADIR,afn)
         assigned_files[assignee]=afn
-        tf = get_task_files(assignee=assignee)
+        tf = get_task_files(assignee=assignee,recurse=True)
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in tf]
-        def status_srt(s1,s2):
-            cst = dict([(cfg.STATUSES[i],i) for i in range(len(cfg.STATUSES))])
-            return cmp(cst[s1[1]['status']],cst[s2[1]['status']])
         stories.sort(status_srt)
         vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':stories,'relpath':False}
         cont = tasks_tpl.render(**vardict)
