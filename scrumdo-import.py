@@ -40,10 +40,10 @@ usermap = {'andysnagovsky':'andrey.s',
            'nadezhda_r':'nadezhda.r',
            'eliah_l':'eliah.l'
         }
-statuses = {1:'Pending',
-            2:'Doing',
-            3:'Review',
-            4:'Done'}
+statuses = {1:'TODO',
+            2:'DOING',
+            3:'REVIEW',
+            4:'DONE'}
 
 db = my.connect(host='localhost',user='root',db='backlog')
 c = db.cursor() #cursorclass=my.cursors.CursorTupleRowsMixIn())
@@ -71,7 +71,7 @@ d={}
 for i in range(len(c.description)):
     d[i]=c.description[i][0]
 
-tpl = Template(open('templates/story.org').read())
+tpl = Template(open('templates/task.org').read())
 
 pt = prettytable.PrettyTable(d.values())
 cnt=0
@@ -100,7 +100,7 @@ while True:
         r['detail']= r['detail'].decode('cp1251')
     #r['detail'] = r['detail'].decode('utf-8')
     storycont = tpl.render(**r)
-    storyfn = os.path.join(storydir,'index.org')
+    storyfn = os.path.join(storydir,cfg.TASKFN)
     fp = codecs.open (storyfn,'w','utf-8')
     fp.write(storycont)
     fp.close()
