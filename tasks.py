@@ -7,11 +7,27 @@ import os
 from mako.template import Template
 import datetime
 import orgparse
+import hashlib
 
 task_tpl = Template(open('templates/task.org').read())
 iterations_tpl = Template(open('templates/iterations.org').read())
 tasks_tpl = Template(open('templates/tasks.org').read())
 taskindex_tpl = Template(open('templates/taskindex.org').read())            
+
+def render(tplname,params,outfile=None,mode='w'):
+    tpls = {'task':task_tpl
+            ,'tasks':tasks_tpl
+            ,'taskindex':taskindex_tpl
+            ,'iterations':iterations_tpl
+            }
+
+    t = tpls[tplname]
+    r= t.render(**params)
+    if outfile:
+        fp = open(outfile,mode) ; fp.write(r) ; fp.close()
+        print 'written %s %s'%(tplname,pfn(outfile))
+        return True
+    return t
 
 def move_task(task,dest_iter):
     t = get_task(task)
@@ -206,9 +222,8 @@ def add_task(iteration=None,parent=None,params={},force_id=None):
     pars['status'] = cfg.STATUSES[0]
     for k in ['summary','assignee','points','detail']:
        if k not in pars: pars[k]=None
-    taskcont = task_tpl.render(**params.__dict__)
-    assert not os.path.exists(taskcont)
-    fp = open(newtaskfn,'w') ; fp.write(taskcont) ; fp.close()
+    assert not os.path.exists(newtaskfn)
+    render('task',params.__dict__,newtaskfn)
 
 def makehtml(iteration=None,notasks=False,file=None):
     #find all the .org files generated
@@ -256,12 +271,9 @@ def makeindex(iteration):
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
         vardict = {'term':'Iteration','value':it[0],'stories':stories,'relpath':True}
-        stlist = tasks_tpl.render(**vardict)
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
-
-        fp = open(itidxfn,'w') ; fp.write(open(os.path.join(cfg.DATADIR,it[0],'iteration.org')).read()) ; fp.write(stlist) ; fp.close()
-        
-        print 'written iteration idx %s'%pfn(itidxfn)
+        fp = open(itidxfn,'w') ; fp.write(open(os.path.join(cfg.DATADIR,it[0],'iteration.org')).read()) ; fp.close()
+        stlist = render('tasks',vardict,itidxfn,'a')
 
         for st in stories:
             #aggregate assignees
@@ -279,9 +291,11 @@ def makeindex(iteration):
             print 'written story idx %s'%pfn(storyidxfn)
 
             pars = {'children':ch,'story':st[1],'TASKFN':cfg.TASKFN}
-            idxcont = taskindex_tpl.render(**pars)
+            render('taskindex',pars,storyidxfn,'w')
+            fp = open(storyidxfn,'a') ; fp.write(open(st[1]['path']).read()) ; fp.close()
+
             #print idxcont
-            fp = open(storyidxfn,'w') ; fp.write(idxcont) ; fp.write(open(st[1]['path']).read()) ; fp.close()
+
     assigned_files={}
     for assignee,storycnt in assignees.items():
         afn = 'assigned-'+assignee+'.org'
@@ -291,15 +305,11 @@ def makeindex(iteration):
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in tf]
         stories.sort(status_srt)
         vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':stories,'relpath':False}
-        cont = tasks_tpl.render(**vardict)
-        fp = open(ofn,'w') ; fp.write(cont); fp.close()
-        print 'written assignee data %s'%pfn(ofn)
+        cont = render('tasks',vardict,ofn)
 
     vardict = {'iterations':iterations,'assigned_files':assigned_files,'assignees':assignees}
-    itlist = iterations_tpl.render(**vardict)
     idxfn = os.path.join(cfg.DATADIR,'index.org')
-    fp = open(idxfn,'w') ; fp.write(itlist) ; fp.close()
-    print 'written main idx %s'%pfn(idxfn)
+    itlist = render('iterations',vardict,idxfn)
 
 def list_stories(iteration=None,assignee=None,status=None,tag=None):
     files = get_task_files(iteration=iteration,assignee=assignee,status=status,tag=tag)
