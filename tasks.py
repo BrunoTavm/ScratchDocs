@@ -318,7 +318,7 @@ def makeindex(iteration):
     assignees={}
     for it in iterations:
         #print 'cycling through iteration %s'%it[0]
-        if iteration and str(it[0])!=str(iteration): 
+        if iteration and str(it[1]['name'])!=str(iteration): 
             #print 'skipping iteration %s'%(it[0])
             continue
         #print 'walking iteration %s'%it[0]
@@ -326,7 +326,7 @@ def makeindex(iteration):
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
         shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
-        iterations_stories[it[0]]=len(shallowstories)
+        iterations_stories[it[1]['name']]=len(shallowstories)
 
         vardict = {'term':'Iteration','value':it[0],'stories':by_status(shallowstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False} #the index is generated only for the immediate 1-level down stories.
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
