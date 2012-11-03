@@ -303,12 +303,15 @@ def makeindex(iteration):
         taskfiles = get_task_files(iteration=it[0],recurse=True)
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
-        vardict = {'term':'Iteration','value':it[0],'stories':stories,'relpath':True}
+        shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
+
+        vardict = {'term':'Iteration','value':it[0],'stories':shallowstories,'relpath':True} #the index is generated only for the immediate 1-level down stories.
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
         fp = open(itidxfn,'w') ; fp.write(open(os.path.join(cfg.DATADIR,it[0],'iteration.org')).read()) ; fp.close()
-        stlist = render('tasks',vardict,itidxfn,'a')
+        stlist = render('tasks',vardict,itidxfn,'a') 
 
-        for st in stories:
+        #we show an iteration index of the immediate 1 level down tasks
+        for st in shallowstories:
             #aggregate assignees
             if st[1]['assigned to']:
                 asgn = st[1]['assigned to']
