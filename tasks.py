@@ -8,12 +8,16 @@ from mako.template import Template
 import datetime
 import orgparse
 import hashlib
+import json
+import re
 
-task_tpl = Template(open('templates/task.org').read())
-iterations_tpl = Template(open('templates/iterations.org').read())
-tasks_tpl = Template(open('templates/tasks.org').read())
-taskindex_tpl = Template(open('templates/taskindex.org').read())            
-
+_prefix = os.path.dirname(__file__)
+tpldir = os.path.join(_prefix,'templates')
+task_tpl = Template(open(os.path.join(tpldir,'task.org')).read())
+iterations_tpl = Template(open(os.path.join(tpldir,'iterations.org')).read())
+tasks_tpl = Template(open(os.path.join(tpldir,'tasks.org')).read())
+taskindex_tpl = Template(open(os.path.join(tpldir,'taskindex.org')).read())            
+ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
 def render(tplname,params,outfile=None,mode='w'):
     tpls = {'task':task_tpl
             ,'tasks':tasks_tpl
@@ -26,6 +30,18 @@ def render(tplname,params,outfile=None,mode='w'):
     if outfile:
         fp = open(outfile,mode) ; fp.write(r) ; fp.close()
         print 'written %s %s'%(tplname,pfn(outfile))
+
+        m = hashlib.md5()
+        m.update(r)
+        hd = m.hexdigest()
+
+        if os.path.exists(cfg.RENDER_CHECKSUMS):
+            ck = json.loads(open(cfg.RENDER_CHECKSUMS).read())
+        else:
+            ck = {}
+        ck[outfile]=hd
+        fp = open(cfg.RENDER_CHECKSUMS,'w') ; fp.write(json.dumps(ck,indent=True)); fp.close()
+
         return True
     return t
 
@@ -131,11 +147,12 @@ def taskid_srt(s1,s2):
     return cmp(s1i,s2i)
 
 def get_iterations():
-    cmd = 'find %s -maxdepth 1 ! -wholename "*.git*"  -type d'%(cfg.DATADIR)
+    cmd = 'find %s -name "iteration.org" ! -wholename "*templates*" -type f'%(cfg.DATADIR)
+    #cmd = 'find %s -maxdepth 1 ! -wholename "*.git*"  -type d'%(cfg.DATADIR)
     st,op = gso(cmd) ; assert st==0
     #print op  ; raise Exception('w00t')
     dirs = op.split('\n')
-    rt = [(os.path.basename(path),path) for path in dirs if len(path.split('/'))>1]
+    rt = [(os.path.basename(os.path.dirname(path)),os.path.dirname(path)) for path in dirs if len(path.split('/'))>1]
     rt.sort(sort_iterations,reverse=True)
     return rt
 def get_task(number,read=False,exc=True):
@@ -180,7 +197,7 @@ def get_new_idx(parent=None):
     return str(newid)
 
         
-def add_task(iteration=None,parent=None,params={},force_id=None):
+def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     if not iteration: 
         if parent:
             t = get_task(parent)
@@ -213,25 +230,32 @@ def add_task(iteration=None,parent=None,params={},force_id=None):
     newtaskdt = parse_story_fn(newtaskfn)
     assert newtaskdt
     print 'creating new task %s : %s'%(newtaskdt['story'],pfn(newtaskfn))
-    assert not os.path.exists(newdir),"%s exists"%newdir
-    st,op = gso('mkdir -p %s'%newdir) ; assert st==0,"could not mkdir %s"%newdir
     pars = params.__dict__
     pars['story_id'] = newidx
     pars['created'] = datetime.datetime.now()
     pars['creator'] = cfg.CREATOR
     pars['status'] = cfg.STATUSES[0]
+
     for k in ['summary','assignee','points','detail']:
        if k not in pars: pars[k]=None
+
+    assert not os.path.exists(newdir),"%s exists"%newdir
+    st,op = gso('mkdir -p %s'%newdir) ; assert st==0,"could not mkdir %s"%newdir
+
     assert not os.path.exists(newtaskfn)
     render('task',params.__dict__,newtaskfn)
 
 def makehtml(iteration=None,notasks=False,file=None):
     #find all the .org files generated
+    rc = json.loads(open(cfg.RENDER_CHECKSUMS).read())
+
     if iteration:
         pth = os.path.join(cfg.DATADIR,iteration)
     else:
         pth = cfg.DATADIR
-    st,op = gso('find %s ! -wholename "*.git*" -iname "*.org" -type f'%(pth)) ; assert st==0
+    findcmd = 'find %s ! -wholename "*orgparse*" ! -wholename "*templates*" ! -wholename "*.git*" -iname "*.org" -type f'%(pth)
+    st,op = gso(findcmd) ; assert st==0
+
     if file:
         orgfiles = [file]
     else:
@@ -244,11 +268,20 @@ def makehtml(iteration=None,notasks=False,file=None):
         cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(orgf)
         outfile = os.path.join(os.path.dirname(orgf),os.path.basename(orgf).replace('.org','.html'))
         needrun=False
-        if os.path.exists(outfile):
+        if os.path.exists(outfile): #emacs is darn slow.
+            #invalidate by mtime
             sts = os.stat(orgf)
             stt = os.stat(outfile)
             if sts.st_mtime>stt.st_mtime:
                 needrun=True
+            else:
+                #invalidate by checksum
+                st,op = gso('tail -1 %s'%outfile) ; assert st==0
+                res = ckre.search(op)
+                if res: 
+                    ck = res.group(1)
+                    if orgf in rc and rc[orgf]!=ck:
+                        needrun=True
         else:
             needrun=True
         #print('needrun %s on %s'%(needrun,outfile))
@@ -256,6 +289,11 @@ def makehtml(iteration=None,notasks=False,file=None):
             st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,op)
             print 'written %s'%pfn(outfile)
         assert os.path.exists(outfile)
+
+        if orgf in rc:
+            if orgf in rc:
+                apnd = '\n<!-- checksum:%s -->'%(rc[orgf])
+                fp = open(outfile,'a') ; fp.write(apnd) ; fp.close()
     print 'processed %s orgfiles.'%cnt
 
 def makeindex(iteration):
@@ -321,7 +359,7 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None):
         if iteration and sd['iteration']!=str(iteration): continue
         if len(sd['summary'])>40: summary=sd['summary'][0:40]+'..'
         else: summary = sd['summary']
-        pt.add_row([sd['iteration'],sd['story'],summary,sd['assigned to'],sd['status'],','.join(sd['tags']),pfn(sd['path'])])
+        pt.add_row([sd['iteration'],sd['story'],summary,sd['assigned to'],sd['status'],','.join(sd.get('tags','')),pfn(sd['path'])])
         cnt+=1
     pt.sortby = 'status'
     print pt
@@ -351,6 +389,7 @@ if __name__=='__main__':
     nw.add_argument('--summary',dest='summary')
     nw.add_argument('--assignee',dest='assignee')
     nw.add_argument('--id',dest='id')
+    nw.add_argument('--tag',dest='tags',action='append')
 
     purge = subparsers.add_parser('purge')
     purge.add_argument('tasks',nargs='+')
@@ -372,7 +411,7 @@ if __name__=='__main__':
         makehtml(iteration=args.iteration,notasks=args.notasks,file=args.file)
 
     if args.command=='new':
-        task = add_task(iteration=args.iteration,parent=args.parent,params=args,force_id=args.id)
+        task = add_task(iteration=args.iteration,parent=args.parent,params=args,force_id=args.id,tags=args.tags)
     if args.command=='purge':
         for task in args.tasks:
             purge_task(task,bool(args.force))
