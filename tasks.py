@@ -8,7 +8,6 @@ from mako.template import Template
 import datetime
 import orgparse
 import hashlib
-import json
 import re
 
 _prefix = os.path.dirname(__file__)
@@ -18,6 +17,11 @@ iterations_tpl = Template(open(os.path.join(tpldir,'iterations.org')).read())
 tasks_tpl = Template(open(os.path.join(tpldir,'tasks.org')).read())
 taskindex_tpl = Template(open(os.path.join(tpldir,'taskindex.org')).read())            
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
+def md5(fn):
+    st,op = gso('md5sum %s'%fn); assert st==0
+    op = op.split(' ')
+    return op[0]
+
 def render(tplname,params,outfile=None,mode='w'):
     tpls = {'task':task_tpl
             ,'tasks':tasks_tpl
@@ -30,17 +34,6 @@ def render(tplname,params,outfile=None,mode='w'):
     if outfile:
         fp = open(outfile,mode) ; fp.write(r) ; fp.close()
         #print 'written %s %s'%(tplname,pfn(outfile))
-
-        m = hashlib.md5()
-        m.update(r)
-        hd = m.hexdigest()
-
-        if os.path.exists(cfg.RENDER_CHECKSUMS):
-            ck = json.loads(open(cfg.RENDER_CHECKSUMS).read())
-        else:
-            ck = {}
-        ck[outfile]=hd
-        fp = open(cfg.RENDER_CHECKSUMS,'w') ; fp.write(json.dumps(ck,indent=True)); fp.close()
 
         return True
     return t
@@ -247,7 +240,6 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
 
 def makehtml(iteration=None,notasks=False,file=None):
     #find all the .org files generated
-    rc = json.loads(open(cfg.RENDER_CHECKSUMS).read())
 
     if iteration:
         pth = os.path.join(cfg.DATADIR,iteration)
@@ -269,35 +261,16 @@ def makehtml(iteration=None,notasks=False,file=None):
         outfile = os.path.join(os.path.dirname(orgf),os.path.basename(orgf).replace('.org','.html'))
         needrun=False
         if os.path.exists(outfile): #emacs is darn slow.
-            if os.path.basename(outfile)=='index.org':
-                #invalidate by checksum
-                st,op = gso('tail -1 %s'%outfile) ; assert st==0
-                res = ckre.search(op)
-                if res: 
-                    ck = res.group(1)
-                    if orgf in rc:
-                        if rc[orgf]!=ck: needrun=True
-                    else: 
-                        #print 'marking %s for running due to not being present in checksums list'%orgf
-                        needrun=True
-                else:
+            #invalidate by checksum
+            st,op = gso('tail -1 %s'%outfile) ; assert st==0
+            res = ckre.search(op)
+            if res: 
+                ck = res.group(1)
+                md = md5(orgf)
+                if ck!=md:
                     needrun=True
             else:
-                #invalidate by mtime
-                sts = os.stat(orgf)
-                stt = os.stat(outfile)
-                if sts.st_mtime>stt.st_mtime:
-                    needrun=True
-                else:
-                    #invalidate by checksum
-                    st,op = gso('tail -1 %s'%outfile) ; assert st==0
-                    res = ckre.search(op)
-                    if res: 
-                        ck = res.group(1)
-                        if orgf in rc and rc[orgf]!=ck:
-                            needrun=True
-
-
+                needrun=True
         else:
             needrun=True
         #print('needrun %s on %s'%(needrun,outfile))
@@ -305,9 +278,9 @@ def makehtml(iteration=None,notasks=False,file=None):
             st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,op)
             print 'written %s'%pfn(outfile)
 
-            if orgf in rc:
-                apnd = '\n<!-- checksum:%s -->'%(rc[orgf])
-                fp = open(outfile,'a') ; fp.write(apnd) ; fp.close()
+            md = md5(orgf)
+            apnd = '\n<!-- checksum:%s -->'%(md)
+            fp = open(outfile,'a') ; fp.write(apnd) ; fp.close()
 
         assert os.path.exists(outfile)
 
