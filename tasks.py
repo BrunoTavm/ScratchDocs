@@ -29,7 +29,7 @@ def render(tplname,params,outfile=None,mode='w'):
     r= t.render(**params)
     if outfile:
         fp = open(outfile,mode) ; fp.write(r) ; fp.close()
-        print 'written %s %s'%(tplname,pfn(outfile))
+        #print 'written %s %s'%(tplname,pfn(outfile))
 
         m = hashlib.md5()
         m.update(r)
@@ -320,7 +320,7 @@ def makeindex(iteration):
             ch = get_children(st[1]['story'])
             for c in ch:
                 c['relpath']=os.path.dirname(c['path'].replace(os.path.dirname(st[1]['path'])+'/',''))
-            print 'written story idx %s'%pfn(storyidxfn)
+            #print 'written story idx %s'%pfn(storyidxfn)
 
             pars = {'children':ch,'story':st[1],'TASKFN':cfg.TASKFN}
             render('taskindex',pars,storyidxfn,'w')
