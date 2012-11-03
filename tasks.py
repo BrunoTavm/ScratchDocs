@@ -274,20 +274,25 @@ def makehtml(iteration=None,notasks=False,file=None):
             res = ckre.search(op)
             if res: 
                 ck = res.group(1)
-                if orgf in rc and rc[orgf]!=ck:
-                    needrun=True
+                if orgf in rc:
+                    if rc[orgf]!=ck: needrun=True
+                else: needrun=True
+            else:
+                needrun=True
         else:
             needrun=True
         #print('needrun %s on %s'%(needrun,outfile))
         if needrun:
             st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,op)
             print 'written %s'%pfn(outfile)
+
+            if orgf in rc:
+                if orgf in rc:
+                    apnd = '\n<!-- checksum:%s -->'%(rc[orgf])
+                    fp = open(outfile,'a') ; fp.write(apnd) ; fp.close()
+
         assert os.path.exists(outfile)
 
-        if orgf in rc:
-            if orgf in rc:
-                apnd = '\n<!-- checksum:%s -->'%(rc[orgf])
-                fp = open(outfile,'a') ; fp.write(apnd) ; fp.close()
     print 'processed %s orgfiles.'%cnt
 
 def makeindex(iteration):
