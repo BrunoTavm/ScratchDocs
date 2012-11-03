@@ -223,6 +223,11 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
             iteration = t['iteration']
         else:
             iteration = cfg.BACKLOG
+    if iteration=='current':
+        iterations = get_iterations()
+        current_iteration = get_current_iteration(iterations)
+        iteration = current_iteration[1]['name']
+
     if parent:
         #make sure that parent is in iteration
         tf = [parse_story_fn(fn) for fn in get_task_files(iteration=iteration)]
@@ -259,6 +264,8 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
        if k not in pars: pars[k]=None
 
     assert not os.path.exists(newdir),"%s exists"%newdir
+    dn = os.path.dirname(newdir)
+    assert os.path.exists(dn),"%s does not exist."%dn
     st,op = gso('mkdir -p %s'%newdir) ; assert st==0,"could not mkdir %s"%newdir
 
     assert not os.path.exists(newtaskfn)
@@ -320,17 +327,20 @@ def by_status(stories):
         if st not in rt: rt[st]=[]
         rt[st].append(s)
     return rt
+def get_current_iteration(iterations):
+    nw = datetime.datetime.now() ; current_iteration=None
+    for itp,it in iterations:
+        if ('start date' in it and 'end date' in it):
+            if (it['start date']<=nw and it['end date']>=nw):
+                current_iteration = (itp,it)
+    return current_iteration
 def makeindex(iteration):
 
     iterations = get_iterations()
     iterations_stories={}
 
     #find out the current one
-    nw = datetime.datetime.now() ; current_iteration=None
-    for itp,it in iterations:
-        if ('start date' in it and 'end date' in it):
-            if (it['start date']<=nw and it['end date']>=nw):
-                current_iteration = (itp,it)
+    current_iteration = get_current_iteration(iterations)
     recent = [(tf,parse_story_fn(tf,read=True)) for tf in get_task_files(recent=True)]
 
         
