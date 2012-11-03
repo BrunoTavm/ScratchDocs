@@ -16,6 +16,7 @@ task_tpl = Template(open(os.path.join(tpldir,'task.org')).read())
 iterations_tpl = Template(open(os.path.join(tpldir,'iterations.org')).read())
 tasks_tpl = Template(open(os.path.join(tpldir,'tasks.org')).read())
 taskindex_tpl = Template(open(os.path.join(tpldir,'taskindex.org')).read())            
+iteration_tpl = Template(open(os.path.join(tpldir,'iteration.org')).read())            
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
 def md5(fn):
     st,op = gso('md5sum %s'%fn); assert st==0
@@ -27,6 +28,7 @@ def render(tplname,params,outfile=None,mode='w'):
             ,'tasks':tasks_tpl
             ,'taskindex':taskindex_tpl
             ,'iterations':iterations_tpl
+            ,'iteration':iteration_tpl
             }
 
     t = tpls[tplname]
@@ -65,6 +67,12 @@ def pfn(fn):
     else:
         return fn
 
+def parse_attrs(node):
+    rt= dict([a[2:].split(' :: ') for a in node.split('\n') if a.startswith('- ')])
+    for k,v in rt.items():
+        if k.endswith('date'):
+            rt[k]=datetime.datetime.strptime(v.strip('<>[]'),'%Y-%m-%d')
+    return rt
 def parse_story_fn(fn,read=False):
     assert len(fn)
     parts = fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR)
@@ -80,7 +88,7 @@ def parse_story_fn(fn,read=False):
                 heading = node.get_heading()
                 rt['summary']=heading
             elif node.get_heading()=='Attributes':
-                attrs = dict([a[2:].split(' :: ') for a in unicode(node).split('\n') if a.startswith('- ')])
+                attrs = parse_attrs(unicode(node))
                 for k,v in attrs.items():
                     rt[k]=v
                     if k=='tags':
@@ -121,12 +129,12 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     return files
 
 def sort_iterations(i1,i2):
-    try:i1v = int(i1[0])
-    except ValueError: 
-        i1v = 1000
-    try: i2v = int(i2[0])
-    except ValueError: 
-        i2v = 1000
+    try:i1v = i1[1]['end date']
+    except KeyError: 
+        i1v = datetime.datetime.now()+datetime.timedelta(days=3650)
+    try: i2v = i2[1]['end date'] #int(i2[0])
+    except KeyError: 
+        i2v = datetime.datetime.now()+datetime.timedelta(days=3650)
         
     rt= cmp(i1v,i2v)
     return rt
@@ -138,14 +146,23 @@ def taskid_srt(s1,s2):
     s1i = int(s1[1]['story'].split(cfg.STORY_SEPARATOR)[0])
     s2i = int(s2[1]['story'].split(cfg.STORY_SEPARATOR)[0])
     return cmp(s1i,s2i)
-
+def parse_iteration(pth):
+    iteration_name = os.path.basename(os.path.dirname(pth))
+    rt={'path':pth,'name':os.path.basename(os.path.dirname(pth))}
+    root = orgparse.load(pth)
+    for node in root[1:]:
+        head = node.get_heading()
+        if node.get_heading()=='Attributes':
+            attrs = parse_attrs(unicode(node))
+            for k,v in attrs.items(): rt[k]=v
+    return rt
 def get_iterations():
     cmd = 'find %s -name "iteration.org" ! -wholename "*templates*" -type f'%(cfg.DATADIR)
     #cmd = 'find %s -maxdepth 1 ! -wholename "*.git*"  -type d'%(cfg.DATADIR)
     st,op = gso(cmd) ; assert st==0
     #print op  ; raise Exception('w00t')
     dirs = op.split('\n')
-    rt = [(os.path.basename(os.path.dirname(path)),os.path.dirname(path)) for path in dirs if len(path.split('/'))>1]
+    rt = [(os.path.dirname(path),parse_iteration(path)) for path in dirs if len(path.split('/'))>1]
     rt.sort(sort_iterations,reverse=True)
     return rt
 def get_task(number,read=False,exc=True):
@@ -305,7 +322,7 @@ def makeindex(iteration):
             #print 'skipping iteration %s'%(it[0])
             continue
         #print 'walking iteration %s'%it[0]
-        taskfiles = get_task_files(iteration=it[0],recurse=True)
+        taskfiles = get_task_files(iteration=it[1]['name'],recurse=True)
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
         shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
@@ -317,6 +334,7 @@ def makeindex(iteration):
         stlist = render('tasks',vardict,itidxfn,'a') 
 
         #we show an iteration index of the immediate 1 level down tasks
+
         for st in shallowstories:
             #aggregate assignees
             if st[1]['assigned to']:
@@ -348,7 +366,6 @@ def makeindex(iteration):
         stories.sort(status_srt)
         vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'iteration':True}
         cont = render('tasks',vardict,ofn)
-
     vardict = {'iterations':iterations,'iterations_stories':iterations_stories,'assigned_files':assigned_files,'assignees':assignees}
     idxfn = os.path.join(cfg.DATADIR,'index.org')
     itlist = render('iterations',vardict,idxfn)

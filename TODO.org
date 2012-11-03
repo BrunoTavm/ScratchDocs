@@ -15,6 +15,11 @@
 ** DONE story purge
 
 ** TODO have a flat per-story index
+** import scrumdo comments
+** show recent stories
+** show user's todo
+** show current iteration
+* add iteration
 * TODO tests for common tasks
 * TODO add a new story [1/2]
 ** DONE from commandline

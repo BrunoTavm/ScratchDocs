@@ -1,13 +1,18 @@
 #+OPTIONS: toc:nil        (no TOC at all)
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
 * Iterations list
-% for it,path in iterations:
-- [[file:${it}/][${it}]] \
-% if it in iterations_stories:
-(${iterations_stories[it]})\
+| iteration | Stories | start date | end date |
+|-----------+---------+------------+----------|
+% for itpath,it in iterations:
+| [[file:${itpath}/][${it['name']}]]\
+% if it['name'] in iterations_stories:
+| ${iterations_stories[it['name']]}\
+% else:
+| \
 % endif
-
+| ${it.get('start date')|} | ${it.get('end date')|} | 
 % endfor
+
 
 * Assigned list
 % for person,file in assigned_files.items():

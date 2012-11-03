@@ -5,7 +5,7 @@ import config as cfg
 import codecs
 import os
 from mako.template import Template
-from tasks import get_task
+from tasks import get_task,render
 import sys
 
 usermap = {'andysnagovsky':'andrey.s',
@@ -88,9 +88,7 @@ d={}
 for i in range(len(c.description)):
     d[i]=c.description[i][0]
 
-itertpl = Template(open('templates/iteration.org').read())
 
-tpl = Template(open('templates/task.org').read())
 
 pt = prettytable.PrettyTable(d.values())
 cnt=0
@@ -118,9 +116,7 @@ while True:
     if not os.path.exists(iterdir): os.mkdir(iterdir)
 
     iterfn = os.path.join(iterdir,'iteration.org')
-    if not os.path.exists(iterfn):
-        itercont = itertpl.render(**iterinfo[r['iteration']])
-        fp = open(iterfn,'w'); fp.write(itercont); fp.close()
+    render('iteration',iterinfo[r['iteration']],iterfn)
 
     assert r['story_id']
     #make sure we are not overwriting
@@ -139,12 +135,7 @@ while True:
         r['detail']= r['detail'].decode('cp1251')
     r['tags']=storytags
     #r['detail'] = r['detail'].decode('utf-8')
-    storycont = tpl.render(**r)
-    storyfn = os.path.join(storydir,cfg.TASKFN)
-    fp = codecs.open (storyfn,'w','utf-8')
-    fp.write(storycont)
-    fp.close()
-    #pt.add_row(row)
+    storycont = render('task',r,storyfn)
     cnt+=1
 print pt
 print '%s stories counted.'%cnt
