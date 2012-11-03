@@ -269,19 +269,13 @@ def makehtml(iteration=None,notasks=False,file=None):
         outfile = os.path.join(os.path.dirname(orgf),os.path.basename(orgf).replace('.org','.html'))
         needrun=False
         if os.path.exists(outfile): #emacs is darn slow.
-            #invalidate by mtime
-            sts = os.stat(orgf)
-            stt = os.stat(outfile)
-            if sts.st_mtime>stt.st_mtime:
-                needrun=True
-            else:
-                #invalidate by checksum
-                st,op = gso('tail -1 %s'%outfile) ; assert st==0
-                res = ckre.search(op)
-                if res: 
-                    ck = res.group(1)
-                    if orgf in rc and rc[orgf]!=ck:
-                        needrun=True
+            #invalidate by checksum
+            st,op = gso('tail -1 %s'%outfile) ; assert st==0
+            res = ckre.search(op)
+            if res: 
+                ck = res.group(1)
+                if orgf in rc and rc[orgf]!=ck:
+                    needrun=True
         else:
             needrun=True
         #print('needrun %s on %s'%(needrun,outfile))
