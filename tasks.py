@@ -272,7 +272,7 @@ def makehtml(iteration=None,notasks=False,files=[]):
     findcmd = 'find %s ! -wholename "*orgparse*" ! -wholename "*templates*" ! -wholename "*.git*" -iname "*.org" -type f'%(pth)
     st,op = gso(findcmd) ; assert st==0
 
-    if file:
+    if len(files):
         orgfiles = files
     else:
         orgfiles = [fn for fn in op.split('\n') if fn!='']
