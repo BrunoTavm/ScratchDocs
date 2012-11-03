@@ -6,7 +6,7 @@
 ** import odesk hours tracking
 ** import git commits
 * TODO contain stories
-* TODO render the whole storyboard to html [10/12]
+* TODO render the whole storyboard to html [11/12]
 ** DONE show what stories are in an iteration
 ** DONE show who is assigned what story
 ** DONE show stories by status
@@ -15,7 +15,9 @@
 ** DONE story purge
 
 ** TODO have a flat per-story index
-** TODO import scrumdo comments
+** DONE import scrumdo [2/2]
+*** DONE comments
+*** DONE tasks 
 ** DONE show recent stories
 ** DONE show other story by creator/user
 ** DONE show user's todo

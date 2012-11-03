@@ -8,40 +8,41 @@ from mako.template import Template
 from tasks import get_task,render
 import sys
 
-usermap = {'andysnagovsky':'andrey.s',
+usermap = {'andysnagovsky':'andrey_s',
            'milez':'guy',
-           'nskrypnik':'nikolay.s',
-           'dkhinoy':'denis.k',
-           '3demax':'maxim.g',
-           'zyko':'denis.d',
+           'nskrypnik':'nikolay_s',
+           'dkhinoy':'denis_k',
+           '3demax':'maxim_g',
+           'zyko':'denis_d',
            'romepartners':'lillian',
-           'dima':'dmitry.m',
-           'serg0987':'sergey.g',
-           'dimonji':'dmitry.f',
-           'notreserved':'eugene.c',
-           'checha':'andrey.c',
-           'borist':'boris.t',
-           'denis_d':'denis.d',
-           'vitaly_shcherbak':'vitaly.s',
-           'HFlamov':'maxim.d',
-           'anna_kukoyashnaya':'anna.k',
-           '4031651':'sergey.t',
+           'lillian':'lillian',
+           'dima':'dmitry_m',
+           'serg0987':'sergey_g',
+           'dimonji':'dmitry_f',
+           'notreserved':'eugene_c',
+           'checha':'andrey_c',
+           'borist':'boris_t',
+           'denis_d':'denis_d',
+           'vitaly_shcherbak':'vitaly_s',
+           'HFlamov':'maxim_d',
+           'anna_kukoyashnaya':'anna_k',
+           '4031651':'sergey_t',
            'vjacheslaw_b':'vjacheslaw_b',
-           'yraksenov':'yury.a',
-           'Flamov':'maxim.d',
-           'igor':'igor.y',
-           'artem_p':'artem.p',
-           'Rinat':'rinat.i',
-           'jazz':'andrey.n',
-           'singleplayer':'kathrin.s',
-           'ester_s':'ester.s',
-           'slava_l':'slava.l',
-           'shatunov_sv':'sergey.s',
-           'sergey_p':'sergey.p',
-           'vladimir_b':'vlarimir.b',
-           'alex_y':'alex.y',
-           'nadezhda_r':'nadezhda.r',
-           'eliah_l':'eliah.l'
+           'yraksenov':'yury_a',
+           'Flamov':'maxim_d',
+           'igor':'igor_y',
+           'artem_p':'artem_p',
+           'Rinat':'rinat_i',
+           'jazz':'andrey_n',
+           'singleplayer':'kathrin_s',
+           'ester_s':'ester_s',
+           'slava_l':'slava_l',
+           'shatunov_sv':'sergey_s',
+           'sergey_p':'sergey_p',
+           'vladimir_b':'vlarimir_b',
+           'alex_y':'alex_y',
+           'nadezhda_r':'nadezhda_r',
+           'eliah_l':'eliah_l'
         }
 statuses = {1:'TODO',
             2:'DOING',
@@ -51,6 +52,7 @@ statuses = {1:'TODO',
 db = my.connect(host='localhost',user='root',db='backlog')
 c = db.cursor() #cursorclass=my.cursors.CursorTupleRowsMixIn())
 c2 = db.cursor()
+c3 = db.cursor()
 c.execute("""select * from projects_iteration where project_id=1""")
 d={}
 for i in range(len(c.description)):
@@ -112,6 +114,38 @@ while True:
         if 'pivotal' in tag: continue
         if tag not in storytags: storytags.append(tag)
 
+    #fetch comments
+    c3.execute("select a.username,c.comment,c.date_submitted from threadedcomments_threadedcomment c left outer join auth_user a on c.user_id=a.id where object_id=%d"%(r['id']))
+    storycomments=[]
+    while True:
+        trow = c3.fetchone()
+        if not trow: break
+        un,comment,dt = trow
+        comment = comment.replace('\n','')
+        if 'commited to github' in comment: continue
+        try:
+            unicode(comment)
+        except:
+            try:
+                comment = comment.decode('utf-8')
+            except:
+                comment = comment.decode('cp1251')
+
+        storycomments.append({'username':usermap[un],'comment':comment,'date':dt})
+    def ssrt(s1,s2):
+        return cmp(s1['date'],s2['date'])
+    storycomments.sort(ssrt)
+    r['comments']=storycomments
+    #fetch tasks
+    c3.execute("select t.summary,t.complete,a.username from projects_task t left outer join auth_user a on a.id=t.assignee_id where story_id=%d"%r['id'])
+    ptasks=[]
+    while True:
+        trow = c3.fetchone()
+        if not trow: break
+        tsum,tcomplete,tassignee = trow
+        ptasks.append({'summary':tsum,'complete':tcomplete,'assignee':(tassignee and usermap[tassignee] or None)})
+    r['stasks']=ptasks
+
     iterdir = os.path.join(cfg.DATADIR,r['iteration'])
     if not os.path.exists(iterdir): os.mkdir(iterdir)
 
@@ -124,6 +158,7 @@ while True:
         t = get_task(r['story_id'],exc=False)
         if t:
             continue
+
     storydir = os.path.join(iterdir,str(r['story_id']))
 
     if not os.path.exists(storydir): os.mkdir(storydir)
@@ -135,6 +170,7 @@ while True:
         r['detail']= r['detail'].decode('cp1251')
     r['tags']=storytags
     #r['detail'] = r['detail'].decode('utf-8')
+    storyfn = os.path.join(storydir,cfg.TASKFN)
     storycont = render('task',r,storyfn)
     cnt+=1
 print pt

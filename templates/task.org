@@ -12,6 +12,25 @@
 % if len(tags):
 - tags :: ${', '.join(tags)}
 % endif
+% if len(stasks):
+** Sub-tasks
+% for st in stasks:
+- [${st['complete'] and 'X' or ' '}] ${st['summary']}                 \
+% if st['assignee']:
+:${st['assignee']}:
+% else:
+
+% endif
+% endfor
+% endif
+\
+% if len(comments):
+** Comments
+% for c in comments: 
+- ${c['comment']} <${c['date']}>    :${c['username']}:
+% endfor
+% endif
+\
 % if detail:
 ** Detail
 ${detail}

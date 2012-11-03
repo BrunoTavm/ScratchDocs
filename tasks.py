@@ -10,6 +10,7 @@ import datetime
 import orgparse
 import hashlib
 import re
+import codecs
 
 if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
 _prefix = os.path.dirname(__file__)
@@ -37,7 +38,7 @@ def render(tplname,params,outfile=None,mode='w'):
     t = tpls[tplname]
     r= t.render(**params)
     if outfile:
-        fp = open(outfile,mode) ; fp.write(r) ; fp.close()
+        fp = codecs.open(outfile,mode,encoding='utf-8') ; fp.write(r) ; fp.close()
         #print 'written %s %s'%(tplname,pfn(outfile))
 
         return True
