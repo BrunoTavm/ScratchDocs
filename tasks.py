@@ -257,14 +257,13 @@ def makehtml(iteration=None,notasks=False,file=None):
         cnt+=1
         if notasks and (os.path.basename(orgf)==cfg.TASKFN or os.path.exists(os.path.join(os.path.dirname(orgf),cfg.TASKFN))):
             continue
-        cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(orgf)
         outfile = os.path.join(os.path.dirname(orgf),os.path.basename(orgf).replace('.org','.html'))
         needrun=False
         if os.path.exists(outfile): #emacs is darn slow.
             #invalidate by checksum
             st,op = gso('tail -1 %s'%outfile) ; assert st==0
             res = ckre.search(op)
-            if res: 
+            if res and os.path.exists(orgf): 
                 ck = res.group(1)
                 md = md5(orgf)
                 if ck!=md:
@@ -275,6 +274,7 @@ def makehtml(iteration=None,notasks=False,file=None):
             needrun=True
         #print('needrun %s on %s'%(needrun,outfile))
         if needrun:
+            cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(orgf)
             st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,op)
             print 'written %s'%pfn(outfile)
 
@@ -286,9 +286,18 @@ def makehtml(iteration=None,notasks=False,file=None):
 
     print 'processed %s orgfiles.'%cnt
 
+def by_status(stories):
+    rt = {}
+    for s in stories:
+        st = s[1]['status']
+        if st not in rt: rt[st]=[]
+        rt[st].append(s)
+    return rt
 def makeindex(iteration):
 
     iterations = get_iterations()
+    iterations_stories={}
+
     assignees={}
     for it in iterations:
         #print 'cycling through iteration %s'%it[0]
@@ -300,8 +309,9 @@ def makeindex(iteration):
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
         shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
+        iterations_stories[it[0]]=len(shallowstories)
 
-        vardict = {'term':'Iteration','value':it[0],'stories':shallowstories,'relpath':True} #the index is generated only for the immediate 1-level down stories.
+        vardict = {'term':'Iteration','value':it[0],'stories':by_status(shallowstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False} #the index is generated only for the immediate 1-level down stories.
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
         fp = open(itidxfn,'w') ; fp.write(open(os.path.join(cfg.DATADIR,it[0],'iteration.org')).read()) ; fp.close()
         stlist = render('tasks',vardict,itidxfn,'a') 
@@ -336,10 +346,10 @@ def makeindex(iteration):
         tf = get_task_files(assignee=assignee,recurse=True)
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in tf]
         stories.sort(status_srt)
-        vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':stories,'relpath':False}
+        vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'iteration':True}
         cont = render('tasks',vardict,ofn)
 
-    vardict = {'iterations':iterations,'assigned_files':assigned_files,'assignees':assignees}
+    vardict = {'iterations':iterations,'iterations_stories':iterations_stories,'assigned_files':assigned_files,'assignees':assignees}
     idxfn = os.path.join(cfg.DATADIR,'index.org')
     itlist = render('iterations',vardict,idxfn)
 

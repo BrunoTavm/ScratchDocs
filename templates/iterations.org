@@ -2,9 +2,14 @@
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
 * Iterations list
 % for it,path in iterations:
-** [[file:${it}/][${it}]]
+- [[file:${it}/][${it}]] \
+% if it in iterations_stories:
+(${iterations_stories[it]})\
+% endif
+
 % endfor
+
 * Assigned list
 % for person,file in assigned_files.items():
-** [[file:${file}][${person}]] (${assignees[person]})
+- [[file:${file}][${person}]] (${assignees[person]})
 % endfor

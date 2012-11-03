@@ -1,13 +1,19 @@
 #+OPTIONS: toc:nil        (no TOC at all)
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
 * ${term} ${value} tasks
-% for sfn,sv in stories:
+
+% for s in statuses:
+% if s in stories:
+** ${s}
+| ID | Iteration | Summary | Assignee | Tags | Status |
+|----+-----------+---------+----------+------+--------|
+% for sfn,sv in stories[s]:
 % if relpath:
-** [[file:${sv['story']}/index.org][${sv['story']}]]\
+| [[file:${sv['story']}/index.org][${sv['story']}]]\
 % else:
-** [[file:${sv['iteration']}/${sv['story']}/index.org][${sv['story']}]]\
+| [[file:${sv['iteration']}/${sv['story']}/index.org][${sv['story']}]]\
 % endif
- :: ${sv['summary']} - ${sv['status']}
-
+| ${sv['iteration']} | ${sv['summary']} | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} |
 % endfor
-
+% endif
+% endfor
