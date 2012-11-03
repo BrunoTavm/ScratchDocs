@@ -9,10 +9,10 @@
 % if points!='?':
 - points :: ${points}
 % endif
-% if len(tags):
+% if tags and len(tags):
 - tags :: ${', '.join(tags)}
 % endif
-% if len(stasks):
+% if stasks and len(stasks):
 ** Sub-tasks
 % for st in stasks:
 - [${st['complete'] and 'X' or ' '}] ${st['summary']}                 \
@@ -24,7 +24,7 @@
 % endfor
 % endif
 \
-% if len(comments):
+% if comments and len(comments):
 ** Comments
 % for c in comments: 
 - ${c['comment']} <${c['date']}>    :${c['username']}:

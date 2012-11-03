@@ -201,11 +201,12 @@ def get_new_idx(parent=None):
         tpath = cfg.DATADIR
         md = 3
         add = ''
-    findcmd = 'find %s -maxdepth %s ! -wholename "*.git*" -type f -iname "%s" %s'%(tpath,md,cfg.TASKFN,add)
+    findcmd = 'find %s -maxdepth %s ! -wholename "*templates*" ! -wholename "*.git*" -type f -iname "%s" %s'%(tpath,md,cfg.TASKFN,add)
     st,op = gso(findcmd) ; assert st==0
     files = [fn for fn in op.split('\n') if fn!='']
     
     tf = [parse_story_fn(fn) for fn in files]
+    assert len([t['story'] for t in tf if not re.compile('^([\d]+)$').search(t['story'])])==0
     finalnames = [int(t['story'].split(cfg.STORY_SEPARATOR)[-1]) for t in tf]
     if len(finalnames):
         maxid = max(finalnames)
