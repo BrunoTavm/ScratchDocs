@@ -5,18 +5,21 @@ from commands import getstatusoutput as gso
 from prettytable import PrettyTable
 import os
 from mako.template import Template
+from mako.lookup import TemplateLookup
 import datetime
 import orgparse
 import hashlib
 import re
 
+if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
 _prefix = os.path.dirname(__file__)
 tpldir = os.path.join(_prefix,'templates')
-task_tpl = Template(open(os.path.join(tpldir,'task.org')).read())
-iterations_tpl = Template(open(os.path.join(tpldir,'iterations.org')).read())
-tasks_tpl = Template(open(os.path.join(tpldir,'tasks.org')).read())
-taskindex_tpl = Template(open(os.path.join(tpldir,'taskindex.org')).read())            
-iteration_tpl = Template(open(os.path.join(tpldir,'iteration.org')).read())            
+lk = TemplateLookup(directories=['.'])
+task_tpl = Template(filename=(os.path.join(tpldir,'task.org')),lookup = lk,module_directory=cfg.MAKO_DIR)
+iterations_tpl = Template(filename=os.path.join(tpldir,'iterations.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+tasks_tpl = Template(filename=os.path.join(tpldir,'tasks.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+taskindex_tpl = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
+iteration_tpl = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
 def md5(fn):
     st,op = gso('md5sum %s'%fn); assert st==0
@@ -72,6 +75,8 @@ def parse_attrs(node):
     for k,v in rt.items():
         if k.endswith('date'):
             rt[k]=datetime.datetime.strptime(v.strip('<>[]'),'%Y-%m-%d')
+        if k in ['created at']:
+            rt[k]=datetime.datetime.strptime(v.strip('<>[]').split('.')[0],'%Y-%m-%d %H:%M:%S')
     return rt
 def parse_story_fn(fn,read=False):
     assert len(fn)
@@ -97,7 +102,7 @@ def parse_story_fn(fn,read=False):
 
         #storycont = open(
     return rt
-def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True):
+def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
     if iteration:
         itcnd=' -wholename "%s/*"'%(os.path.join(cfg.DATADIR,str(iteration)))
     else:
@@ -106,12 +111,12 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
         add=' -maxdepth 3'
     else:
         add=''
-    cmd = "find  %s  %s ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,add,itcnd,cfg.TASKFN)
+    cmd = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,add,itcnd,cfg.TASKFN)
     st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
     files = [fn for fn in op.split('\n') if fn!='']
 
     #filter by assignee. heavy.
-    if assignee or status or tag:
+    if assignee or status or tag or recent:
         rt = []
         for fn in files:
             s = parse_story_fn(fn,read=True)
@@ -121,6 +126,8 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
             if status and s['status']==status:
                 incl=True
             if tag and 'tags' in s and tag in s['tags']:
+                incl=True
+            if recent and 'created at' in s and s['created at']>=(datetime.datetime.now()-datetime.timedelta(days=cfg.RECENT_DAYS)):
                 incl=True
             if incl:
                 rt.append(fn)
@@ -255,7 +262,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     assert not os.path.exists(newtaskfn)
     render('task',params.__dict__,newtaskfn)
 
-def makehtml(iteration=None,notasks=False,file=None):
+def makehtml(iteration=None,notasks=False,files=[]):
     #find all the .org files generated
 
     if iteration:
@@ -266,7 +273,7 @@ def makehtml(iteration=None,notasks=False,file=None):
     st,op = gso(findcmd) ; assert st==0
 
     if file:
-        orgfiles = [file]
+        orgfiles = files
     else:
         orgfiles = [fn for fn in op.split('\n') if fn!='']
     cnt=0
@@ -295,9 +302,10 @@ def makehtml(iteration=None,notasks=False,file=None):
             st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,op)
             print 'written %s'%pfn(outfile)
 
-            md = md5(orgf)
-            apnd = '\n<!-- checksum:%s -->'%(md)
-            fp = open(outfile,'a') ; fp.write(apnd) ; fp.close()
+            if os.path.exists(orgf):
+                md = md5(orgf)
+                apnd = '\n<!-- checksum:%s -->'%(md)
+                fp = open(outfile,'a') ; fp.write(apnd) ; fp.close()
 
         assert os.path.exists(outfile)
 
@@ -315,6 +323,15 @@ def makeindex(iteration):
     iterations = get_iterations()
     iterations_stories={}
 
+    #find out the current one
+    nw = datetime.datetime.now() ; current_iteration=None
+    for itp,it in iterations:
+        if ('start date' in it and 'end date' in it):
+            if (it['start date']<=nw and it['end date']>=nw):
+                current_iteration = (itp,it)
+    recent = [(tf,parse_story_fn(tf,read=True)) for tf in get_task_files(recent=True)]
+
+        
     assignees={}
     for it in iterations:
         #print 'cycling through iteration %s'%it[0]
@@ -355,23 +372,36 @@ def makeindex(iteration):
             fp = open(storyidxfn,'a') ; fp.write(open(st[1]['path']).read()) ; fp.close()
 
             #print idxcont
-
     assigned_files={}
-    for assignee,storycnt in assignees.items():
-        afn = 'assigned-'+assignee+'.org'
-        ofn = os.path.join(cfg.DATADIR,afn)
-        assigned_files[assignee]=afn
-        tf = get_task_files(assignee=assignee,recurse=True)
-        stories = [(fn,parse_story_fn(fn,read=True)) for fn in tf]
-        stories.sort(status_srt)
-        vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'iteration':True}
-        cont = render('tasks',vardict,ofn)
-    vardict = {'iterations':iterations,'iterations_stories':iterations_stories,'assigned_files':assigned_files,'assignees':assignees}
+    for asfn in ['alltime','current']:
+        for assignee,storycnt in assignees.items():
+            afn = 'assigned-'+assignee+'-'+asfn+'.org'
+            ofn = os.path.join(cfg.DATADIR,afn)
+            if assignee not in assigned_files: assigned_files[assignee]={}
+            assigned_files[assignee][asfn]=afn
+            if asfn=='current' and current_iteration:
+                f_iter = current_iteration[1]['name']
+            else:
+                f_iter=None
+            tf = get_task_files(assignee=assignee,recurse=True,iteration=f_iter)
+            stories = [(fn,parse_story_fn(fn,read=True)) for fn in tf]
+            stories.sort(status_srt)
+            vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'iteration':True}
+            cont = render('tasks',vardict,ofn)
+
+
+    vardict = {'iterations':iterations,
+               'iterations_stories':iterations_stories,
+               'assigned_files':assigned_files,
+               'assignees':assignees,
+               'current_iteration':current_iteration,
+               'recent_tasks':recent
+               }
     idxfn = os.path.join(cfg.DATADIR,'index.org')
     itlist = render('iterations',vardict,idxfn)
 
-def list_stories(iteration=None,assignee=None,status=None,tag=None):
-    files = get_task_files(iteration=iteration,assignee=assignee,status=status,tag=tag)
+def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False):
+    files = get_task_files(iteration=iteration,assignee=assignee,status=status,tag=tag,recent=recent)
     pt = PrettyTable(['iteration','id','summary','assigned to','status','tags','fn'])
     pt.align['summary']='l'
     cnt=0
@@ -395,6 +425,7 @@ if __name__=='__main__':
     list.add_argument('--assignee',dest='assignee')
     list.add_argument('--status',dest='status')
     list.add_argument('--tag',dest='tag')
+    list.add_argument('--recent',dest='recent',action='store_true')
 
     gen = subparsers.add_parser('index')
     gen.add_argument('--iteration',dest='iteration')
@@ -402,7 +433,7 @@ if __name__=='__main__':
     html = subparsers.add_parser('makehtml')
     html.add_argument('--iteration',dest='iteration')
     html.add_argument('--notasks',dest='notasks',action='store_true')
-    html.add_argument('--file',dest='file')
+    html.add_argument('files',nargs='*')
 
     nw = subparsers.add_parser('new')
     nw.add_argument('--iteration',dest='iteration')
@@ -425,11 +456,11 @@ if __name__=='__main__':
     args = parser.parse_args()
 
     if args.command=='list':
-        list_stories(iteration=args.iteration,assignee=args.assignee,status=args.status,tag=args.tag)
+        list_stories(iteration=args.iteration,assignee=args.assignee,status=args.status,tag=args.tag,recent=args.recent)
     if args.command=='index':
         makeindex(args.iteration)
     if args.command=='makehtml':
-        makehtml(iteration=args.iteration,notasks=args.notasks,file=args.file)
+        makehtml(iteration=args.iteration,notasks=args.notasks,files=args.files)
 
     if args.command=='new':
         task = add_task(iteration=args.iteration,parent=args.parent,params=args,force_id=args.id,tags=args.tags)

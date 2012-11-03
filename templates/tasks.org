@@ -1,13 +1,7 @@
-#+OPTIONS: toc:nil        (no TOC at all)
-#+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
-* ${term} ${value} tasks
-
-% for s in statuses:
-% if s in stories:
-** ${s}
+<%def name="list_tasks(tasks,relpath=False)">
 | ID | Iteration | Summary | Assignee | Tags | Status |
 |----+-----------+---------+----------+------+--------|
-% for sfn,sv in stories[s]:
+% for sfn,sv in tasks:
 % if relpath:
 | [[file:${sv['story']}/index.org][${sv['story']}]]\
 % else:
@@ -15,5 +9,16 @@
 % endif
 | ${sv['iteration']} | ${sv['summary']} | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} |
 % endfor
+</%def>
+<%def name="body()">
+#+OPTIONS: toc:nil        (no TOC at all)
+#+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
+* ${term} ${value} tasks
+
+% for s in statuses:
+% if s in stories:
+** ${s}
+${list_tasks(stories[s],relpath=relpath)}
 % endif
 % endfor
+</%def>

@@ -2,8 +2,13 @@
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
 * Task ${story['story']}
 ** [[file:../index.org][Up one level]]
+% if 'assigned to' in story:
+** Other tasks by ${story['assigned to']}
+- [[file:/assigned-${story['assigned to']}-alltime.org][all tasks]] 
+- [[file:/assigned-${story['assigned to']}-current.org][current tasks]]
+% endif
 % if len(children):
-* Sub tasks
+** Sub tasks
 % for st in children:
 ** [[file:${st['relpath']}][${st['story']}]] :: ${st['summary']}
 % endfor
