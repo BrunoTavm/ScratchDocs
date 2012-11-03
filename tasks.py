@@ -334,6 +334,9 @@ def makeindex(iteration):
 
         
     assignees={}
+    #create the dir for shortcuts
+    if not os.path.exists(cfg.SDIR): os.mkdir(cfg.SDIR)
+
     for it in iterations:
         #print 'cycling through iteration %s'%it[0]
         if iteration and str(it[1]['name'])!=str(iteration): 
@@ -343,6 +346,26 @@ def makeindex(iteration):
         taskfiles = get_task_files(iteration=it[1]['name'],recurse=True)
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
+
+        #let's create symlinks for all those stories to the root folder.
+        for tl in stories:
+            tpath = tl[0]
+            taskid = '-'.join(tl[1]['story'].split(cfg.STORY_SEPARATOR))
+            spath = os.path.join(cfg.SDIR,taskid)
+            dpath = '/'+tl[1]['iteration']+'/'+tl[1]['story']
+            ldest = os.path.join('..',os.path.dirname(tpath))
+            cmd = 'ln -s %s %s'%(ldest,spath)
+            needrun=False
+            if os.path.exists(spath):
+                ls = os.readlink(spath)
+                if ls!=ldest:
+                    os.unlink(spath)
+                    needrun=True
+            else:
+                needrun=True
+            if needrun:
+                st,op = gso(cmd) ; assert st==0
+
         shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
         iterations_stories[it[1]['name']]=len(shallowstories)
 

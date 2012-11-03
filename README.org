@@ -13,3 +13,4 @@
 4. touch config_local.py                      # create a instance local config override
 5. python scrumdo-import.py                   # optional: import your ScrumDo data
 6. ./tasks.py --help                          # start working!
+7. [[file:post-receive-hook.example][post receive hook example]]                  # if you want to configure html rendering to static files on a remote server.

@@ -1,0 +1,14 @@
+#!/bin/bash
+cd /var/www/docs/Docs
+unset GIT_DIR
+echo 'pulling latest master.'
+git pull origin master
+echo 'updating submodule.'
+git submodule update
+echo 'reindexing.'
+
+source venv/bin/activate
+python sd/tasks.py index
+python sd/tasks.py makehtml
+
+exit 0
