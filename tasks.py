@@ -291,6 +291,7 @@ def makehtml(iteration=None,notasks=False,file=None):
     print 'processed %s orgfiles.'%cnt
 
 def makeindex(iteration):
+
     iterations = get_iterations()
     assignees={}
     for it in iterations:
@@ -299,7 +300,7 @@ def makeindex(iteration):
             #print 'skipping iteration %s'%(it[0])
             continue
         #print 'walking iteration %s'%it[0]
-        taskfiles = get_task_files(iteration=it[0],recurse=False)
+        taskfiles = get_task_files(iteration=it[0],recurse=True)
         stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
         vardict = {'term':'Iteration','value':it[0],'stories':stories,'relpath':True}
