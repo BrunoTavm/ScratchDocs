@@ -91,7 +91,7 @@ def parse_attrs(node):
             rt[k]=datetime.datetime.strptime(v.strip('<>[]').split('.')[0],'%Y-%m-%d %H:%M:%S')
     rt['links']=links
     return rt
-def parse_story_fn(fn,read=False,gethours=False):
+def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
     assert len(fn)
     parts = fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR)
     assert len(parts)>1,"%s"%"error parsing %s"%fn
@@ -122,6 +122,7 @@ def parse_story_fn(fn,read=False,gethours=False):
         tothrs=0 ; person_hours={}
         for date,data in hrs.items():
             for un,uhrs in data.items():
+                if hoursonlyfor and un!=hoursonlyfor: continue
                 if un not in person_hours: person_hours[un]=0
                 tothrs+=uhrs
                 person_hours[un]+=uhrs
@@ -449,7 +450,7 @@ def makeindex(iteration):
             else:
                 f_iter=None
             tf = get_task_files(assignee=assignee,recurse=True,iteration=f_iter)
-            stories = [(fn,parse_story_fn(fn,read=True)) for fn in tf]
+            stories = [(fn,parse_story_fn(fn,read=True,gethours=True,hoursonlyfor=assignee)) for fn in tf]
             stories.sort(status_srt)
             vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'iteration':True}
             cont = render('tasks',vardict,ofn)
