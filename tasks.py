@@ -103,6 +103,8 @@ def parse_story_fn(fn,read=False):
         for node in root[1:]:
             if not heading:
                 heading = node.get_heading()
+                rt['status']=node.todo
+                rt['tags']=node.tags
                 rt['summary']=heading
             elif node.get_heading()=='Attributes':
                 attrs = parse_attrs(unicode(node))

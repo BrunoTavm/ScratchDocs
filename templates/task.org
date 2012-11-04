@@ -1,16 +1,21 @@
 #+OPTIONS: toc:nil        (no TOC at all)
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
-* ${summary}
+#+TODO: TODO(t) | DOING(p) | REVIEW(r) | DONE(d)
+* ${status} ${summary}                           \
+% if tags and len(tags):
+:\
+% for tag in tags:
+${tag}:\
+% endfor
+
+% endif
+
 ** Attributes
 - created at :: <${created}>
 - created by :: ${creator}
 - assigned to :: ${assignee}
-- status :: ${status}
 % if points!='?':
 - points :: ${points}
-% endif
-% if tags and len(tags):
-- tags :: ${', '.join(tags)}
 % endif
 % if stasks and len(stasks):
 ** Sub-tasks
