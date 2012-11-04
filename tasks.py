@@ -13,7 +13,6 @@ import re
 import codecs
 import json
 
-from commits import odesk_fetch
 if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
 _prefix = os.path.dirname(__file__)
 tpldir = os.path.join(_prefix,'templates')
@@ -547,6 +546,7 @@ if __name__=='__main__':
         for task in tasks:
             move_task(task,dest)
     if args.command=='odesk_import':
+        from commits import odesk_fetch
         if not args.from_date: args.from_date=(datetime.datetime.now()-datetime.timedelta(days=1)) #.strftime('%Y-%m-%d')
         else: args.from_date = datetime.datetime.strptime(args.from_date,'%Y-%m-%d')
         if not args.to_date: args.to_date=(datetime.datetime.now()-datetime.timedelta(days=1)) #.strftime('%Y-%m-%d')
