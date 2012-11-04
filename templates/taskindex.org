@@ -10,8 +10,10 @@
 % endif
 % if len(children):
 ** Sub tasks
+| Story | Assignee | Summary | Status |
+|-------+----------+---------+--------|
 % for st in children:
-** [[file:${st['relpath']}][${st['story']}]] :: ${st['summary']}
+|  [[file:${st['relpath']}][${st['story']}]]     | ${st['assigned to']} | ${st['summary']} | ${st['status']} |
 % endfor
 % endif
 
