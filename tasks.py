@@ -70,14 +70,25 @@ def pfn(fn):
         return 'file://%s'%os.path.abspath(fn)
     else:
         return fn
-
+linkre = re.compile(re.escape('[[')+'([^\]]+)'+re.escape('][')+'([^\]]+)'+re.escape(']]'))
 def parse_attrs(node):
-    rt= dict([a[2:].split(' :: ') for a in node.split('\n') if a.startswith('- ')])
+    try:
+        rt= dict([a[2:].split(' :: ') for a in node.split('\n') if a.startswith('- ') and ' :: ' in a])
+        links=[]
+        for a in node.split('\n'):
+            res = linkre.search(a)
+            if res:
+                url,anchor = res.groups()
+                links.append({'url':url,'anchor':anchor})
+    except:
+        print node.split('\n')
+        raise
     for k,v in rt.items():
         if k.endswith('date'):
             rt[k]=datetime.datetime.strptime(v.strip('<>[]'),'%Y-%m-%d')
         if k in ['created at']:
             rt[k]=datetime.datetime.strptime(v.strip('<>[]').split('.')[0],'%Y-%m-%d %H:%M:%S')
+    rt['links']=links
     return rt
 def parse_story_fn(fn,read=False):
     assert len(fn)

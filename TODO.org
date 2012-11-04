@@ -22,6 +22,9 @@
 ** DONE show other story by creator/user
 ** DONE show user's todo
 ** DONE show current iteration
+** show last changes to stories
+** show state and tags in task headline
+** see in task render what iteration it is under
 * add iteration
 * TODO tests for common tasks
 * TODO add a new story [1/2]
