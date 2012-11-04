@@ -1,6 +1,7 @@
 #+OPTIONS: toc:nil        (no TOC at all)
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
 * Task ${story['story']}
+** In iteration [[/${story['iteration']}/][${story['iteration']}]]
 ** [[file:../index.org][Up one level]]
 % if 'assigned to' in story:
 ** Other tasks by ${story['assigned to']}
