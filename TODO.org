@@ -3,8 +3,8 @@
 *** DONE story tags
 ** DONE import iterations
 *** DONE iteration dates
-** import odesk hours tracking
-** import git commits
+** DONE import odesk hours tracking
+** TODO import git commits
 * TODO contain stories
 * TODO render the whole storyboard to html [14/15]
 ** DONE show what stories are in an iteration

@@ -11,7 +11,9 @@ import orgparse
 import hashlib
 import re
 import codecs
+import json
 
+from commits import odesk_fetch
 if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
 _prefix = os.path.dirname(__file__)
 tpldir = os.path.join(_prefix,'templates')
@@ -90,7 +92,7 @@ def parse_attrs(node):
             rt[k]=datetime.datetime.strptime(v.strip('<>[]').split('.')[0],'%Y-%m-%d %H:%M:%S')
     rt['links']=links
     return rt
-def parse_story_fn(fn,read=False):
+def parse_story_fn(fn,read=False,gethours=False):
     assert len(fn)
     parts = fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR)
     assert len(parts)>1,"%s"%"error parsing %s"%fn
@@ -115,6 +117,17 @@ def parse_story_fn(fn,read=False):
 
 
         #storycont = open(
+    hfn = os.path.join(os.path.dirname(fn),'hours.json')
+    if gethours and os.path.exists(hfn):
+        hrs = json.loads(open(hfn).read())
+        tothrs=0 ; person_hours={}
+        for date,data in hrs.items():
+            for un,uhrs in data.items():
+                if un not in person_hours: person_hours[un]=0
+                tothrs+=uhrs
+                person_hours[un]+=uhrs
+        rt['total_hours']=tothrs
+        rt['person_hours']=person_hours
     return rt
 def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
     if iteration:
@@ -191,7 +204,7 @@ def get_task(number,read=False,exc=True):
     tf = [parse_story_fn(fn,read=read) for fn in get_task_files()]
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
     if exc:
-        assert number in tasks
+        assert number in tasks,"%s (%s) not in %s"%(number,type(number),'tasks')
     else:
         if number not in tasks: 
             return False
@@ -373,7 +386,7 @@ def makeindex(iteration):
             continue
         #print 'walking iteration %s'%it[0]
         taskfiles = get_task_files(iteration=it[1]['name'],recurse=True)
-        stories = [(fn,parse_story_fn(fn,read=True)) for fn in taskfiles]
+        stories = [(fn,parse_story_fn(fn,read=True,gethours=True)) for fn in taskfiles]
         stories.sort(taskid_srt,reverse=True)        
 
         #let's create symlinks for all those stories to the root folder.
@@ -506,6 +519,10 @@ if __name__=='__main__':
     move = subparsers.add_parser('move')
     move.add_argument('fromto',nargs='+')
 
+    odi = subparsers.add_parser('odesk_import')
+    odi.add_argument('--from',dest='from_date')
+    odi.add_argument('--to',dest='to_date')
+
     args = parser.parse_args()
 
     if args.command=='list':
@@ -529,3 +546,31 @@ if __name__=='__main__':
         dest = args.fromto[-1]
         for task in tasks:
             move_task(task,dest)
+    if args.command=='odesk_import':
+        if not args.from_date: args.from_date=(datetime.datetime.now()-datetime.timedelta(days=1)) #.strftime('%Y-%m-%d')
+        else: args.from_date = datetime.datetime.strptime(args.from_date,'%Y-%m-%d')
+        if not args.to_date: args.to_date=(datetime.datetime.now()-datetime.timedelta(days=1)) #.strftime('%Y-%m-%d')
+        else: args.to_date = datetime.datetime.strptime(args.to_date,'%Y-%m-%d')
+        
+        i = args.from_date
+        while i<args.to_date:
+            print i
+            rt = odesk_fetch.run_query(date_from=i.strftime('%Y-%m-%d'),date_to=i.strftime('%Y-%m-%d'))
+            rel = rt['by_story_provider']
+            out = {}
+            for sid,dt in rel.items():
+                if sid=='None': continue
+                out[sid]={} ; nasgn={}
+                for un,hrs in dt.items(): nasgn[cfg.USERMAP(un)]=hrs
+                out[sid]=nasgn
+                t = get_task(sid)
+                ofn = os.path.join(os.path.dirname(t['path']),'hours.json')
+                if not os.path.exists(ofn):
+                    hours = {}
+                else:
+                    hours = json.loads(open(ofn).read())
+                ts = '%s'%(i.strftime('%Y-%m-%d'))
+                hours[ts]=nasgn
+                fp = open(ofn,'w') ; fp.write(json.dumps(hours,indent=True)) ; fp.close() 
+                print 'written %s in %s'%(ts,ofn)
+            i+=datetime.timedelta(days=1)

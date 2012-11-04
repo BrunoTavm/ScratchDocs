@@ -16,4 +16,11 @@
 |  [[file:${st['relpath']}][${st['story']}]]     | ${st['assigned to']} | ${st['summary']} | ${st['status']} |
 % endfor
 % endif
-
+% if story.get('total_hours'):
+** ${story['total_hours']} tracked in total
+| Person | Hours |
+|--------+-------|
+% for un,hrs in story['person_hours'].items():
+| ${un} | ${hrs} |
+% endfor
+% endif
