@@ -7,7 +7,7 @@
 % else:
 | [[file:${sv['iteration']}/${sv['story']}/index.org][${sv['story']}]]\
 % endif
-| ${sv['iteration']} | ${sv['summary']} | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} | ${sv.get('total_hours')} |
+| ${sv['iteration']} | ${sv['summary']} | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} | ${"%4.1f"%sv.get('total_hours',0)} |
 % endfor
 </%def>
 <%def name="body()">

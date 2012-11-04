@@ -180,6 +180,13 @@ def taskid_srt(s1,s2):
     s1i = int(s1[1]['story'].split(cfg.STORY_SEPARATOR)[0])
     s2i = int(s2[1]['story'].split(cfg.STORY_SEPARATOR)[0])
     return cmp(s1i,s2i)
+def hours_srt(s1,s2):
+    s1v = s1[1].get('total_hours',0)
+    s2v = s2[1].get('total_hours',0)
+    if not s1v and not s2v:
+        s1v = int(s1[1]['story'].split(cfg.STORY_SEPARATOR)[0])
+        s2v = int(s2[1]['story'].split(cfg.STORY_SEPARATOR)[0])
+    return cmp(s1v,s2v)
 def parse_iteration(pth):
     iteration_name = os.path.basename(os.path.dirname(pth))
     rt={'path':pth,'name':os.path.basename(os.path.dirname(pth))}
@@ -285,7 +292,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     pars['story_id'] = newidx
     pars['created'] = datetime.datetime.now()
     pars['creator'] = cfg.CREATOR
-    pars['status'] = cfg.STATUSES[0]
+    pars['status'] = cfg.DEFAULT_STATUS
 
     for k in ['summary','assignee','points','detail']:
        if k not in pars: pars[k]=None
@@ -357,6 +364,8 @@ def by_status(stories):
         st = s[1]['status']
         if st not in rt: rt[st]=[]
         rt[st].append(s)
+    for st in rt:
+        rt[st].sort(hours_srt,reverse=True)
     return rt
 def get_current_iteration(iterations):
     nw = datetime.datetime.now() ; current_iteration=None
@@ -372,8 +381,8 @@ def makeindex(iteration):
 
     #find out the current one
     current_iteration = get_current_iteration(iterations)
-    recent = [(tf,parse_story_fn(tf,read=True)) for tf in get_task_files(recent=True)]
-
+    recent = [(tf,parse_story_fn(tf,read=True,gethours=True)) for tf in get_task_files(recent=True)]
+    recent.sort(hours_srt,reverse=True)
         
     assignees={}
     #create the dir for shortcuts
@@ -411,7 +420,7 @@ def makeindex(iteration):
         shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
         iterations_stories[it[1]['name']]=len(shallowstories)
 
-        vardict = {'term':'Iteration','value':it[0],'stories':by_status(shallowstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False} #the index is generated only for the immediate 1-level down stories.
+        vardict = {'term':'Iteration','value':it[1]['name'],'stories':by_status(shallowstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False} #the index is generated only for the immediate 1-level down stories.
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
         fp = open(itidxfn,'w') ; fp.write(open(os.path.join(cfg.DATADIR,it[0],'iteration.org')).read()) ; fp.close()
         stlist = render('tasks',vardict,itidxfn,'a') 
