@@ -276,6 +276,10 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     for k in ['summary','assignee','points','detail']:
        if k not in pars: pars[k]=None
 
+    if pars['summary'] and type(pars['summary'])==list:
+        pars['summary']=' '.join(pars['summary'])
+
+
     assert not os.path.exists(newdir),"%s exists"%newdir
     dn = os.path.dirname(newdir)
     assert os.path.exists(dn),"%s does not exist."%dn
@@ -400,7 +404,7 @@ def makeindex(iteration):
 
         #we show an iteration index of the immediate 1 level down tasks
 
-        for st in shallowstories:
+        for st in stories:
             #aggregate assignees
             if st[1]['assigned to']:
                 asgn = st[1]['assigned to']
@@ -468,12 +472,12 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Task Control',prog='tasks.py')
     subparsers = parser.add_subparsers(dest='command')
 
-    list = subparsers.add_parser('list')
-    list.add_argument('--iteration',dest='iteration')
-    list.add_argument('--assignee',dest='assignee')
-    list.add_argument('--status',dest='status')
-    list.add_argument('--tag',dest='tag')
-    list.add_argument('--recent',dest='recent',action='store_true')
+    lst = subparsers.add_parser('list')
+    lst.add_argument('--iteration',dest='iteration')
+    lst.add_argument('--assignee',dest='assignee')
+    lst.add_argument('--status',dest='status')
+    lst.add_argument('--tag',dest='tag')
+    lst.add_argument('--recent',dest='recent',action='store_true')
 
     gen = subparsers.add_parser('index')
     gen.add_argument('--iteration',dest='iteration')
@@ -486,10 +490,10 @@ if __name__=='__main__':
     nw = subparsers.add_parser('new')
     nw.add_argument('--iteration',dest='iteration')
     nw.add_argument('--parent',dest='parent')
-    nw.add_argument('--summary',dest='summary')
     nw.add_argument('--assignee',dest='assignee')
     nw.add_argument('--id',dest='id')
     nw.add_argument('--tag',dest='tags',action='append')
+    nw.add_argument('summary',nargs='+')
 
     purge = subparsers.add_parser('purge')
     purge.add_argument('tasks',nargs='+')
