@@ -566,7 +566,7 @@ if __name__=='__main__':
         else: args.to_date = datetime.datetime.strptime(args.to_date,'%Y-%m-%d')
         
         i = args.from_date
-        while i<args.to_date:
+        while i.date()<=args.to_date.date():
             print i
             rt = odesk_fetch.run_query(date_from=i.strftime('%Y-%m-%d'),date_to=i.strftime('%Y-%m-%d'))
             rel = rt['by_story_provider']
@@ -584,7 +584,7 @@ if __name__=='__main__':
                     hours = json.loads(open(ofn).read())
                 ts = '%s'%(i.strftime('%Y-%m-%d'))
                 hours[ts]=nasgn
-                fp = open(ofn,'w') ; fp.write(json.dumps(hours,indent=True)) ; fp.close() 
+                fp = open(ofn,'w') ; fp.write(json.dumps(hours,indent=True,sort_keys=True)) ; fp.close()
                 print 'written %s in %s'%(ts,ofn)
             i+=datetime.timedelta(days=1)
     if args.command=='edit':
