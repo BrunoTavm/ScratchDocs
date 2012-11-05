@@ -400,6 +400,11 @@ def makeindex(iteration):
     #create the dir for shortcuts
     if not os.path.exists(cfg.SDIR): os.mkdir(cfg.SDIR)
 
+    #and render its index in the shortcuts folder
+    idxstories = [(fn,parse_story_fn(fn,read=True,gethours=True)) for fn in get_task_files(recurse=True)]
+    vardict = {'term':'Index','value':'','stories':by_status(idxstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False}
+    render('tasks',vardict,os.path.join(cfg.SDIR,'index.org'))
+
     for it in iterations:
         #print 'cycling through iteration %s'%it[0]
         if iteration and str(it[1]['name'])!=str(iteration): 
