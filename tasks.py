@@ -532,6 +532,9 @@ if __name__=='__main__':
     odi.add_argument('--from',dest='from_date')
     odi.add_argument('--to',dest='to_date')
 
+    ed = subparsers.add_parser('edit')
+    ed.add_argument('tasks',nargs='+')
+
     args = parser.parse_args()
 
     if args.command=='list':
@@ -584,3 +587,7 @@ if __name__=='__main__':
                 fp = open(ofn,'w') ; fp.write(json.dumps(hours,indent=True)) ; fp.close() 
                 print 'written %s in %s'%(ts,ofn)
             i+=datetime.timedelta(days=1)
+    if args.command=='edit':
+        tfiles = [get_task(t)['path'] for t in args.tasks]
+        cmd = 'emacs '+' '.join(tfiles)
+        st,op=gso(cmd)
