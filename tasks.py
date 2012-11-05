@@ -50,9 +50,10 @@ def move_task(task,dest_iter):
     if t['iteration']==dest_iter:
         return False
     iterations = get_iterations()
-    assert dest_iter in [i[0] for i in iterations],"%s not in %s"%(dest_iter,iterations)
+    assert dest_iter in [i[1]['name'] for i in iterations],"%s not in %s"%(dest_iter,iterations)
     taskdir = os.path.dirname(t['path'])
-    cmd = 'mv %s %s'%(taskdir,dict(iterations)[dest_iter])
+    iterdirs = dict([(i[1]['name'],os.path.dirname(i[1]['path'])) for i in iterations])
+    cmd = 'mv %s %s'%(taskdir,iterdirs[dest_iter])
     st,op = gso(cmd) ; assert st==0,"could not %s: %s"%(cmd,op)
     #print cmd
     return True
