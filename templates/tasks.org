@@ -1,13 +1,13 @@
 <%def name="list_tasks(tasks,relpath=False)">
-| ID | Iteration | Summary | Assignee | Tags | Status | Hours |
-|----+-----------+---------+----------+------+--------+-------|
+| ID | Iteration | Summary | Assignee | Tags | Status | Hours | Last tracked |
+|----+-----------+---------+----------+------+--------+-------+--------------|
 % for sfn,sv in tasks:
 % if relpath:
 | [[file:${sv['story']}/index.org][${sv['story']}]]\
 % else:
 | [[file:${sv['iteration']}/${sv['story']}/index.org][${sv['story']}]]\
 % endif
-| ${sv['iteration']} | ${sv['summary']} | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} | ${"%4.1f"%sv.get('total_hours',0)} |
+| ${sv['iteration']} | ${sv['summary']} | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} | ${"%4.1f"%sv.get('total_hours',0)} | ${sv.get('last_tracked')} |
 % endfor
 </%def>
 <%def name="body()">

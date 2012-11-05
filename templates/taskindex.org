@@ -17,10 +17,11 @@
 % endfor
 % endif
 % if story.get('total_hours'):
-** ${story['total_hours']} tracked in total
-| Person | Hours |
-|--------+-------|
-% for un,hrs in story['person_hours'].items():
-| ${un} | ${hrs} |
+** ${"%4.1f"%story['total_hours']} tracked in total
+| Person | Hours | Last tracked |
+|        |       |              |
+|--------+-------+--------------|
+% for un,hrs in story['person_hours']:
+| ${un} | ${"%4.1f"%hrs['hours']} | ${hrs['last_tracked']} |
 % endfor
 % endif

@@ -116,19 +116,27 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
                         rt[k]=v.split(', ')
 
 
-        #storycont = open(
     hfn = os.path.join(os.path.dirname(fn),'hours.json')
     if gethours and os.path.exists(hfn):
         hrs = json.loads(open(hfn).read())
-        tothrs=0 ; person_hours={}
+        tothrs=0 ; person_hours={} ; last_tracked=None
         for date,data in hrs.items():
             for un,uhrs in data.items():
                 if hoursonlyfor and un!=hoursonlyfor: continue
-                if un not in person_hours: person_hours[un]=0
+                if un not in person_hours: person_hours[un]={'hours':0,'last_tracked':None}
+                curdate = datetime.datetime.strptime(date,'%Y-%m-%d')
+                if not last_tracked or last_tracked<curdate:
+                    last_tracked = curdate
+                if not person_hours[un]['last_tracked'] or person_hours[un]['last_tracked']<curdate:
+                    person_hours[un]['last_tracked']=curdate
                 tothrs+=uhrs
-                person_hours[un]+=uhrs
+                person_hours[un]['hours']+=uhrs
         rt['total_hours']=tothrs
+        rt['last_tracked']=last_tracked
+        person_hours= person_hours.items()
+        person_hours.sort(hours_srt_2)
         rt['person_hours']=person_hours
+        
     return rt
 def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
     if iteration:
@@ -188,6 +196,9 @@ def hours_srt(s1,s2):
         s1v = int(s1[1]['story'].split(cfg.STORY_SEPARATOR)[0])
         s2v = int(s2[1]['story'].split(cfg.STORY_SEPARATOR)[0])
     return cmp(s1v,s2v)
+def hours_srt_2(h1,h2):
+    return cmp(h1[1]['last_tracked'],h2[1]['last_tracked'])*-1
+
 def parse_iteration(pth):
     iteration_name = os.path.basename(os.path.dirname(pth))
     rt={'path':pth,'name':os.path.basename(os.path.dirname(pth))}
@@ -408,15 +419,18 @@ def makeindex(iteration):
             ldest = os.path.join('..',os.path.dirname(tpath))
             cmd = 'ln -s %s %s'%(ldest,spath)
             needrun=False
-            if os.path.exists(spath):
+            if os.path.islink(spath):
                 ls = os.readlink(spath)
+                #print 'comparing %s <=> %s'%(ls,ldest)
                 if ls!=ldest:
                     os.unlink(spath)
                     needrun=True
+                    #print 'needrun because neq'
             else:
                 needrun=True
+                #print 'needrunq because nex %s'%(spath)
             if needrun:
-                st,op = gso(cmd) ; assert st==0
+                st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,st)
 
         shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
         iterations_stories[it[1]['name']]=len(shallowstories)
