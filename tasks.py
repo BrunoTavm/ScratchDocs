@@ -37,6 +37,14 @@ def render(tplname,params,outfile=None,mode='w'):
             }
 
     t = tpls[tplname]
+    for par,val in params.items():
+        try:
+            if type(val)==str:
+                val = unicode(val.decode('utf-8'))
+                params[par]=val
+        except:
+            print val
+            raise
     r= t.render(**params)
     if outfile:
         fp = codecs.open(outfile,mode,encoding='utf-8') ; fp.write(r) ; fp.close()
