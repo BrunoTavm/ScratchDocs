@@ -604,7 +604,11 @@ if __name__=='__main__':
                 out[sid]={} ; nasgn={}
                 for un,hrs in dt.items(): nasgn[cfg.USERMAP(un)]=hrs
                 out[sid]=nasgn
-                t = get_task(sid)
+                try:
+                    t = get_task(sid)
+                except:
+                    print 'could not find task %s: %s'%(sid,dt)
+                    continue
                 ofn = os.path.join(os.path.dirname(t['path']),'hours.json')
                 if not os.path.exists(ofn):
                     hours = {}
