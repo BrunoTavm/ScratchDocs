@@ -1,0 +1,8 @@
+#+OPTIONS: toc:nil        (no TOC at all)
+** New task ${t['story']} notification
+Dear ${recipient['Name']},
+A new task, [[${url+'s/'+t['story']}][${t['story']}]], has been assigned to you by ${t['created by']}
+*** Summary
+${t['summary']}
+
+Please check it out.

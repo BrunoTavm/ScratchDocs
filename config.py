@@ -9,6 +9,8 @@ DEFAULT_STATUS='TODO'
 CONSOLE_FRIENDLY_FILES=True
 RECENT_DAYS=14
 MAKO_DIR='/tmp/mako_modules'
+RENDER_URL=None
+SENDER=None
 def USERMAP(un):
     return un
 from config_local import *

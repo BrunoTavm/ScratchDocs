@@ -12,6 +12,8 @@ import hashlib
 import re
 import codecs
 import json
+import tempfile
+
 
 if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
 _prefix = os.path.dirname(__file__)
@@ -22,6 +24,7 @@ iterations_tpl = Template(filename=os.path.join(tpldir,'iterations.org'),lookup 
 tasks_tpl = Template(filename=os.path.join(tpldir,'tasks.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
 taskindex_tpl = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
 iteration_tpl = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
+new_story_notify_tpl = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
 def md5(fn):
     st,op = gso('md5sum %s'%fn); assert st==0
@@ -34,6 +37,7 @@ def render(tplname,params,outfile=None,mode='w'):
             ,'taskindex':taskindex_tpl
             ,'iterations':iterations_tpl
             ,'iteration':iteration_tpl
+            ,'new_story_notify':new_story_notify_tpl
             }
 
     t = tpls[tplname]
@@ -106,7 +110,7 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
     assert len(parts)>1,"%s"%"error parsing %s"%fn
     it = parts[1]
     story = cfg.STORY_SEPARATOR.join(parts[2:-1])
-    rt = {'iteration':it,'story':story,'path':fn}
+    rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json')}
     if read:
         root = orgparse.load(fn)
         heading=None
@@ -236,6 +240,7 @@ def get_task(number,read=False,exc=True):
         if number not in tasks: 
             return False
     rt =  tasks[number]
+    
     return rt
 def get_children(number):
     t = get_task(number)
@@ -269,7 +274,90 @@ def get_new_idx(parent=None):
     newid = maxid+1
     return str(newid)
 
+def get_participants():
+    fn = os.path.join(cfg.DATADIR,'participants.org')
+    fp = open(fn,'r') ; gothead=False
+    def parseline(ln):
+        return [f.strip() for f in ln.split('|') if f.strip()!='']
+    rt={}
+    while True:
+        ln = fp.readline()
+        if not ln: break
+        if '|' in ln and not gothead:
+            headers = parseline(ln)
+            gothead=True
+            continue
+        if ln.startswith('|-'): continue
+        row = parseline(ln) 
+        row = dict([(headers[i],row[i]) for i in xrange(len(row))])
+        #only active ones:
+        if row['Active']=='Y':
+            rt[row['Username']]=row
+    return rt
+
+def add_notification(whom,about,what):
+    send_notification(whom,about,what,justverify=True)
+
+    t = get_task(about,read=True)
+    if os.path.exists(t['metadata']):
+        meta = json.load(open(t['metadata'],'r'))
+    else:
+        meta={}
+    meta['notify']={'whom':whom,'about':about,'what':what,'added':datetime.datetime.now().isoformat()}
+    fp = open(t['metadata'],'w')
+    json.dump(meta,fp,indent=True)
+    fp.close()
+
+def get_meta_files():
+    cmd = 'find %s -name meta.json -type f'%(cfg.DATADIR)
+    st,op = gso(cmd) ; assert st==0
+    files = [(ln,parse_story_fn(ln)) for ln in op.split('\n') if ln!='']
+    return files
+    
+
+def process_notifications():
+    tfs = get_meta_files()
+    for meta,s in tfs:
+        m = json.load(open(meta))
+        if m.get('notify'):
+            print 'notification processing %s'%s
+            n=m['notify']
+            send_notification(n['whom'],n['about'],n['what'])
+            del m['notify']
+            fp = open(meta,'w')
+            json.dump(m,fp,indent=True)
+            fp.close()
+
         
+def send_notification(whom,about,what,justverify=False):
+    import sendgrid # we import here because we don't want to force everyone installing this.
+    assert cfg.RENDER_URL,"no RENDER_URL specified in config."
+    assert cfg.SENDER,"no sender specified in config."
+
+    p = get_participants()
+    email = p[whom]['E-Mail']
+    t= get_task(about,read=True)
+    tpl = what+'_notify'
+    tf = tempfile.NamedTemporaryFile(delete=False,suffix='.org')
+    if what=='new_story':
+        subject = 'New task %s'%t['story']
+    else:
+        raise Exception('unknown topic %s'%what)
+    notify = render(tpl,{'t':t,'url':cfg.RENDER_URL,'recipient':p[whom]},tf.name)
+    if justverify:
+        return False
+    cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(tf.name)
+    st,op = gso(cmd) ; assert st==0
+    expname = tf.name.replace('.org','.html')
+    #print 'written %s'%expname
+    assert os.path.exists(expname)
+    s = sendgrid.Sendgrid(cfg.SENDGRID_USERNAME,cfg.SENDGRID_PASSWORD,secure=True)
+    message = sendgrid.Message(cfg.SENDER,subject,open(tf.name).read(),open(expname).read())
+    message.add_to(email,p[whom]['Name'])
+    s.web.send(message)
+    print 'sent %s to %s'%(subject,email)
+    return True
+
 def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     if not iteration: 
         if parent:
@@ -328,6 +416,11 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
 
     assert not os.path.exists(newtaskfn)
     render('task',params.__dict__,newtaskfn)
+
+
+    if pars['assignee']:
+        taskid = cfg.STORY_SEPARATOR.join([parent,newidx])
+        add_notification(whom=pars['assignee'],about=taskid,what='new_story')
 
 def makehtml(iteration=None,notasks=False,files=[]):
     #find all the .org files generated
@@ -563,6 +656,8 @@ if __name__=='__main__':
     ed = subparsers.add_parser('edit')
     ed.add_argument('tasks',nargs='+')
 
+    pr = subparsers.add_parser('process_notifications')
+
     args = parser.parse_args()
 
     if args.command=='list':
@@ -623,3 +718,5 @@ if __name__=='__main__':
         tfiles = [get_task(t)['path'] for t in args.tasks]
         cmd = 'emacs '+' '.join(tfiles)
         st,op=gso(cmd)
+    if args.command=='process_notifications':
+        process_notifications()
