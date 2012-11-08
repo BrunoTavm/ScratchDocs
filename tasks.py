@@ -317,6 +317,7 @@ def get_meta_files():
 
 def process_notifications():
     tfs = get_meta_files()
+    files_touched=[]
     for meta,s in tfs:
         m = json.load(open(meta))
         if m.get('notify'):
@@ -327,8 +328,12 @@ def process_notifications():
             fp = open(meta,'w')
             json.dump(m,fp,indent=True)
             fp.close()
+            files_touched.append(fp.name)
+    if len(files_touched):
+        print 'commiting %s touched files.'%(len(files_touched))
+        cmd = 'git add '+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles." && git push'
+        st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
 
-        
 def send_notification(whom,about,what,justverify=False):
     import sendgrid # we import here because we don't want to force everyone installing this.
     assert cfg.RENDER_URL,"no RENDER_URL specified in config."
