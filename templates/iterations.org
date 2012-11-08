@@ -34,4 +34,5 @@
 % endfor
 
 * Recent tasks
+Also see [[file:changes.org][changes]].
 ${tasks.list_tasks(recent_tasks,relpath=False)}

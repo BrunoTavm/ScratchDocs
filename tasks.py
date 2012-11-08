@@ -24,7 +24,8 @@ iterations_tpl = Template(filename=os.path.join(tpldir,'iterations.org'),lookup 
 tasks_tpl = Template(filename=os.path.join(tpldir,'tasks.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
 taskindex_tpl = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
 iteration_tpl = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
-new_story_notify_tpl = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
+new_story_notify_tpl = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+changes_tpl = Template(filename=os.path.join(tpldir,'changes.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
 def md5(fn):
     st,op = gso('md5sum %s'%fn); assert st==0
@@ -38,6 +39,7 @@ def render(tplname,params,outfile=None,mode='w'):
             ,'iterations':iterations_tpl
             ,'iteration':iteration_tpl
             ,'new_story_notify':new_story_notify_tpl
+            ,'changes':changes_tpl
             }
 
     t = tpls[tplname]
@@ -110,7 +112,7 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
     assert len(parts)>1,"%s"%"error parsing %s"%fn
     it = parts[1]
     story = cfg.STORY_SEPARATOR.join(parts[2:-1])
-    rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json')}
+    rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[1:-1])}
     if read:
         root = orgparse.load(fn)
         heading=None
@@ -601,6 +603,9 @@ def makeindex(iteration):
     idxfn = os.path.join(cfg.DATADIR,'index.org')
     itlist = render('iterations',vardict,idxfn)
 
+    cfn = os.path.join(cfg.DATADIR,'changes.org')
+    render('changes',{'changes':get_changes(),'pfn':parse_story_fn},cfn)
+
 def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False):
     files = get_task_files(iteration=iteration,assignee=assignee,status=status,tag=tag,recent=recent)
     pt = PrettyTable(['iteration','id','summary','assigned to','status','tags','fn'])
@@ -617,6 +622,31 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False)
     print pt
     print '%s stories.'%cnt
 
+def get_changes(show=False):
+    st,op = gso('git log --pretty=oneline -30') ; assert st==0
+    commits = dict([(c.split(' ')[0],{'message':' '.join(c.split(' ')[1:])}) for c in op.split('\n') if c!=''])
+    for cid,cmsg in commits.items():
+        cmd = "git show %s | egrep '^Date:'"%cid
+        st,op = gso(cmd)
+        dt = op.replace('Date:','').strip('\n \t')
+        commits[cid]['date']=dt
+        cmd = "git show %s | egrep '^(\-\-\-|\+\+\+)' | egrep -v 'dev/null' | egrep  'task.org$'"%(cid)
+        st,op = gso(cmd) ; assert st in [0,256],"%s => %s\n%s"%(cmd,st,op)
+        lines = [l for l in op.split('\n') if l!='']
+        ulines=[]
+        for l in lines:
+            for r in ['--- a/','+++ a/','--- b/','+++ b/']: l=l.replace(r,'')
+            if l not in ulines: 
+                ulines.append(l)
+                #pt.add_row([dt,cid,cmsg['message'],l,parse_story_fn(l)['id']])
+        commits[cid]['changes']=ulines
+    if show:
+        pt = PrettyTable(['date','commit','message','file','story'])
+        for cid,cdata in commits.items():
+            for cfn in cdata['changes']:
+                pt.add_row([cdata['date'],cid,cdata['message'],cfn,parse_story_fn(cfn)['id']])
+        print pt
+    return commits
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Task Control',prog='tasks.py')
     subparsers = parser.add_subparsers(dest='command')
@@ -660,8 +690,10 @@ if __name__=='__main__':
 
     ed = subparsers.add_parser('edit')
     ed.add_argument('tasks',nargs='+')
-
+    
     pr = subparsers.add_parser('process_notifications')
+    
+    ch = subparsers.add_parser('changes')
 
     args = parser.parse_args()
 
@@ -725,3 +757,5 @@ if __name__=='__main__':
         st,op=gso(cmd)
     if args.command=='process_notifications':
         process_notifications()
+    if args.command=='changes':
+        get_changes(show=True)
