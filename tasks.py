@@ -170,7 +170,7 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
 taskfiles_cache={}
 def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
     global taskfiles_cache
-    tfck = ",".join([iteration,assignee,status,tag,recurse,recent])
+    tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent)])
     if tfck in taskfiles_cache: return taskfiles_cache[tfck]
 
     if iteration:
