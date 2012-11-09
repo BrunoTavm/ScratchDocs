@@ -167,10 +167,11 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
 
 
     return rt
-taskfiles_cache=[]
+taskfiles_cache={}
 def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
     global taskfiles_cache
-    if len(taskfiles_cache): return taskfiles_cache
+    tfck = ",".join([iteration,assignee,status,tag,recurse,recent])
+    if tfck in taskfiles_cache: return taskfiles_cache[tfck]
 
     if iteration:
         itcnd=' -wholename "%s/*"'%(os.path.join(cfg.DATADIR,str(iteration)))
@@ -201,7 +202,7 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
             if incl:
                 rt.append(fn)
         return rt
-    taskfiles_cache = files        
+    taskfiles_cache[tfck] = files        
     return files
 
 def sort_iterations(i1,i2):
