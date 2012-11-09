@@ -806,9 +806,9 @@ def assign_commits():
         if t['metadata'] not in metas: 
             m = loadmeta(t['metadata'])
             metas[t['metadata']]=m
+            m['commits_qty']=0 #we zero it once upon load to be incremented subsequently
         else: m = metas[t['metadata']]
 
-        if 'commits_qty' not in m: m['commits_qty']=0
         m['commits_qty']+=1
 
         repocommiter = '-'.join([repo,ci['u']])
