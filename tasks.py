@@ -593,7 +593,7 @@ def makeindex(iteration):
                 c['relpath']=os.path.dirname(c['path'].replace(os.path.dirname(st[1]['path'])+'/',''))
             #print 'written story idx %s'%pfn(storyidxfn)
 
-            pars = {'children':ch,'story':st[1],'TASKFN':cfg.TASKFN,'GITWEB_URL':cfg.GITWEB_URL}
+            pars = {'children':ch,'story':st[1],'TASKFN':cfg.TASKFN,'GITWEB_URL':cfg.GITWEB_URL,'pgd':parsegitdate}
             if os.path.exists(pars['story']['metadata']):
                 pars['meta']=loadmeta(pars['story']['metadata'])
             else:

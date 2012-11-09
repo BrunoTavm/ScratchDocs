@@ -22,6 +22,7 @@ ${meta['commits_qty']} commits.
 *** Commiters
 | Commiter | Repo   | Last commit |
 |----------+--------+-------------|
+<% meta['commiters'].sort(lambda c1,c2: cmp(pgd(meta['lastcommits'][c1]),pgd(meta['lastcommits'][c2])),reverse=True) %>\
 % for spl in meta['commiters']:
 <% repo,un = spl.split('-') %>\
 | ${un}    |${repo} | ${meta['lastcommits'][spl]} |
@@ -29,6 +30,7 @@ ${meta['commits_qty']} commits.
 *** Branches
 | Repo | Branch | Last commit |
 |------+--------+-------------|
+<% meta['branches'].sort(lambda c1,c2: cmp(pgd(meta['branchlastcommits'][c1]),pgd(meta['branchlastcommits'][c2])),reverse=True) %>\
 % for spl in meta['branches']:
 <% repo = spl.split('/')[0] ; branch = '/'.join(spl.split('/')[1:]) %>\
 | [[${GITWEB_URL}?p=${repo}.git;a=summary][${repo}]] | [[${GITWEB_URL}?p=${repo}.git;a=commitdiff;h=refs/heads/${branch};hp=staging][${branch}]] | ${meta['branchlastcommits'][spl]} |
