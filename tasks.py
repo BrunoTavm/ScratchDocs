@@ -32,6 +32,18 @@ def md5(fn):
     op = op.split(' ')
     return op[0]
 
+commits = {}
+commitsfn = os.path.join(cfg.DATADIR,'commits.json')
+def loadcommits():
+    global commits
+    if not len(commits):
+        if not os.path.exists(commitsfn):
+            commits={}
+        else:
+            commits = json.load(open(commitsfn,'r'))
+    return commits
+
+    
 def render(tplname,params,outfile=None,mode='w'):
     tpls = {'task':task_tpl
             ,'tasks':tasks_tpl
@@ -53,6 +65,7 @@ def render(tplname,params,outfile=None,mode='w'):
             raise
     r= t.render(**params)
     if outfile:
+        #print 'working %s'%outfile;        print params
         fp = codecs.open(outfile,mode,encoding='utf-8') ; fp.write(r) ; fp.close()
         #print 'written %s %s'%(tplname,pfn(outfile))
 
@@ -150,9 +163,15 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
         person_hours= person_hours.items()
         person_hours.sort(hours_srt_2)
         rt['person_hours']=person_hours
-        
+
+
+
     return rt
+taskfiles_cache=[]
 def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
+    global taskfiles_cache
+    if len(taskfiles_cache): return taskfiles_cache
+
     if iteration:
         itcnd=' -wholename "%s/*"'%(os.path.join(cfg.DATADIR,str(iteration)))
     else:
@@ -182,7 +201,7 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
             if incl:
                 rt.append(fn)
         return rt
-            
+    taskfiles_cache = files        
     return files
 
 def sort_iterations(i1,i2):
@@ -232,7 +251,13 @@ def get_iterations():
     rt = [(os.path.dirname(path),parse_iteration(path)) for path in dirs if len(path.split('/'))>1]
     rt.sort(sort_iterations,reverse=True)
     return rt
+task_cache={}
 def get_task(number,read=False,exc=True):
+    global task_cache
+    tk = '%s-%s-%s'%(number,read,exc)
+    if tk in task_cache: 
+        return task_cache[tk]
+    
     number = str(number)
     tf = [parse_story_fn(fn,read=read) for fn in get_task_files()]
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
@@ -242,7 +267,7 @@ def get_task(number,read=False,exc=True):
         if number not in tasks: 
             return False
     rt =  tasks[number]
-    
+    task_cache[tk]=rt
     return rt
 def get_children(number):
     t = get_task(number)
@@ -302,13 +327,11 @@ def add_notification(whom,about,what):
 
     t = get_task(about,read=True)
     if os.path.exists(t['metadata']):
-        meta = json.load(open(t['metadata'],'r'))
+        meta = loadmeta(t['metadata'])
     else:
         meta={}
     meta['notify']={'whom':whom,'about':about,'what':what,'added':datetime.datetime.now().isoformat()}
-    fp = open(t['metadata'],'w')
-    json.dump(meta,fp,indent=True)
-    fp.close()
+    savemeta(t['metadata'],meta)
 
 def get_meta_files():
     cmd = 'find %s -name meta.json -type f'%(cfg.DATADIR)
@@ -322,11 +345,11 @@ def process_notifications():
     files_touched=[]
     for meta,s in tfs:
         m = json.load(open(meta))
-        if m.get('notify'):
+        if m.get('notify') and not m['notify']['notified']:
             print 'notification processing %s'%s
             n=m['notify']
             send_notification(n['whom'],n['about'],n['what'])
-            del m['notify']
+            m['notify']['notified']=datetime.datetime.now().isoformat()
             fp = open(meta,'w')
             json.dump(m,fp,indent=True)
             fp.close()
@@ -570,7 +593,12 @@ def makeindex(iteration):
                 c['relpath']=os.path.dirname(c['path'].replace(os.path.dirname(st[1]['path'])+'/',''))
             #print 'written story idx %s'%pfn(storyidxfn)
 
-            pars = {'children':ch,'story':st[1],'TASKFN':cfg.TASKFN}
+            pars = {'children':ch,'story':st[1],'TASKFN':cfg.TASKFN,'GITWEB_URL':cfg.GITWEB_URL}
+            if os.path.exists(pars['story']['metadata']):
+                pars['meta']=loadmeta(pars['story']['metadata'])
+            else:
+                pars['meta']=None
+            
             render('taskindex',pars,storyidxfn,'w')
             fp = open(storyidxfn,'a') ; fp.write(open(st[1]['path']).read()) ; fp.close()
 
@@ -647,6 +675,171 @@ def get_changes(show=False):
                 pt.add_row([cdata['date'],cid,cdata['message'],cfn,parse_story_fn(cfn)['id']])
         print pt
     return commits
+
+commitre = re.compile('\[origin\/([^\]]+)\]')
+cre = re.compile('commit ([0-9a-f]{40})')
+are = re.compile('Author: ([^<]*) <([^>]+)>')
+sre = re.compile('#([0-9'+re.escape(cfg.STORY_SEPARATOR)+']+)')
+dre = re.compile('Date:   (.*)')
+
+def imp_commits(args):
+    if not os.path.exists(cfg.REPO_DIR): os.mkdir(cfg.REPO_DIR)
+    excommits = loadcommits()
+    for repo in cfg.REPOSITORIES:
+        print 'running repo %s'%repo
+        repon = os.path.basename(repo).replace('.git','')
+        repodir = os.path.join(cfg.REPO_DIR,os.path.basename(repo))
+        if not os.path.exists(repodir):
+            print 'cloning.'
+            cmd = 'git clone %s %s'%(repo,repodir)
+            st,op = gso(cmd) ; assert st==0
+        prevdir = os.getcwd()
+        os.chdir(repodir)
+        #refresh the repo
+        
+        if not args.nofetch:
+            print 'fetching.'
+            st,op = gso('git fetch -a') ; assert st==0
+
+        print 'running show-branch'
+        cmd = 'git show-branch -r'
+        st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
+        commits=[] ; ignoredbranches=[]
+        for ln in op.split('\n'):
+            if ln=='': continue
+            if ln.startswith('warning:'): 
+                if 'ignoring' not in ln:
+                    print ln
+                else:
+                    ign = re.compile('origin/([^;]+)').search(ln).group(1)
+                    ignoredbranches.append(ign)
+                continue
+            if ln.startswith('------'): continue
+            res = commitre.search(ln)
+            if res:
+                exact = res.group(1) ; branch = exact
+                #strip git niceness to get branch name
+                for sym in ['~','^']:branch = branch.split(sym)[0]
+                commits.append([exact,branch,False])
+            else:
+                if not re.compile('^(\-+)$').search(ln):
+                    print 'cannot extract',ln
+        #now go over the ignored branches
+        if len(ignoredbranches): 
+            for ign in set(ignoredbranches):
+                st,op = gso('git checkout origin/%s'%(ign)); assert st==0
+                st,op = gso('git log --pretty=oneline --since=%s'%(datetime.datetime.now()-datetime.timedelta(days=10)).strftime('%Y-%m-%d')) ; assert st==0
+                for lln in op.split('\n'):
+                    if lln=='': continue
+                    lcid = lln.split(' ')[0]
+                    commits.append([lcid,ign,True])
+                    #print 'added ign %s / %s'%(lcid,ign)
+
+        cnt=0 ; branches=[]
+        print 'going over %s commits.'%len(commits)
+        for relid,branch,isexact in commits:
+            if isexact:
+                cmd = 'git show %s | head'%relid
+            else:
+                cmd = 'git show origin/%s | head'%relid
+            st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
+            if op.startswith('fatal'):
+                raise Exception('%s returned %s'%(cmd,op))
+            cres = cre.search(op)
+            dres = dre.search(op)
+            if not dres: raise Exception(op)
+            dt = dres.groups()[0]
+            cid = cres.group(1)
+            author,email = are.search(op).groups()
+            un = cfg.COMMITERMAP(email,author)
+            storyres = sre.search(op)
+            if storyres:
+                task = storyres.group(1)
+            else:
+                task = None
+            cinfo = {'s':dt,'br':branch,'u':un,'t':task} #'repo':repon, 'cid':cid <-- these are out to save space
+            if branch not in branches: branches.append(branch)
+            key = '%s/%s'%(repon,cid)
+            excommits[key]=cinfo
+            cnt+=1
+            #print '%s: %s/%s %s by %s on task %s'%(dt,repon,branch,cid,un,task)
+        print 'found out about %s commits, branches %s'%(cnt ,branches)
+        os.chdir(prevdir)        
+        fp = open(commitsfn,'w')
+        json.dump(excommits,fp,indent=True,sort_keys=True) ; fp.close()
+def loadmeta(fn):
+    if os.path.exists(fn):
+        return json.load(open(fn))
+    else:
+        return {}
+def savemeta(fn,dt):
+    fp = open(fn,'w')
+    json.dump(dt,fp,sort_keys=True,indent=True)
+    fp.close()
+
+numonths = 'Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec'.split('|')
+redt = re.compile('^(Sun|Mon|Tue|Wed|Thu|Fri|Sat) ('+'|'.join(numonths)+') ([0-9]{1,2}) ([0-9]{2})\:([0-9]{2})\:([0-9]{2}) ([0-9]{4}) (\-|\+)([0-9]{4})')
+def parsegitdate(s):
+    dtres = redt.search(s)
+    wd,mon,dy,hh,mm,ss,yy,tzsign,tzh = dtres.groups()
+    dt = datetime.datetime(year=int(yy),
+                           month=int(numonths.index(mon)+1),
+                           day=int(dy),
+                           hour=int(hh),
+                           minute=int(mm),
+                           second=int(ss))
+    return dt
+
+def assign_commits():
+    exc = json.load(open(commitsfn,'r'))
+    metas={}
+    print 'going over commits.'
+    for ck,ci in exc.items():
+        if not ci['t']: continue
+        repo,cid = ck.split('/')
+        t = get_task(ci['t'],exc=False)
+        if not t: 
+            print 'could not find task %s'%(ci['t'])
+            continue
+
+        #metadata cache
+        if t['metadata'] not in metas: 
+            m = loadmeta(t['metadata'])
+            metas[t['metadata']]=m
+        else: m = metas[t['metadata']]
+
+        if 'commits_qty' not in m: m['commits_qty']=0
+        m['commits_qty']+=1
+
+        repocommiter = '-'.join([repo,ci['u']])
+        if 'commiters' not in m: m['commiters']=[]
+        if repocommiter not in m['commiters']: m['commiters'].append(repocommiter)
+        
+        repobranch = '/'.join([repo,ci['br']])
+        if 'branches' not in m: m['branches']=[]
+        if repobranch not in m['branches']: m['branches'].append(repobranch)
+
+        dt = parsegitdate(ci['s'])
+
+        lastdatekey = '%s-%s'%(repo,ci['u'])
+        if 'lastcommits' not in m: m['lastcommits']={}
+        if lastdatekey not in m['lastcommits'] or parsegitdate(m['lastcommits'][lastdatekey])<dt:
+            m['lastcommits'][lastdatekey]=ci['s']
+
+        lastbranchkey = '%s/%s'%(repo,ci['br'])
+        if 'branchlastcommits' not in m: m['branchlastcommits']={}
+        if lastbranchkey not in m['branchlastcommits'] or parsegitdate(m['branchlastcommits'][lastbranchkey])<dt:
+            m['branchlastcommits'][lastbranchkey]=ci['s']
+
+    print 'saving.'
+    for fn,m in metas.items():
+        savemeta(fn,m)
+    print '%s metas touched.'%(len(metas))
+
+
+        
+    
+    
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Task Control',prog='tasks.py')
     subparsers = parser.add_subparsers(dest='command')
@@ -692,8 +885,12 @@ if __name__=='__main__':
     ed.add_argument('tasks',nargs='+')
     
     pr = subparsers.add_parser('process_notifications')
-    
     ch = subparsers.add_parser('changes')
+
+    git = subparsers.add_parser('fetch_commits')
+    git.add_argument('--nofetch',dest='nofetch',action='store_true')
+    git.add_argument('--import',dest='imp',action='store_true')
+    git.add_argument('--assign',dest='assign',action='store_true')
 
     args = parser.parse_args()
 
@@ -759,3 +956,8 @@ if __name__=='__main__':
         process_notifications()
     if args.command=='changes':
         get_changes(show=True)
+    if args.command=='fetch_commits':
+        if args.imp:
+            imp_commits(args)
+        if args.assign:
+            assign_commits()

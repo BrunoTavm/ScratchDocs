@@ -16,10 +16,28 @@
 |  [[file:${st['relpath']}][${st['story']}]]     | ${st['assigned to']} | ${st['summary']} | ${st['status']} |
 % endfor
 % endif
+% if meta and meta.get('commits_qty'):
+** Commits
+${meta['commits_qty']} commits.
+*** Commiters
+| Commiter | Repo   | Last commit |
+|----------+--------+-------------|
+% for spl in meta['commiters']:
+<% repo,un = spl.split('-') %>\
+| ${un}    |${repo} | ${meta['lastcommits'][spl]} |
+% endfor
+*** Branches
+| Repo | Branch | Last commit |
+|------+--------+-------------|
+% for spl in meta['branches']:
+<% repo,branch = spl.split('/') %>\
+| [[${GITWEB_URL}?p=${repo}.git;a=summary][${repo}]] | [[${GITWEB_URL}?p=${repo}.git;a=commitdiff;h=refs/heads/${branch};hp=staging][${branch}]] | ${meta['branchlastcommits'][spl]} |
+% endfor
+
+% endif
 % if story.get('total_hours'):
 ** ${"%4.1f"%story['total_hours']} tracked in total
 | Person | Hours | Last tracked |
-|        |       |              |
 |--------+-------+--------------|
 % for un,hrs in story['person_hours']:
 | ${un} | ${"%4.1f"%hrs['hours']} | ${hrs['last_tracked']} |

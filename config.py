@@ -11,7 +11,12 @@ RECENT_DAYS=14
 MAKO_DIR='/tmp/mako_modules'
 RENDER_URL=None
 SENDER=None
+GITWEB_URL=None
+REPOSITORIES=[]
+REPO_DIR='repos'
 def USERMAP(un):
+    return un
+def COMMITERMAP(em,nm):
     return un
 from config_local import *
 import os
