@@ -30,7 +30,7 @@ ${meta['commits_qty']} commits.
 | Repo | Branch | Last commit |
 |------+--------+-------------|
 % for spl in meta['branches']:
-<% repo,branch = spl.split('/') %>\
+<% repo = spl.split('/')[0] ; branch = '/'.join(spl.split('/')[1:]) %>\
 | [[${GITWEB_URL}?p=${repo}.git;a=summary][${repo}]] | [[${GITWEB_URL}?p=${repo}.git;a=commitdiff;h=refs/heads/${branch};hp=staging][${branch}]] | ${meta['branchlastcommits'][spl]} |
 % endfor
 
