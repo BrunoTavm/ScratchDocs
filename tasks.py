@@ -175,7 +175,13 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     if tfck in taskfiles_cache: return taskfiles_cache[tfck]
 
     if iteration:
-        itcnd=' -wholename "%s/*"'%(os.path.join(cfg.DATADIR,str(iteration)))
+        if iteration.startswith('not '):
+            pf='!'
+            itval = iteration.replace('not ','')
+        else:
+            pf=''
+            itval=iteration
+        itcnd='%s -wholename "%s/*"'%(pf,os.path.join(cfg.DATADIR,str(itval)))
     else:
         itcnd=''
     if not recurse:
@@ -644,7 +650,9 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False)
     cnt=0
     for fn in files:
         sd = parse_story_fn(fn,read=True)
-        if iteration and sd['iteration']!=str(iteration): continue
+        if iteration and iteration.startswith('not ') and sd['iteration']==iteration.replace('not ',''): 
+            continue
+        elif iteration and not iteration.startswith('not ') and sd['iteration']!=str(iteration): continue
         if len(sd['summary'])>40: summary=sd['summary'][0:40]+'..'
         else: summary = sd['summary']
         pt.add_row([sd['iteration'],sd['story'],summary,sd['assigned to'],sd['status'],','.join(sd.get('tags','')),pfn(sd['path'])])
