@@ -1,13 +1,13 @@
 <%def name="list_tasks(tasks,relpath=False)">
-| ID | Iteration | Summary | Assignee | Tags | Status | Hours | Last tracked |
-|----+-----------+---------+----------+------+--------+-------+--------------|
+| ID | Iteration | Summary | Assignee | Tags | Status | Hours | Last tracked | Commits | Last commit |
+|----+-----------+---------+----------+------+--------+-------+--------------+---------+-------------|
 % for sfn,sv in tasks:
 % if relpath:
 | [[file:${sv['story']}/index.org][${sv['story']}]]\
 % else:
 | [[file:${sv['iteration']}/${sv['story']}/index.org][${sv['story']}]]\
 % endif
-| ${sv['iteration']} | ${sv['summary']} | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} | ${"%4.1f"%sv.get('total_hours',0)} | ${sv.get('last_tracked')} |
+| ${sv['iteration']} | ${sv['summary'][0:40]+'..' if len(sv['summary'])>40 else sv['summary']}  | ${sv['assigned to']} | ${', '.join(sv.get('tags',''))} | ${sv['status']} | ${"%4.1f"%sv.get('total_hours',0)} | ${sv.get('last_tracked')} | ${sv['meta'].get('commits_qty')} | ${sv['meta'].get('last_commit')}  |
 % endfor
 </%def>
 <%def name="body()">

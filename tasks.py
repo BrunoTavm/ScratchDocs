@@ -119,7 +119,7 @@ def parse_attrs(node):
             rt[k]=datetime.datetime.strptime(v.strip('<>[]').split('.')[0],'%Y-%m-%d %H:%M:%S')
     rt['links']=links
     return rt
-def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
+def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     assert len(fn)
     parts = fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR)
     assert len(parts)>1,"%s"%"error parsing %s"%fn
@@ -163,8 +163,9 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None):
         person_hours= person_hours.items()
         person_hours.sort(hours_srt_2)
         rt['person_hours']=person_hours
-
-
+    mfn = os.path.join(os.path.dirname(fn),'meta.json')
+    if getmeta:
+        rt['meta']=loadmeta(mfn)
 
     return rt
 taskfiles_cache={}
@@ -244,7 +245,7 @@ def parse_iteration(pth):
             for k,v in attrs.items(): rt[k]=v
     return rt
 def get_iterations():
-    cmd = 'find %s -name "iteration.org" ! -wholename "*templates*" -type f'%(cfg.DATADIR)
+    cmd = 'find %s -name "iteration.org" ! -wholename "*templates*" ! -wholename "*repos/*" -type f'%(cfg.DATADIR)
     #cmd = 'find %s -maxdepth 1 ! -wholename "*.git*"  -type d'%(cfg.DATADIR)
     st,op = gso(cmd) ; assert st==0
     #print op  ; raise Exception('w00t')
@@ -521,6 +522,7 @@ def get_current_iteration(iterations):
 def makeindex(iteration):
 
     iterations = get_iterations()
+
     iterations_stories={}
 
     #find out the current one
@@ -810,7 +812,10 @@ def assign_commits():
             m['commits_qty']=0 #we zero it once upon load to be incremented subsequently
         else: m = metas[t['metadata']]
 
+        dt = parsegitdate(ci['s'])
+
         m['commits_qty']+=1
+        if not m.get('last_commit') or dt>=parsegitdate(m['last_commit']): m['last_commit']=ci['s']
 
         repocommiter = '-'.join([repo,ci['u']])
         if 'commiters' not in m: m['commiters']=[]
@@ -820,7 +825,7 @@ def assign_commits():
         if 'branches' not in m: m['branches']=[]
         if repobranch not in m['branches']: m['branches'].append(repobranch)
 
-        dt = parsegitdate(ci['s'])
+
 
         lastdatekey = '%s-%s'%(repo,ci['u'])
         if 'lastcommits' not in m: m['lastcommits']={}
