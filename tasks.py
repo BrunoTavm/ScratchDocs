@@ -354,7 +354,7 @@ def process_notifications():
     files_touched=[]
     for meta,s in tfs:
         m = json.load(open(meta))
-        if m.get('notify') and not m['notify']['notified']:
+        if m.get('notify') and not m['notify'].get('notified'):
             print 'notification processing %s'%s
             n=m['notify']
             send_notification(n['whom'],n['about'],n['what'])
