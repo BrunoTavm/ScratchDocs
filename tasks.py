@@ -189,6 +189,7 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     else:
         add=''
     cmd = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,add,itcnd,cfg.TASKFN)
+
     st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
     files = [fn for fn in op.split('\n') if fn!='']
 
@@ -280,8 +281,8 @@ def get_task(number,read=False,exc=True):
     return rt
 def get_children(number):
     t = get_task(number)
-    cmd = 'find %s -maxdepth 2 ! -wholename "*.git*" -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
-    st,op = gso(cmd) ; assert st==0
+    cmd = 'find -L %s -maxdepth 2 ! -wholename "*.git*" -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
+    st,op = gso(cmd) ; assert st==0,"%s returned %s:\n"%(cmd,st,op)
     chfiles = [ch for ch in op.split('\n') if ch!='']
     tf = [parse_story_fn(fn,read=True) for fn in chfiles]
     return tf
