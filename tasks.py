@@ -26,6 +26,7 @@ taskindex_tpl = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = 
 iteration_tpl = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
 new_story_notify_tpl = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
 changes_tpl = Template(filename=os.path.join(tpldir,'changes.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
+demo_tpl = Template(filename=os.path.join(tpldir,'demo.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
 def md5(fn):
     st,op = gso('md5sum %s'%fn); assert st==0
@@ -52,6 +53,7 @@ def render(tplname,params,outfile=None,mode='w'):
             ,'iteration':iteration_tpl
             ,'new_story_notify':new_story_notify_tpl
             ,'changes':changes_tpl
+            ,'demo':demo_tpl
             }
 
     t = tpls[tplname]
@@ -121,11 +123,12 @@ def parse_attrs(node):
     return rt
 def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     assert len(fn)
-    parts = fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR)
+    parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
     assert len(parts)>1,"%s"%"error parsing %s"%fn
-    it = parts[1]
-    story = cfg.STORY_SEPARATOR.join(parts[2:-1])
+    it = parts[0]
+    story = cfg.STORY_SEPARATOR.join(parts[1:-1])
     rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[1:-1])}
+    #raise Exception('id for %s is %s from %s'%(fn,rt['id'],parts))
     if read:
         root = orgparse.load(fn)
         heading=None
@@ -271,7 +274,7 @@ def get_task(number,read=False,exc=True):
     tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True)]
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
     if exc:
-        assert number in tasks,"%s (%s) not in %s"%(number,type(number),'tasks')
+        assert number in tasks,"%s (%s) not in %s"%(number,type(number),tasks.keys()) #'tasks')
 
     else:
         if number not in tasks: 
@@ -618,12 +621,20 @@ def makeindex(iteration):
             fp = open(storyidxfn,'a') ; fp.write(open(st[1]['path']).read()) ; fp.close()
 
             #print idxcont
-    assigned_files={}
+    participants = get_participants()
+
+    assigned_files={} ; excl=[]
     for asfn in ['alltime','current']:
         for assignee,storycnt in assignees.items():
+            if assignee!=None and assignee not in participants:
+                if assignee not in excl:
+                    #print 'excluding %s'%assignee
+                    excl.append(assignee)
+                continue
             afn = 'assigned-'+assignee+'-'+asfn+'.org'
             ofn = os.path.join(cfg.DATADIR,afn)
             if assignee not in assigned_files: assigned_files[assignee]={}
+            
             assigned_files[assignee][asfn]=afn
             if asfn=='current' and current_iteration:
                 f_iter = current_iteration[1]['name']
@@ -856,10 +867,25 @@ def assign_commits():
         savemeta(fn,m)
     print '%s metas touched.'%(len(metas))
 
+def make_demo(iteration):     
+    tf = [parse_story_fn(tf,read=True) for tf in get_task_files(iteration=iteration,recurse=True)]
+    def tf_srt(s1,s2):
+        rt=cmp(len(s1['id'].split(cfg.STORY_SEPARATOR)),len(s2['id'].split(cfg.STORY_SEPARATOR)))
+        if rt!=0: return rt
+        return 0
+    tf.sort(tf_srt)
+    tr = {'children':{}}
+    for s in tf:
+        spointer = tr
+        parts = s['id'].split(cfg.STORY_SEPARATOR)
+        #print 'walking parts %s'%parts
+        while len(parts):
+            prt = parts.pop(0)
+            if prt not in spointer['children']: spointer['children'][prt]={'children':{}}
+            spointer=spointer['children'][prt]
+        spointer['item']={'summary':s['summary'],'assignee':s['assigned to'],'status':s['status'],'id':s['id']}
 
-        
-    
-    
+    render('demo',{'trs':tr,'iteration':iteration,'rurl':cfg.RENDER_URL},'demo-%s.org'%iteration)
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Task Control',prog='tasks.py')
     subparsers = parser.add_subparsers(dest='command')
@@ -911,6 +937,9 @@ if __name__=='__main__':
     git.add_argument('--nofetch',dest='nofetch',action='store_true')
     git.add_argument('--import',dest='imp',action='store_true')
     git.add_argument('--assign',dest='assign',action='store_true')
+
+    git = subparsers.add_parser('makedemo')
+    git.add_argument('--iteration',dest='iteration',required=True)
 
     args = parser.parse_args()
 
@@ -981,3 +1010,5 @@ if __name__=='__main__':
             imp_commits(args)
         if args.assign:
             assign_commits()
+    if args.command=='makedemo':
+        make_demo(iteration=args.iteration)
