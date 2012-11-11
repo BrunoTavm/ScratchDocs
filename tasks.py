@@ -267,10 +267,11 @@ def get_task(number,read=False,exc=True):
         return task_cache[tk]
     
     number = str(number)
-    tf = [parse_story_fn(fn,read=read) for fn in get_task_files()]
+    tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True)]
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
     if exc:
         assert number in tasks,"%s (%s) not in %s"%(number,type(number),'tasks')
+
     else:
         if number not in tasks: 
             return False
@@ -455,6 +456,10 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     assert not os.path.exists(newtaskfn)
     render('task',params.__dict__,newtaskfn)
 
+    #clear the cache for tasks
+    global task_cache,taskfiles_cache
+    task_cache={}
+    taskfiles_cache={}
 
     if pars['assignee']:
         taskid = cfg.STORY_SEPARATOR.join([parent,newidx])
