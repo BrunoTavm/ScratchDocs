@@ -531,8 +531,9 @@ def get_current_iteration(iterations):
     nw = datetime.datetime.now() ; current_iteration=None
     for itp,it in iterations:
         if ('start date' in it and 'end date' in it):
-            if (it['start date']<=nw and it['end date']>=nw):
+            if (it['start date'].date()<=nw.date() and it['end date'].date()>=nw.date()):
                 current_iteration = (itp,it)
+    assert current_iteration,"no current iteration"
     return current_iteration
 def makeindex(iteration):
 
@@ -638,8 +639,10 @@ def makeindex(iteration):
             assigned_files[assignee][asfn]=afn
             if asfn=='current' and current_iteration:
                 f_iter = current_iteration[1]['name']
+                assert f_iter
             else:
                 f_iter=None
+
             tf = get_task_files(assignee=assignee,recurse=True,iteration=f_iter)
             stories = [(fn,parse_story_fn(fn,read=True,gethours=True,hoursonlyfor=assignee)) for fn in tf]
             stories.sort(status_srt)
