@@ -5,7 +5,10 @@
 *** DONE iteration dates
 ** DONE import odesk hours tracking
 ** TODO import git commits
-* DONE users need to get notification of new stories assigned to them.
+* users need to get notification [1/2]
+** DONE of new stories assigned to them.
+** TODO of any changes to their story
+* support DUPE status
 * TODO contain stories
 * TODO render the whole storyboard to html [14/15]
 ** DONE show what stories are in an iteration
