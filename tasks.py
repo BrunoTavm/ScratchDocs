@@ -466,7 +466,12 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     taskfiles_cache={}
 
     if pars['assignee']:
-        taskid = cfg.STORY_SEPARATOR.join([parent,newidx])
+        if parent:
+            jn = [parent,newidx]
+        else:
+            jn = [newidx]
+        
+        taskid = cfg.STORY_SEPARATOR.join(jn)
         add_notification(whom=pars['assignee'],about=taskid,what='new_story')
 
 def makehtml(iteration=None,notasks=False,files=[]):
