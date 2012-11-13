@@ -206,6 +206,8 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
                 incl=True
             if status and s['status']==status:
                 incl=True
+            if status and status.startswith('not ') and status.replace('not ','')!=s['status']:
+                incl=True
             if tag and 'tags' in s and tag in s['tags']:
                 incl=True
             if recent and 'created at' in s and s['created at']>=(datetime.datetime.now()-datetime.timedelta(days=cfg.RECENT_DAYS)):
