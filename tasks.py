@@ -192,7 +192,7 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     else:
         add=''
     cmd = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,add,itcnd,cfg.TASKFN)
-
+    #print cmd
     st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
     files = [fn for fn in op.split('\n') if fn!='']
 
@@ -273,9 +273,9 @@ def get_task(number,read=False,exc=True):
     number = str(number)
     tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True)]
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
+
     if exc:
         assert number in tasks,"%s (%s) not in %s"%(number,type(number),tasks.keys()) #'tasks')
-
     else:
         if number not in tasks: 
             return False
@@ -834,8 +834,9 @@ def assign_commits():
         if not ci['t']: continue
         repo,cid = ck.split('/')
         t = get_task(ci['t'],exc=False)
+        
         if not t: 
-            print 'could not find task %s'%(ci['t'])
+            print 'could not find task %s, which was referenced in %s: %s'%(ci['t'],ck,ci)
             continue
 
         #metadata cache
