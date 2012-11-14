@@ -407,6 +407,7 @@ def send_notification(whom,about,what,how=None,justverify=False):
     elif what=='change':
         subject = 'Change in task %s'%t['story']
         assert cfg.GITWEB_URL
+        assert cfg.DOCS_REPONAME
         rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom],'commit':how,'gitweb':cfg.GITWEB_URL,'docsrepo':cfg.DOCS_REPONAME}
     else:
         raise Exception('unknown topic %s'%what)
