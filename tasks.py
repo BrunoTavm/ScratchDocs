@@ -855,8 +855,15 @@ def assign_commits():
         t = get_task(ci['t'],exc=False)
         
         if not t: 
-            print 'could not find task %s, which was referenced in %s: %s'%(ci['t'],ck,ci)
-            continue
+            strans = get_story_trans()
+            if ci['t'] in strans:
+                print 'translating %s => %s'%(ci['t'],strans[ci['t']])
+                if strans[ci['t']]=='None':
+                    continue
+                t = get_task(strans[ci['t']])
+            else:
+                print 'could not find task %s, which was referenced in %s: %s'%(ci['t'],ck,ci)
+                continue
 
         #metadata cache
         if t['metadata'] not in metas: 
