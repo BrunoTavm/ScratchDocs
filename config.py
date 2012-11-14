@@ -14,6 +14,7 @@ SENDER=None
 GITWEB_URL=None
 REPOSITORIES=[]
 REPO_DIR='repos'
+DOCS_REPONAME=None
 def USERMAP(un):
     return un
 def COMMITERMAP(em,nm):
@@ -21,4 +22,3 @@ def COMMITERMAP(em,nm):
 from config_local import *
 import os
 SDIR = os.path.join(DATADIR,SHORTCUT_PREFIX)
-DOCS_REPONAME=None
