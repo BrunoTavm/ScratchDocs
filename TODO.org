@@ -8,6 +8,9 @@
 * users need to get notification [1/2]
 ** DONE of new stories assigned to them.
 ** TODO of any changes to their story
+* maxim wants [0/2]
+** TODO ability to change status from web interface
+** TODO ability to sort tables
 * support DUPE status
 * TODO task priorities
 * TODO contain stories

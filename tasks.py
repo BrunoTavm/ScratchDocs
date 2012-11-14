@@ -316,12 +316,12 @@ def get_new_idx(parent=None):
     newid = maxid+1
     return str(newid)
 
-def get_participants():
-    fn = os.path.join(cfg.DATADIR,'participants.org')
-    fp = open(fn,'r') ; gothead=False
+def get_table_contents(fn):
+    ffn = os.path.join(cfg.DATADIR,fn)
+    fp = open(ffn,'r') ; gothead=False
     def parseline(ln):
         return [f.strip() for f in ln.split('|') if f.strip()!='']
-    rt={}
+    rt=[]
     while True:
         ln = fp.readline()
         if not ln: break
@@ -332,10 +332,25 @@ def get_participants():
         if ln.startswith('|-'): continue
         row = parseline(ln) 
         row = dict([(headers[i],row[i]) for i in xrange(len(row))])
+        rt.append(row)
         #only active ones:
+    return rt
+
+def get_participants():
+    tconts = get_table_contents('participants.org')
+    rt={}
+    for row in tconts:
         if row['Active']=='Y':
             rt[row['Username']]=row
     return rt
+
+def get_story_trans():
+    tconts = get_table_contents('taskmap.org')
+    rt = {}
+    for t in tconts:
+        rt[t['Task']]=t['Target']
+    return rt
+    #raise Exception(tconts)
 
 def add_notification(whom,about,what):
     send_notification(whom,about,what,justverify=True)
@@ -560,7 +575,9 @@ def makeindex(iteration):
     #and render its index in the shortcuts folder
     idxstories = [(fn,parse_story_fn(fn,read=True,gethours=True)) for fn in get_task_files(recurse=True)]
     vardict = {'term':'Index','value':'','stories':by_status(idxstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False}
-    render('tasks',vardict,os.path.join(cfg.SDIR,'index.org'))
+    routfile= os.path.join(cfg.SDIR,'index.org')
+    print 'rendering %s'%routfile
+    render('tasks',vardict,routfile)
 
     for it in iterations:
         #print 'cycling through iteration %s'%it[0]
@@ -996,8 +1013,13 @@ if __name__=='__main__':
                 try:
                     t = get_task(sid)
                 except:
-                    print 'could not find task %s: %s'%(sid,dt)
-                    continue
+                    strans = get_story_trans()
+                    if sid in strans:
+                        print 'translating %s => %s'%(sid,strans[sid])
+                        t = get_task(strans[sid])
+                    else:
+                        print 'could not find task %s: %s'%(sid,dt)
+                        continue
                 ofn = os.path.join(os.path.dirname(t['path']),'hours.json')
                 if not os.path.exists(ofn):
                     hours = {}
