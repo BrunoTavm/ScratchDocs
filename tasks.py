@@ -25,6 +25,7 @@ tasks_tpl = Template(filename=os.path.join(tpldir,'tasks.org'),lookup = lk,modul
 taskindex_tpl = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
 iteration_tpl = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
 new_story_notify_tpl = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+change_notify_tpl = Template(filename=os.path.join(tpldir,'change_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
 changes_tpl = Template(filename=os.path.join(tpldir,'changes.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
 demo_tpl = Template(filename=os.path.join(tpldir,'demo.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
@@ -52,6 +53,7 @@ def render(tplname,params,outfile=None,mode='w'):
             ,'iterations':iterations_tpl
             ,'iteration':iteration_tpl
             ,'new_story_notify':new_story_notify_tpl
+            ,'change_notify':change_notify_tpl
             ,'changes':changes_tpl
             ,'demo':demo_tpl
             }
@@ -353,14 +355,15 @@ def get_story_trans():
     #raise Exception(tconts)
 
 def add_notification(whom,about,what):
-    send_notification(whom,about,what,justverify=True)
+    send_notification(whom,about,what,how=None,justverify=True)
 
     t = get_task(about,read=True)
     if os.path.exists(t['metadata']):
         meta = loadmeta(t['metadata'])
     else:
         meta={}
-    meta['notify']={'whom':whom,'about':about,'what':what,'added':datetime.datetime.now().isoformat()}
+    if 'notifications' not in meta: meta['notifications']=[]
+    meta['notifications'].append({'whom':whom,'about':about,'what':what,'added':datetime.datetime.now().isoformat()})
     savemeta(t['metadata'],meta)
 
 def get_meta_files():
@@ -370,26 +373,25 @@ def get_meta_files():
     return files
     
 
-def process_notifications():
+def process_notifications(args):
     tfs = get_meta_files()
     files_touched=[]
     for meta,s in tfs:
-        m = json.load(open(meta))
-        if m.get('notify') and not m['notify'].get('notified'):
-            print 'notification processing %s'%s
-            n=m['notify']
-            send_notification(n['whom'],n['about'],n['what'])
-            m['notify']['notified']=datetime.datetime.now().isoformat()
-            fp = open(meta,'w')
-            json.dump(m,fp,indent=True)
-            fp.close()
-            files_touched.append(fp.name)
-    if len(files_touched):
+        m = loadmeta(meta)
+        if m.get('notifications'):
+            for n in m['notifications']:
+                if n.get('notified'): continue
+                print 'notification processing %s'%s
+                send_notification(n['whom'],n['about'],n['what'],n.get('how'))
+                n['notified']=datetime.datetime.now().isoformat()
+                savemeta(meta,m)
+                files_touched.append(meta)
+    if len(files_touched) and not args.nocommit:
         print 'commiting %s touched files.'%(len(files_touched))
         cmd = 'git add '+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles." && git push'
         st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
 
-def send_notification(whom,about,what,justverify=False):
+def send_notification(whom,about,what,how=None,justverify=False):
     import sendgrid # we import here because we don't want to force everyone installing this.
     assert cfg.RENDER_URL,"no RENDER_URL specified in config."
     assert cfg.SENDER,"no sender specified in config."
@@ -401,9 +403,15 @@ def send_notification(whom,about,what,justverify=False):
     tf = tempfile.NamedTemporaryFile(delete=False,suffix='.org')
     if what=='new_story':
         subject = 'New task %s'%t['story']
+        rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom]}
+    elif what=='change':
+        subject = 'Change in task %s'%t['story']
+        assert cfg.GITWEB_URL
+        rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom],'commit':how,'gitweb':cfg.GITWEB_URL,'docsrepo':cfg.DOCS_REPONAME}
     else:
         raise Exception('unknown topic %s'%what)
-    notify = render(tpl,{'t':t,'url':cfg.RENDER_URL,'recipient':p[whom]},tf.name)
+    notify = render(tpl,rdt,tf.name)
+    #print open(tf.name,'r').read() ; raise Exception('bye')
     if justverify:
         return False
     cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(tf.name)
@@ -482,14 +490,14 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     task_cache={}
     taskfiles_cache={}
 
-    if pars['assignee']:
-        if parent:
-            jn = [parent,newidx]
-        else:
-            jn = [newidx]
-        
-        taskid = cfg.STORY_SEPARATOR.join(jn)
-        add_notification(whom=pars['assignee'],about=taskid,what='new_story')
+    # change notifications will suffice for now
+    # if pars['assignee']:
+    #     if parent:
+    #         jn = [parent,newidx]
+    #     else:
+    #         jn = [newidx]
+    #     taskid = cfg.STORY_SEPARATOR.join(jn)
+    #     add_notification(whom=pars['assignee'],about=taskid,what='new_story')
 
 def makehtml(iteration=None,notasks=False,files=[]):
     #find all the .org files generated
@@ -705,7 +713,7 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False)
     print pt
     print '%s stories.'%cnt
 
-def get_changes(show=False):
+def get_changes(show=False,add_notifications=False):
     st,op = gso('git log --pretty=oneline -30') ; assert st==0
     commits = dict([(c.split(' ')[0],{'message':' '.join(c.split(' ')[1:])}) for c in op.split('\n') if c!=''])
     for cid,cmsg in commits.items():
@@ -723,11 +731,55 @@ def get_changes(show=False):
                 ulines.append(l)
                 #pt.add_row([dt,cid,cmsg['message'],l,parse_story_fn(l)['id']])
         commits[cid]['changes']=ulines
-    if show:
-        pt = PrettyTable(['date','commit','message','file','story'])
-        for cid,cdata in commits.items():
-            for cfn in cdata['changes']:
-                pt.add_row([cdata['date'],cid,cdata['message'],cfn,parse_story_fn(cfn)['id']])
+    pt = PrettyTable(['date','commit','message','file','story'])
+    notifyover={}
+    for cid,cdata in commits.items():
+        #print 'going over commit %s which has %s changes'%(cid,len(cdata['changes']))
+        for cfn in cdata['changes']:
+            if os.path.exists(cfn):
+                pfn = parse_story_fn(cfn,read=True)
+                sid = pfn['id']
+            else:
+                sid=None
+            pt.add_row([cdata['date'],cid,cdata['message'],cfn,sid])
+
+            if add_notifications:
+                for fn in ['created by','assigned to']:
+                    whom = pfn.get(fn)
+                    if not whom or whom=="None": continue
+                    if sid not in notifyover:
+                        notifyover[sid]={}
+                    if whom not in notifyover[sid]:
+                        notifyover[sid][whom]=[]
+                    if cid not in  notifyover[sid][whom]:
+                        notifyover[sid][whom].append(cid)
+
+    metas={}
+    for sid,people in notifyover.items():
+        for person,commits in people.items():
+            for cid in commits:
+                if not sid: continue
+                s = get_task(sid)
+                if s['metadata'] in metas:
+                    m = metas[s['metadata']]
+                else:
+                    m = loadmeta(s['metadata'])
+                if 'notifications' not in m: m['notifications']=[]
+                toks = ['%s-%s'%(n['whom'],n.get('how')) for n in m['notifications']]
+                mytok = '%s-%s'%(person,cid)
+                if mytok in toks: continue
+                #{u'notified': u'2012-11-13T13:11:37.283310', u'whom': u'maxim_d', u'about': u'602', u'added': u'2012-11-13T11:21:36.368063', u'what': u'new_story'}
+                apnd = {'whom':person,'about':sid,'added':datetime.datetime.now().isoformat(),'what':'change','how':cid}
+                print apnd
+                m['notifications'].append(apnd)
+                metas[s['metadata']] = m
+                
+
+    for fn,m in metas.items():
+        print 'writing %s'%fn
+        savemeta(fn,m)
+
+    if show and not add_notifications:
         print pt
     return commits
 
@@ -966,7 +1018,10 @@ if __name__=='__main__':
     ed.add_argument('tasks',nargs='+')
     
     pr = subparsers.add_parser('process_notifications')
+    pr.add_argument('--nocommit',dest='nocommit',action='store_true')
+
     ch = subparsers.add_parser('changes')
+    ch.add_argument('--notifications',dest='notifications',action='store_true')
 
     git = subparsers.add_parser('fetch_commits')
     git.add_argument('--nofetch',dest='nofetch',action='store_true')
@@ -975,6 +1030,7 @@ if __name__=='__main__':
 
     git = subparsers.add_parser('makedemo')
     git.add_argument('--iteration',dest='iteration',required=True)
+
 
     args = parser.parse_args()
 
@@ -1042,9 +1098,9 @@ if __name__=='__main__':
         cmd = 'emacs '+' '.join(tfiles)
         st,op=gso(cmd)
     if args.command=='process_notifications':
-        process_notifications()
+        process_notifications(args)
     if args.command=='changes':
-        get_changes(show=True)
+        get_changes(show=True,add_notifications=args.notifications)
     if args.command=='fetch_commits':
         if args.imp:
             imp_commits(args)

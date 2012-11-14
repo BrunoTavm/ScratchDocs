@@ -1,0 +1,8 @@
+#+OPTIONS: toc:nil        (no TOC at all)
+** New task ${t['story']} notification
+Dear ${recipient['Name']},
+A task which you relate to, [[${url+'s/'+t['story']}][${t['story']}]], has been modified in commit [[${gitweb}?p=${docsrepo};a=commitdiff;h=${commit}][${commit}]].
+*** Summary
+${t['summary']}
+
+Please check it out.

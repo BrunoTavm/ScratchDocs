@@ -5,14 +5,15 @@
 *** DONE iteration dates
 ** DONE import odesk hours tracking
 ** TODO import git commits
-* users need to get notification [1/2]
+* users need to get notification [2/2]
 ** DONE of new stories assigned to them.
-** TODO of any changes to their story
+** DONE of any changes to their story
 * maxim wants [0/2]
 ** TODO ability to change status from web interface
 ** TODO ability to sort tables
 * support DUPE status
 * TODO task priorities
+* TODO pre-commit task file validation
 * TODO contain stories
 * TODO render the whole storyboard to html [14/15]
 ** DONE show what stories are in an iteration
@@ -21,7 +22,6 @@
 ** DONE repo init
 ** DONE story move
 ** DONE story purge
-
 ** DONE have a flat per-story index
 ** DONE import scrumdo [2/2]
 *** DONE comments
