@@ -954,6 +954,28 @@ def assign_commits():
     for fn,m in metas.items():
         savemeta(fn,m)
     print '%s metas touched.'%(len(metas))
+def tasks_validate(tasks=None):
+    cnt=0 ; failed=0
+    tasks = [t for t in tasks if t!=None]
+    if tasks:
+        tfs = [get_task(taskid,read=False)['path'] for taskid in tasks]
+    else:
+        tfs = get_task_files()
+    for tf in tfs:
+        try:
+            t = parse_story_fn(tf,read=True)
+            assert t['summary']
+            assert t['assigned to']
+            assert t['created by']
+            assert t['status']
+            #print '%s : %s , %s , %s, %s'%(t['id'],t['summary'] if len(t['summary'])<40 else t['summary'][0:40]+'..',t['assigned to'],t['created by'],t['status'])
+            cnt+=1
+        except:
+            print 'failed validation for %s'%tf
+            failed+=1
+
+    print '%s tasks in all; %s failed'%(cnt,failed)
+    return failed
 
 def make_demo(iteration):     
     tf = [parse_story_fn(tf,read=True) for tf in get_task_files(iteration=iteration,recurse=True)]
@@ -1032,6 +1054,9 @@ if __name__=='__main__':
     git = subparsers.add_parser('makedemo')
     git.add_argument('--iteration',dest='iteration',required=True)
 
+    val = subparsers.add_parser('validate')
+    val.add_argument('tasks',nargs='?',action='append')
+
 
     args = parser.parse_args()
 
@@ -1109,3 +1134,5 @@ if __name__=='__main__':
             assign_commits()
     if args.command=='makedemo':
         make_demo(iteration=args.iteration)
+    if args.command=='validate':
+        tasks_validate(args.tasks)

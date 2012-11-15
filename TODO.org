@@ -1,10 +1,10 @@
-* import [3/4]
+* import [4/4]
 ** DONE import stories
 *** DONE story tags
 ** DONE import iterations
 *** DONE iteration dates
 ** DONE import odesk hours tracking
-** TODO import git commits
+** DONE import git commits
 * users need to get notification [2/2]
 ** DONE of new stories assigned to them.
 ** DONE of any changes to their story
@@ -13,9 +13,9 @@
 ** TODO ability to sort tables
 * support DUPE status
 * TODO task priorities
-* TODO pre-commit task file validation
+* DONE pre-commit task file validation
 * TODO contain stories
-* TODO render the whole storyboard to html [14/15]
+* TODO render the whole storyboard to html [15/15]
 ** DONE show what stories are in an iteration
 ** DONE show who is assigned what story
 ** DONE show stories by status
@@ -30,11 +30,11 @@
 ** DONE show other story by creator/user
 ** DONE show user's todo
 ** DONE show current iteration
-** TODO show last changes to stories
+** DONE show last changes to stories
 ** DONE show state and tags in task headline
 ** DONE see in task render what iteration it is under
 * add iteration
-* TODO tests for common tasks
+* TODO unit/integration tests for common use cases
 * TODO add a new story [1/2]
 ** DONE from commandline
 ** TODO from web interface
