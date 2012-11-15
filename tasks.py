@@ -741,11 +741,12 @@ def get_changes(show=False,add_notifications=False):
                 pfn = parse_story_fn(cfn,read=True)
                 sid = pfn['id']
             else:
-                sid=None
+                pfn = None
+                sid = None
             pt.add_row([cdata['date'],cid,cdata['message'],cfn,sid])
-
+            
             if add_notifications:
-                for fn in ['created by','assigned to']:
+                for fn in ['created by','assigned to'] and pfn:
                     whom = pfn.get(fn)
                     if not whom or whom=="None": continue
                     if sid not in notifyover:
