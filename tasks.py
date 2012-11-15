@@ -1105,6 +1105,8 @@ if __name__=='__main__':
                     strans = get_story_trans()
                     if sid in strans:
                         print 'translating %s => %s'%(sid,strans[sid])
+                        if strans[sid]=='None':
+                            continue
                         t = get_task(strans[sid])
                     else:
                         print 'could not find task %s: %s'%(sid,dt)
