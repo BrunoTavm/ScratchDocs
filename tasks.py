@@ -745,8 +745,8 @@ def get_changes(show=False,add_notifications=False):
                 sid = None
             pt.add_row([cdata['date'],cid,cdata['message'],cfn,sid])
             
-            if add_notifications:
-                for fn in ['created by','assigned to'] and pfn:
+            if add_notifications and pfn:
+                for fn in ['created by','assigned to']:
                     whom = pfn.get(fn)
                     if not whom or whom=="None": continue
                     if sid not in notifyover:
