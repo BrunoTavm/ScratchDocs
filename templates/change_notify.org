@@ -4,5 +4,6 @@ Dear ${recipient['Name']},
 A task which you relate to, [[${url+'s/'+t['story']}][${t['story']}]], has been modified in commit [[${gitweb}?p=${docsrepo};a=commitdiff;h=${commit}][${commit}]].
 *** Summary
 ${t['summary']}
+*** See current tasks
+To see your current tasks, please go [[${url}assigned-${recipient['Username']}-current.html][here]].
 
-Please check it out.
