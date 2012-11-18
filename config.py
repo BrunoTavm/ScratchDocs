@@ -15,6 +15,7 @@ GITWEB_URL=None
 REPOSITORIES=[]
 REPO_DIR='repos'
 DOCS_REPONAME=None
+TPLDIR='templates'
 def USERMAP(un):
     return un
 def COMMITERMAP(em,nm):

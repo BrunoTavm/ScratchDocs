@@ -17,7 +17,10 @@ import tempfile
 
 if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
 _prefix = os.path.dirname(__file__)
-tpldir = os.path.join(_prefix,'templates')
+if cfg.TPLDIR:
+    tpldir = cfg.TPLDIR
+else:
+    tpldir = os.path.join(_prefix,'templates')
 lk = TemplateLookup(directories=['.'])
 task_tpl = Template(filename=(os.path.join(tpldir,'task.org')),lookup = lk,module_directory=cfg.MAKO_DIR)
 iterations_tpl = Template(filename=os.path.join(tpldir,'iterations.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
