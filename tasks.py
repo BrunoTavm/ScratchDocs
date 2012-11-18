@@ -400,7 +400,11 @@ def send_notification(whom,about,what,how=None,justverify=False):
     assert cfg.SENDER,"no sender specified in config."
 
     p = get_participants()
-    email = p[whom]['E-Mail']
+    try:
+        email = p[whom]['E-Mail']
+    except KeyError:
+        print '%s not in %s'%(whom,p.keys())
+        return False
     t= get_task(about,read=True)
     tpl = what+'_notify'
     tf = tempfile.NamedTemporaryFile(delete=False,suffix='.org')
