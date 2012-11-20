@@ -1065,6 +1065,10 @@ if __name__=='__main__':
     val = subparsers.add_parser('validate')
     val.add_argument('tasks',nargs='?',action='append')
 
+    commit = subparsers.add_parser('commit')
+    commit.add_argument('--tasks',dest='tasks',action='store_true')
+    commit.add_argument('--metas',dest='metas',action='store_true')
+    commit.add_argument('--nopush',dest='nopush',action='store_true')
 
     args = parser.parse_args()
 
@@ -1146,3 +1150,27 @@ if __name__=='__main__':
         make_demo(iteration=args.iteration)
     if args.command=='validate':
         tasks_validate(args.tasks)
+    if args.command=='commit':
+        prevdir = os.getcwd()
+        os.chdir(cfg.DATADIR)
+        st,op = gso('git pull') ; assert st==0
+        commitm=[]
+        if args.tasks:
+            st,op = gso('git add *task.org') ; assert st==0
+            commitm.append('tasks commit')
+        if args.metas:
+            st,op = gso('git add *meta.org') ; assert st==0
+            commitm.append('metas commit')
+        st,op = gso('git status') ; assert st==0
+        print op
+        cmd = 'git commit -m "%s"'%("; ".join(commitm))
+        st,op = gso(cmd) ; 
+        if 'no changes added to commit' in op and st==256:
+            print 'nothing to commit'
+        else:
+            assert st==0,"%s returned %s\n%s"%(cmd,st,op)
+            if not args.nopush:
+                cmd = 'git push'
+                st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
+                print 'pushed to remote'
+            os.chdir(prevdir)

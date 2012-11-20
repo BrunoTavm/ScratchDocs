@@ -8,6 +8,8 @@
 * users need to get notification [2/2]
 ** DONE of new stories assigned to them.
 ** DONE of any changes to their story
+** notification includes changer
+** notification sent to parent story related people
 * TODO new commands [0/2]
 ** TODO mark as status
 ** TODO commit and push
