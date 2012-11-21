@@ -10,6 +10,8 @@
 ** DONE of any changes to their story
 ** notification includes changer
 ** notification sent to parent story related people
+* TODO see which task clocked tasks in specified period and how much and by whom
+* TODO see which branches and commits are in all tasks filterable by dates  
 * TODO new commands [0/2]
 ** TODO mark as status
 ** TODO commit and push
