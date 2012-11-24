@@ -9,7 +9,7 @@ ${''.join(['*' for i in range(stars)])} ${it['item']['status']} [[${rurl}/s/${it
 % if it['item']['assignee']!='None':
                             :${it['item']['assignee']}:
 % else:
-
+                            :UNASSIGNED:
 % endif
 % if len(it['children']):
 ${render_tree(it['children'].items(),stars+1)}\
