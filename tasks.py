@@ -1070,6 +1070,10 @@ if __name__=='__main__':
     commit.add_argument('--metas',dest='metas',action='store_true')
     commit.add_argument('--nopush',dest='nopush',action='store_true')
 
+    tt = subparsers.add_parser('time_tracking')
+    tt.add_argument('--from',dest='from_date')
+    tt.add_argument('--to',dest='to_date')
+
     args = parser.parse_args()
 
     if args.command=='list':
@@ -1174,3 +1178,85 @@ if __name__=='__main__':
                 st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
                 print 'pushed to remote'
             os.chdir(prevdir)
+    if args.command=='time_tracking':
+        if args.from_date:from_date = datetime.datetime.strptime(args.from_date,'%Y-%m-%d').date()
+        else:from_date = (datetime.datetime.now()-datetime.timedelta(days=1)).date()
+        if args.to_date:to_date = datetime.datetime.strptime(args.to_date,'%Y-%m-%d').date()
+        else:to_date = (datetime.datetime.now()-datetime.timedelta(days=1)).date()
+        files = get_task_files()
+        metafiles = [os.path.join(os.path.dirname(fn),'hours.json') for fn in files]
+        agg={} ; tagg={} ; sagg={}
+
+        maxparts=0
+        for mf in metafiles:
+            m = loadmeta(mf)
+            tf=  parse_story_fn(mf)
+            sid = tf['story']
+            sparts = sid.split(cfg.STORY_SEPARATOR)
+            tlsid = sparts[0]
+            if len(sparts)>maxparts: maxparts=len(sparts)
+            for k in m:
+                mk = datetime.datetime.strptime(k,'%Y-%m-%d').date()
+                if mk>=from_date and mk<=to_date:
+                    #print mk,m[k],sid
+                    for person,hours in m[k].items():
+                        if sid not in agg: 
+                            agg[sid]={}
+                        if tlsid not in tagg:
+                            tagg[tlsid]={}
+                        if tlsid not in sagg:
+                            sagg[tlsid]={}
+
+                        if person not in agg[sid]: 
+                            agg[sid][person]=0
+                        
+                        if person not in tagg[tlsid]:
+                            tagg[tlsid][person]=0
+                        if '--' not in sagg[tlsid]:
+                            sagg[tlsid]['--']=0
+
+                        agg[sid][person]+=hours
+                        tagg[tlsid][person]+=hours
+                        sagg[tlsid]['--']+=hours
+
+        for smode in ['detailed','tl','sagg']:
+            headers = ['Summary','Person','Hours']
+            if smode=='detailed':
+                tcols = ['Task %s'%i for i in xrange(maxparts)] + headers
+                mpadd=3
+                cyc = agg.items()
+            elif smode=='tl':
+                tcols = ['Task 0'] + headers
+                mpadd=1
+                cyc = tagg.items()
+            elif smode=='sagg':
+                tcols=['Task 0']+ ['Summary','Hours']
+                mpadd=0
+                cyc = sagg.items()
+
+            pt = PrettyTable(tcols)
+            pt.align['Summary']='l'
+            hrs=0
+            if smode=='sagg':
+                pt.sortby='Hours'
+            for sid,people in cyc:
+                for person,hours in people.items():
+                    td = get_task(sid,read=True)
+                    summary = td['summary'] if len(td['summary'])<60 else td['summary'][0:60]+'..'
+                    sparts = sid.split(cfg.STORY_SEPARATOR)
+                    while len(sparts)<maxparts:
+                        sparts.append('')
+                    dt = [summary,person,"%4.2f"%hours]
+                    if smode =='detailed':
+                        dt=sparts+dt
+                    elif smode=='tl':
+                        dt=[sparts[0]]+dt
+                    elif smode=='sagg':
+                        dt=[sparts[0]]+[summary,hours]
+                    hrs+=hours
+                    pt.add_row(dt)
+                if smode!='sagg':
+                    pt.add_row(['--' for i in xrange(maxparts+mpadd)])
+            pt.add_row(['TOT']+['--' for i in xrange(maxparts+mpadd-2)]+["%4.2f"%hrs])
+            print pt
+                    
