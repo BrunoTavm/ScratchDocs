@@ -1185,7 +1185,7 @@ if __name__=='__main__':
         else:to_date = (datetime.datetime.now()-datetime.timedelta(days=1)).date()
         files = get_task_files()
         metafiles = [os.path.join(os.path.dirname(fn),'hours.json') for fn in files]
-        agg={} ; tagg={} ; sagg={}
+        agg={} ; tagg={} ; sagg={} ; pagg={} ; tcache={}
 
         maxparts=0
         for mf in metafiles:
@@ -1206,6 +1206,8 @@ if __name__=='__main__':
                             tagg[tlsid]={}
                         if tlsid not in sagg:
                             sagg[tlsid]={}
+                        if person not in pagg:
+                            pagg[person]=0
 
                         if person not in agg[sid]: 
                             agg[sid][person]=0
@@ -1214,10 +1216,21 @@ if __name__=='__main__':
                             tagg[tlsid][person]=0
                         if '--' not in sagg[tlsid]:
                             sagg[tlsid]['--']=0
-
+                            
                         agg[sid][person]+=hours
                         tagg[tlsid][person]+=hours
                         sagg[tlsid]['--']+=hours
+                        pagg[person]+=hours
+
+        print '* per-Participant (time tacked) view'
+        ptp = PrettyTable(['Person','Hours'])
+        ptp.sortby='Hours'
+        htot=0
+        for person,hours in pagg.items():
+            ptp.add_row([person,hours])
+            htot+=hours
+        ptp.add_row(['TOT',htot])
+        print ptp
 
         for smode in ['detailed','tl','sagg']:
             headers = ['Summary','Person','Hours']
@@ -1225,15 +1238,17 @@ if __name__=='__main__':
                 tcols = ['Task %s'%i for i in xrange(maxparts)] + headers
                 mpadd=3
                 cyc = agg.items()
+                print '* Detailed view'
             elif smode=='tl':
                 tcols = ['Task 0'] + headers
                 mpadd=1
                 cyc = tagg.items()
+                print '* Top Level Task view'
             elif smode=='sagg':
                 tcols=['Task 0']+ ['Summary','Hours']
                 mpadd=0
                 cyc = sagg.items()
-
+                print '* per-Task view'
             pt = PrettyTable(tcols)
             pt.align['Summary']='l'
             hrs=0
@@ -1241,7 +1256,9 @@ if __name__=='__main__':
                 pt.sortby='Hours'
             for sid,people in cyc:
                 for person,hours in people.items():
-                    td = get_task(sid,read=True)
+                    if sid not in tcache:
+                        tcache[sid] = get_task(sid,read=True)
+                    td = tcache[sid]
                     summary = td['summary'] if len(td['summary'])<60 else td['summary'][0:60]+'..'
                     sparts = sid.split(cfg.STORY_SEPARATOR)
                     while len(sparts)<maxparts:
