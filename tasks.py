@@ -71,6 +71,7 @@ def render(tplname,params,outfile=None,mode='w'):
             print val
             raise
     r= t.render(**params)
+
     if outfile:
         #print 'working %s'%outfile;        print params
         fp = codecs.open(outfile,mode,encoding='utf-8') ; fp.write(r) ; fp.close()
@@ -595,9 +596,9 @@ def makeindex(iteration):
 
     #and render its index in the shortcuts folder
     idxstories = [(fn,parse_story_fn(fn,read=True,gethours=True)) for fn in get_task_files(recurse=True)]
-    vardict = {'term':'Index','value':'','stories':by_status(idxstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False}
+    vardict = {'term':'Index','value':'','stories':by_status(idxstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False,'statusagg':{}}
     routfile= os.path.join(cfg.SDIR,'index.org')
-    print 'rendering %s'%routfile
+    #print 'rendering %s'%routfile
     render('tasks',vardict,routfile)
 
     for it in iterations:
@@ -608,6 +609,7 @@ def makeindex(iteration):
         #print 'walking iteration %s'%it[0]
         taskfiles = get_task_files(iteration=it[1]['name'],recurse=True)
         stories = [(fn,parse_story_fn(fn,read=True,gethours=True)) for fn in taskfiles]
+        stories_by_id = dict([(st[1]['id'],st[1]) for st in stories])
         stories.sort(taskid_srt,reverse=True)        
 
         #let's create symlinks for all those stories to the root folder.
@@ -633,16 +635,30 @@ def makeindex(iteration):
                 st,op = gso(cmd) ; assert st==0,"%s returned %s"%(cmd,st)
 
         shallowstories = [st for st in stories if len(st[1]['story'].split(cfg.STORY_SEPARATOR))==1]
+
         iterations_stories[it[1]['name']]=len(shallowstories)
 
-        vardict = {'term':'Iteration','value':it[1]['name'],'stories':by_status(shallowstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False} #the index is generated only for the immediate 1-level down stories.
+        #aggregate subtask statuses
+        statusagg = {}
+        for st in stories:
+            #calcualte children
+            chids = ([sst[1]['id'] for sst in stories if sst[1]['id'].startswith(st[1]['id']) and len(sst[1]['id'])>len(st[1]['id'])])
+            if len(chids):
+                statuses = {}
+                for chid in chids:
+                    sti = stories_by_id[chid]
+                    if sti['status'] not in statuses: statuses[sti['status']]=0
+                    statuses[sti['status']]+=1
+                statusagg[st[1]['id']]=statuses
+
+        vardict = {'term':'Iteration','value':it[1]['name'],'stories':by_status(shallowstories),'relpath':True,'statuses':cfg.STATUSES,'iteration':False,'statusagg':statusagg} #the index is generated only for the immediate 1-level down stories.
         itidxfn = os.path.join(cfg.DATADIR,it[0],'index.org')
         fp = open(itidxfn,'w') ; fp.write(open(os.path.join(cfg.DATADIR,it[0],'iteration.org')).read()) ; fp.close()
         stlist = render('tasks',vardict,itidxfn,'a') 
 
         #we show an iteration index of the immediate 1 level down tasks
-
         for st in stories:
+
             #aggregate assignees
             if st[1]['assigned to']:
                 asgn = st[1]['assigned to']
@@ -691,7 +707,7 @@ def makeindex(iteration):
             tf = get_task_files(assignee=assignee,recurse=True,iteration=f_iter)
             stories = [(fn,parse_story_fn(fn,read=True,gethours=True,hoursonlyfor=assignee)) for fn in tf]
             stories.sort(status_srt)
-            vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'iteration':True}
+            vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'iteration':True,'statusagg':{}}
             cont = render('tasks',vardict,ofn)
 
 
@@ -700,7 +716,8 @@ def makeindex(iteration):
                'assigned_files':assigned_files,
                'assignees':assignees,
                'current_iteration':current_iteration,
-               'recent_tasks':recent
+               'recent_tasks':recent,
+               'statusagg':{}
                }
     idxfn = os.path.join(cfg.DATADIR,'index.org')
     itlist = render('iterations',vardict,idxfn)
