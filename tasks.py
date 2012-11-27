@@ -385,7 +385,7 @@ def process_notifications(args):
             for n in m['notifications']:
                 if n.get('notified'): continue
                 print 'notification processing %s'%s
-                send_notification(n['whom'],n['about'],n['what'],n.get('how'))
+                send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
                 n['notified']=datetime.datetime.now().isoformat()
                 savemeta(meta,m)
                 files_touched.append(meta)
@@ -394,7 +394,7 @@ def process_notifications(args):
         cmd = 'git add '+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles." && git push'
         st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
 
-def send_notification(whom,about,what,how=None,justverify=False):
+def send_notification(whom,about,what,how=None,justverify=False,body={}):
     import sendgrid # we import here because we don't want to force everyone installing this.
     assert cfg.RENDER_URL,"no RENDER_URL specified in config."
     assert cfg.SENDER,"no sender specified in config."
@@ -412,10 +412,10 @@ def send_notification(whom,about,what,how=None,justverify=False):
         subject = 'New task %s'%t['story']
         rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom]}
     elif what=='change':
-        subject = 'Change in task %s'%t['story']
+        subject = 'Change in task %s by %s'%(t['story'],body['author_name'])
         assert cfg.GITWEB_URL
         assert cfg.DOCS_REPONAME
-        rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom],'commit':how,'gitweb':cfg.GITWEB_URL,'docsrepo':cfg.DOCS_REPONAME}
+        rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom],'commit':how,'gitweb':cfg.GITWEB_URL,'docsrepo':cfg.DOCS_REPONAME,'body':body}
     else:
         raise Exception('unknown topic %s'%what)
     notify = render(tpl,rdt,tf.name)
@@ -428,7 +428,12 @@ def send_notification(whom,about,what,how=None,justverify=False):
     #print 'written %s'%expname
     assert os.path.exists(expname)
     s = sendgrid.Sendgrid(cfg.SENDGRID_USERNAME,cfg.SENDGRID_PASSWORD,secure=True)
-    message = sendgrid.Message(cfg.SENDER,subject,open(tf.name).read(),open(expname).read())
+    if body and body.get('authormail'):
+        sender = body.get('authormail')
+    else:
+        sender = cfg.SENDER
+
+    message = sendgrid.Message(sender,subject,open(tf.name).read(),open(expname).read())
     message.add_to(email,p[whom]['Name'])
     s.web.send(message)
     print 'sent %s to %s'%(subject,email)
@@ -778,11 +783,13 @@ def get_changes(show=False,add_notifications=False):
                 mytok = '%s-%s'%(person,cid)
                 if mytok in toks: continue
                 #{u'notified': u'2012-11-13T13:11:37.283310', u'whom': u'maxim_d', u'about': u'602', u'added': u'2012-11-13T11:21:36.368063', u'what': u'new_story'}
-                apnd = {'whom':person,'about':sid,'added':datetime.datetime.now().isoformat(),'what':'change','how':cid}
-                print apnd
+                st,op = gso('git show %s -- %s'%(cid,s['path'])) ; assert st==0
+                head,fdiff = op.split('diff --git ')
+                author = re.compile('Author: (.*)').search(head).group(1) ; authormail = re.compile('<(.*)>').search(author).group(1) ; authorname = re.compile('^([^<]+) <').search(author).group(1)
+                apnd = {'whom':person,'about':sid,'added':datetime.datetime.now().isoformat(),'what':'change','how':cid,'change':fdiff.split('\n'),'author':author,'author_email':authormail,'author_name':authorname}
+                #print json.dumps(apnd,indent=True,sort_keys=True)
                 m['notifications'].append(apnd)
                 metas[s['metadata']] = m
-                
 
     for fn,m in metas.items():
         print 'writing %s'%fn
