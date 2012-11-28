@@ -727,7 +727,7 @@ def makeindex(iteration):
 
 def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False):
     files = get_task_files(iteration=iteration,assignee=assignee,status=status,tag=tag,recent=recent)
-    pt = PrettyTable(['iteration','id','summary','assigned to','status','tags','fn'])
+    pt = PrettyTable(['iteration','id','summary','assigned to','status','tags'])
     pt.align['summary']='l'
     cnt=0
     for fn in files:
@@ -735,9 +735,9 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False)
         if iteration and iteration.startswith('not ') and sd['iteration']==iteration.replace('not ',''): 
             continue
         elif iteration and not iteration.startswith('not ') and sd['iteration']!=str(iteration): continue
-        if len(sd['summary'])>40: summary=sd['summary'][0:40]+'..'
+        if len(sd['summary'])>60: summary=sd['summary'][0:60]+'..'
         else: summary = sd['summary']
-        pt.add_row([sd['iteration'],sd['story'],summary,sd['assigned to'],sd['status'],','.join(sd.get('tags','')),pfn(sd['path'])])
+        pt.add_row([sd['iteration'],sd['story'],summary,sd['assigned to'],sd['status'],','.join(sd.get('tags',''))])
         cnt+=1
     pt.sortby = 'status'
     print pt
@@ -1009,7 +1009,8 @@ def tasks_validate(tasks=None):
     print '%s tasks in all; %s failed'%(cnt,failed)
     return failed
 
-def make_demo(iteration):     
+def make_demo(iteration,tree=False,orgmode=False):     
+    from tree import Tree
     tf = [parse_story_fn(tf,read=True) for tf in get_task_files(iteration=iteration,recurse=True)]
     def tf_srt(s1,s2):
         rt=cmp(len(s1['id'].split(cfg.STORY_SEPARATOR)),len(s2['id'].split(cfg.STORY_SEPARATOR)))
@@ -1017,17 +1018,36 @@ def make_demo(iteration):
         return 0
     tf.sort(tf_srt)
     tr = {'children':{}}
+    tr2 = Tree('Iteration: '+iteration)
     for s in tf:
         spointer = tr
+        spointer2 = tr2
         parts = s['id'].split(cfg.STORY_SEPARATOR)
         #print 'walking parts %s'%parts
+        initparts = list(parts)
+        joinedparts=[]
         while len(parts):
             prt = parts.pop(0)
-            if prt not in spointer['children']: spointer['children'][prt]={'children':{}}
+            joinedparts.append(prt)
+            tsk = get_task(cfg.STORY_SEPARATOR.join(joinedparts),read=True)
+            tags = (tsk['assigned to'],)+tuple(tsk['tags'])
+            tname = ('[[file:%s][%s]]'%(tsk['path'],prt) if orgmode else prt)+' '+tsk['status']+'\t'+(tsk['summary'] if len(tsk['summary'])<80 else tsk['summary'][0:80]+'..')+('\t\t:%s:'%(':'.join(tags)) if len(tags) else '')
+            tpt = Tree(tname)
+            if prt not in spointer['children']: 
+                spointer['children'][prt]={'children':{}}
+                spointer2.children = spointer2.children+(tpt,)
             spointer=spointer['children'][prt]
+            fnd=False
+            for ch in spointer2.children:
+                if ch.name==tname:
+                    spointer2=ch
+                    fnd=True
+            assert fnd,"could not find \"%s\" in %s, initparts are %s"%(tname,[ch.name for ch in spointer2.children],initparts)
         spointer['item']={'summary':s['summary'],'assignee':s['assigned to'],'status':s['status'],'id':s['id']}
-
-    render('demo',{'trs':tr,'iteration':iteration,'rurl':cfg.RENDER_URL},'demo-%s.org'%iteration)
+    if tree:
+        print unicode(tr2)
+    else:
+        render('demo',{'trs':tr,'iteration':iteration,'rurl':cfg.RENDER_URL},'demo-%s.org'%iteration)
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Task Control',prog='tasks.py')
     subparsers = parser.add_subparsers(dest='command')
@@ -1085,6 +1105,8 @@ if __name__=='__main__':
 
     git = subparsers.add_parser('makedemo')
     git.add_argument('--iteration',dest='iteration',required=True)
+    git.add_argument('--tree',dest='tree',action='store_true')
+    git.add_argument('--orgmode',dest='orgmode',action='store_true')
 
     val = subparsers.add_parser('validate')
     val.add_argument('tasks',nargs='?',action='append')
@@ -1176,7 +1198,7 @@ if __name__=='__main__':
         if args.assign:
             assign_commits()
     if args.command=='makedemo':
-        make_demo(iteration=args.iteration)
+        make_demo(iteration=args.iteration,tree=args.tree,orgmode=args.orgmode)
     if args.command=='validate':
         tasks_validate(args.tasks)
     if args.command=='commit':
