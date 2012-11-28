@@ -1092,6 +1092,7 @@ if __name__=='__main__':
     commit = subparsers.add_parser('commit')
     commit.add_argument('--tasks',dest='tasks',action='store_true')
     commit.add_argument('--metas',dest='metas',action='store_true')
+    commit.add_argument('--hours',dest='hours',action='store_true')
     commit.add_argument('--nopush',dest='nopush',action='store_true')
 
     tt = subparsers.add_parser('time_tracking')
@@ -1187,8 +1188,11 @@ if __name__=='__main__':
             st,op = gso('git add *task.org') ; assert st==0
             commitm.append('tasks commit')
         if args.metas:
-            st,op = gso('git add *meta.org') ; assert st==0
+            st,op = gso('git add *meta.json') ; assert st==0
             commitm.append('metas commit')
+        if args.hours:
+            st,op = gso('git add *hours.json') ; assert st==0
+            commitm.append('hours commit')
         st,op = gso('git status') ; assert st==0
         print op
         cmd = 'git commit -m "%s"'%("; ".join(commitm))
