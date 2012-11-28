@@ -18,6 +18,7 @@ ${tag}:\
 % if points!='?':
 - points :: ${points}
 % endif
+# UNSTRUCTURED BEYOND THIS POINT
 % if stasks and len(stasks):
 ** Sub-tasks
 % for st in stasks:
@@ -41,5 +42,6 @@ ${tag}:\
 ** Detail
 ${detail}
 % endif
-
-
+% if unstructured:
+${unstructured}
+% endif

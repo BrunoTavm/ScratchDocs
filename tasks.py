@@ -78,7 +78,7 @@ def render(tplname,params,outfile=None,mode='w'):
         #print 'written %s %s'%(tplname,pfn(outfile))
 
         return True
-    return t
+    return r
 
 def move_task(task,dest_iter):
     t = get_task(task)
@@ -127,6 +127,7 @@ def parse_attrs(node):
             rt[k]=datetime.datetime.strptime(v.strip('<>[]').split('.')[0],'%Y-%m-%d %H:%M:%S')
     rt['links']=links
     return rt
+UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
 def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     assert len(fn)
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
@@ -136,8 +137,10 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[1:-1])}
     #raise Exception('id for %s is %s from %s'%(fn,rt['id'],parts))
     if read:
+        filecont = open(fn,'r').read()
         root = orgparse.load(fn)
         heading=None
+        gotattrs=False ; unstructured=''
         for node in root[1:]:
             if not heading:
                 heading = node.get_heading()
@@ -150,7 +153,15 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
                     rt[k]=v
                     if k=='tags':
                         rt[k]=v.split(', ')
+                gotattrs=True
+            elif gotattrs and UNSSEP not in filecont:
+                unstructured+=str(node)+'\n'
 
+        if UNSSEP in filecont:
+            assert not len(unstructured)
+            unstructured = filecont.split(UNSSEP)[1]
+
+        rt['unstructured']=unstructured
 
     hfn = os.path.join(os.path.dirname(fn),'hours.json')
     if gethours and os.path.exists(hfn):
@@ -280,6 +291,7 @@ def get_task(number,read=False,exc=True):
     
     number = str(number)
     tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True)]
+
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
 
     if exc:
@@ -1121,6 +1133,10 @@ if __name__=='__main__':
     tt.add_argument('--from',dest='from_date')
     tt.add_argument('--to',dest='to_date')
 
+    rwr = subparsers.add_parser('rewrite')
+    rwr.add_argument('--safe',dest='safe',action='store_true')
+    rwr.add_argument('tasks',nargs='?',action='append')
+
     args = parser.parse_args()
 
     if args.command=='list':
@@ -1228,6 +1244,35 @@ if __name__=='__main__':
                 st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
                 print 'pushed to remote'
             os.chdir(prevdir)
+    if args.command=='rewrite':
+        atasks = [at for at in args.tasks if at]
+        if not len(atasks):
+            tasks = [parse_story_fn(tf)['id'] for tf in get_task_files()]
+        else:
+            tasks = atasks
+        for tid in tasks:
+            assert tid
+            print 'working %s'%tid
+            t = get_task(tid,read=True)
+            params = {'story_id':tid,
+                      'status':t['status'],
+                      'summary':t['summary'],
+                      'created':t['created at'],
+                      'creator':t['created by'],
+                      'tags':t['tags'],
+                      'assignee':t['assigned to'],
+                      'points':t.get('points','?'),
+                      'unstructured':t.get('unstructured','').strip(),
+                      }
+            cont = render('task',params)
+            nowrite=False
+            if args.safe:
+                if cont!=open(t['path'],'r').read():
+                    print 'content of %s differs, not writing.'%t['path']
+                    nowrite=True
+            if not nowrite:
+                fp = codecs.open(t['path'],'w',encoding='utf-8') ; fp.write(cont) ; fp.close()
+
     if args.command=='time_tracking':
         if args.from_date:from_date = datetime.datetime.strptime(args.from_date,'%Y-%m-%d').date()
         else:from_date = (datetime.datetime.now()-datetime.timedelta(days=1)).date()
