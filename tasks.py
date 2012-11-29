@@ -822,7 +822,13 @@ def get_changes(show=False,add_notifications=False):
                 if mytok in toks: continue
                 #{u'notified': u'2012-11-13T13:11:37.283310', u'whom': u'maxim_d', u'about': u'602', u'added': u'2012-11-13T11:21:36.368063', u'what': u'new_story'}
                 st,op = gso('git show %s -- %s'%(cid,s['path'])) ; assert st==0
-                head,fdiff = op.split('diff --git ')
+                fnd=False
+                for cmd in ['diff --git','diff --cc']:
+                    if cmd in op:
+                        head,fdiff = op.split(cmd)
+                        fnd=True
+                if not fnd:
+                    raise Exception(op)
                 author = re.compile('Author: (.*)').search(head).group(1) ; authormail = re.compile('<(.*)>').search(author).group(1) ; authorname = re.compile('^([^<]+) <').search(author).group(1)
                 apnd = {'whom':person,'about':sid,'added':datetime.datetime.now().isoformat(),'what':'change','how':cid,'change':fdiff.split('\n'),'author':author,'author_email':authormail,'author_name':authorname}
                 #print json.dumps(apnd,indent=True,sort_keys=True)
