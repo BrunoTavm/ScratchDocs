@@ -396,7 +396,7 @@ def get_meta_files():
 def process_notifications(args):
     tfs = get_meta_files()
     files_touched=[]
-    participants = get_participants()
+    participants = get_participants(disabled=True)
 
     for meta,s in tfs:
         m = loadmeta(meta)
@@ -404,7 +404,8 @@ def process_notifications(args):
             for n in m['notifications']:
                 if n.get('notified'): continue
                 print 'notification processing %s'%s
-                if participants[n['whom']]['E-Mail']!=n['author_email']:
+                whom = participants[n['whom']]
+                if whom['E-Mail']!=n['author_email'] and whom['Active']=='Y':
                     send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
                 else:
                     print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
