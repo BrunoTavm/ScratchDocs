@@ -13,7 +13,7 @@
 | Story | Assignee | Summary | Status |
 |-------+----------+---------+--------|
 % for st in children:
-|  [[file:${st['relpath']}][${st['story']}]]     | ${st['assigned to']} | ${st['summary']} | ${st['status']} |
+|  [[file:${st['relpath']}][${st['story']}]]     | [[file:${'/'.join(['..' for i in xrange(len(story['iteration'].split('/'))+1)])}/assigned-${st['assigned to']}-current.org][${st['assigned to']}]] | ${st['summary']} | ${st['status']} |
 % endfor
 % endif
 % if meta and meta.get('commits_qty'):
