@@ -124,7 +124,11 @@ def parse_attrs(node):
         if k.endswith('date'):
             rt[k]=datetime.datetime.strptime(v.strip('<>[]'),'%Y-%m-%d')
         if k in ['created at']:
-            rt[k]=datetime.datetime.strptime(v.strip('<>[]').split('.')[0],'%Y-%m-%d %H:%M:%S')
+            dt = v.strip('<>[]').split('.')
+            rt[k]=datetime.datetime.strptime(dt[0],'%Y-%m-%d %H:%M:%S')
+            if len(dt)>1:
+                rt[k]+=datetime.timedelta(microseconds=int(dt[1]))
+
     rt['links']=links
     return rt
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
@@ -392,13 +396,18 @@ def get_meta_files():
 def process_notifications(args):
     tfs = get_meta_files()
     files_touched=[]
+    participants = get_participants()
+
     for meta,s in tfs:
         m = loadmeta(meta)
         if m.get('notifications'):
             for n in m['notifications']:
                 if n.get('notified'): continue
                 print 'notification processing %s'%s
-                send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
+                if participants[n['whom']]['E-Mail']!=n['author_email']:
+                    send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
+                else:
+                    print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
                 n['notified']=datetime.datetime.now().isoformat()
                 savemeta(meta,m)
                 files_touched.append(meta)
@@ -492,7 +501,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     print 'creating new task %s : %s'%(newtaskdt['story'],pfn(newtaskfn))
     pars = params.__dict__
     pars['story_id'] = newidx
-    pars['created'] = datetime.datetime.now()
+    pars['created'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     pars['creator'] = cfg.CREATOR
     pars['status'] = cfg.DEFAULT_STATUS
 
@@ -785,8 +794,8 @@ def get_changes(show=False,add_notifications=False):
                 pfn = None
                 sid = None
             pt.add_row([cdata['date'],cid,cdata['message'],cfn,sid])
-            
-            if add_notifications and pfn:
+
+            if '@DONTNOTIFY' not in cdata['message'] and add_notifications and pfn:
                 for fn in ['created by','assigned to']:
                     whom = pfn.get(fn)
                     if not whom or whom=="None": continue
@@ -1135,6 +1144,7 @@ if __name__=='__main__':
 
     rwr = subparsers.add_parser('rewrite')
     rwr.add_argument('--safe',dest='safe',action='store_true')
+    rwr.add_argument('--iteration',dest='iteration')
     rwr.add_argument('tasks',nargs='?',action='append')
 
     args = parser.parse_args()
@@ -1247,7 +1257,7 @@ if __name__=='__main__':
     if args.command=='rewrite':
         atasks = [at for at in args.tasks if at]
         if not len(atasks):
-            tasks = [parse_story_fn(tf)['id'] for tf in get_task_files()]
+            tasks = [parse_story_fn(tf)['id'] for tf in get_task_files(args.iteration)]
         else:
             tasks = atasks
         for tid in tasks:
