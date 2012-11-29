@@ -358,11 +358,11 @@ def get_table_contents(fn):
         #only active ones:
     return rt
 
-def get_participants():
+def get_participants(disabled=False):
     tconts = get_table_contents('participants.org')
     rt={}
     for row in tconts:
-        if row['Active']=='Y':
+        if disabled or row['Active']=='Y':
             rt[row['Username']]=row
     return rt
 
@@ -1010,6 +1010,7 @@ def assign_commits():
 def tasks_validate(tasks=None):
     cnt=0 ; failed=0
     tasks = [t for t in tasks if t!=None]
+    p = get_participants(disabled=True)
     if tasks:
         tfs = [get_task(taskid,read=False)['path'] for taskid in tasks]
     else:
@@ -1021,6 +1022,10 @@ def tasks_validate(tasks=None):
             assert t['assigned to']
             assert t['created by']
             assert t['status']
+            if t['assigned to'] and t['assigned to']!='None':
+                assert t['assigned to'] in p
+            if t['created by'] and t['created by']!='None':
+                assert t['created by'] in p
             #print '%s : %s , %s , %s, %s'%(t['id'],t['summary'] if len(t['summary'])<40 else t['summary'][0:40]+'..',t['assigned to'],t['created by'],t['status'])
             cnt+=1
         except:
