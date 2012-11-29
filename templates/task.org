@@ -2,7 +2,7 @@
 #+OPTIONS: toc:nil        (no TOC at all)
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
 #+TODO: TODO(t) | DOING(p) | REVIEW(r) | DONE(d)
-* ${status} ${summary}                           \
+* ${status} ${summary+"\t\t"}\
 % if tags and len(tags):
 :\
 % for tag in tags:

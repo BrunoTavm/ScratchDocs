@@ -1,6 +1,6 @@
 #+OPTIONS: toc:nil        (no TOC at all)
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
-* Task ${story['story']}
+* Task ${story['story']} - ${story['summary']}
 ** In iteration [[/${story['iteration']}/][${story['iteration']}]]
 ** [[file:../index.org][Up one level]]
 % if 'assigned to' in story:
@@ -45,3 +45,4 @@ ${meta['commits_qty']} commits, last commit on ${meta['last_commit']}.
 | ${un} | ${"%4.1f"%hrs['hours']} | ${hrs['last_tracked']} |
 % endfor
 % endif
+-------------------------------------
