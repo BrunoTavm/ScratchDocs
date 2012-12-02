@@ -15,22 +15,26 @@ import json
 import tempfile
 
 
-if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
-_prefix = os.path.dirname(__file__)
-if cfg.TPLDIR:
-    tpldir = cfg.TPLDIR
-else:
-    tpldir = os.path.join(_prefix,'templates')
-lk = TemplateLookup(directories=['.'])
-task_tpl = Template(filename=(os.path.join(tpldir,'task.org')),lookup = lk,module_directory=cfg.MAKO_DIR)
-iterations_tpl = Template(filename=os.path.join(tpldir,'iterations.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
-tasks_tpl = Template(filename=os.path.join(tpldir,'tasks.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
-taskindex_tpl = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
-iteration_tpl = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
-new_story_notify_tpl = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
-change_notify_tpl = Template(filename=os.path.join(tpldir,'change_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
-changes_tpl = Template(filename=os.path.join(tpldir,'changes.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
-demo_tpl = Template(filename=os.path.join(tpldir,'demo.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
+def load_templates():
+    if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
+    _prefix = os.path.dirname(__file__)
+    if cfg.TPLDIR:
+        tpldir = cfg.TPLDIR
+    else:
+        tpldir = os.path.join(_prefix,'templates')
+    lk = TemplateLookup(directories=['.'])
+    rt = {}
+    rt['task'] = Template(filename=(os.path.join(tpldir,'task.org')),lookup = lk,module_directory=cfg.MAKO_DIR)
+    rt['iterations'] = Template(filename=os.path.join(tpldir,'iterations.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+    rt['tasks'] = Template(filename=os.path.join(tpldir,'tasks.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+    rt['taskindex'] = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
+    rt['iteration'] = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
+    rt['new_story_notify'] = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+    rt['change_notif'] = Template(filename=os.path.join(tpldir,'change_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+    rt['changes'] = Template(filename=os.path.join(tpldir,'changes.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
+    rt['demo'] = Template(filename=os.path.join(tpldir,'demo.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
+    return rt
+
 ckre = re.compile('^'+re.escape('<!-- checksum:')+'([\d\w]{32})'+re.escape(' -->'))
 def md5(fn):
     st,op = gso('md5sum %s'%fn); assert st==0
@@ -48,8 +52,12 @@ def loadcommits():
             commits = json.load(open(commitsfn,'r'))
     return commits
 
-    
+tpls={}
 def render(tplname,params,outfile=None,mode='w'):
+    """helper to renders one of the mako templates defined above"""
+    global tpls
+    if not len(tpls):
+        tpls = load_templates()
     tpls = {'task':task_tpl
             ,'tasks':tasks_tpl
             ,'taskindex':taskindex_tpl
@@ -133,6 +141,7 @@ def parse_attrs(node):
     return rt
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
 def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
+    """parse a task filename and optionally read it."""
     assert len(fn)
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
     assert len(parts)>1,"%s"%"error parsing %s"%fn
@@ -194,6 +203,7 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     return rt
 taskfiles_cache={}
 def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
+    """return task filenames according to provided criteria"""
     global taskfiles_cache
     tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent)])
     if tfck in taskfiles_cache: return taskfiles_cache[tfck]
@@ -288,6 +298,7 @@ def get_iterations():
     return rt
 task_cache={}
 def get_task(number,read=False,exc=True):
+    """return everything we know about a task"""
     global task_cache
     tk = '%s-%s-%s'%(number,read,exc)
     if tk in task_cache: 

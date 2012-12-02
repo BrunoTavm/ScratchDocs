@@ -1,0 +1,26 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h2>${headline}</h2>
+<table>
+<thead>
+  <tr>
+    <th>iteration</th>
+    <th>id</th>
+    <th>status</th>
+    <th>assignee</th>
+    <th>summary</th>
+  </tr>
+</thead>
+<tbody>
+% for t in tasks:
+<tr>
+  <td><a href="/iteration/${t['iteration']}">${t['iteration']}</a></td>
+  <td><a href="/task/${t['story']}">${t['story']}</a></td>
+  <td>${t['status']}</td>
+  <td>${t['assigned to']}</td>
+  <td>${t['summary']}</td>
+</tr>
+% endfor
+</tbody>
+</table>
+</%def>

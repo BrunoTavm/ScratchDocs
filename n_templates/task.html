@@ -1,0 +1,21 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h2>Task ${task['story']}</h2>
+<h3>${task['summary']}</h3>
+
+<dl>
+
+<dt>iteration</dt>
+<dd><a href="/iteration/${task['iteration']}">${task['iteration']}</a></dd>
+
+<dt>status</dt>
+<dd>${task['status']}</dd>
+
+<dt>assignee</dt>
+<dd><a href="/assignments/${task['assigned to']}">${task['assigned to']}</a></dd>
+</dl>
+
+<h3>Content</h3>
+<pre>${cont}</pre>
+
+</%def>

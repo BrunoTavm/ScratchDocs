@@ -23,3 +23,5 @@ def COMMITERMAP(em,nm):
 from config_local import *
 import os
 SDIR = os.path.join(DATADIR,SHORTCUT_PREFIX)
+
+from noodles_config import *
