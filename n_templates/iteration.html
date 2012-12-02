@@ -14,10 +14,10 @@
 <tbody>
 % for t in tasks:
 <tr>
-  <td><a href="/iteration/${t['iteration']}">${t['iteration']}</a></td>
-  <td><a href="/task/${t['story']}">${t['story']}</a></td>
+  <td><a href="${upr}/iteration/${t['iteration']}">${t['iteration']}</a></td>
+  <td><a href="${upr}/task/${t['story']}">${t['story']}</a></td>
   <td>${t['status']}</td>
-  <td>${t['assigned to']}</td>
+  <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
   <td>${t['summary']}</td>
 </tr>
 % endfor

@@ -58,16 +58,6 @@ def render(tplname,params,outfile=None,mode='w'):
     global tpls
     if not len(tpls):
         tpls = load_templates()
-    tpls = {'task':task_tpl
-            ,'tasks':tasks_tpl
-            ,'taskindex':taskindex_tpl
-            ,'iterations':iterations_tpl
-            ,'iteration':iteration_tpl
-            ,'new_story_notify':new_story_notify_tpl
-            ,'change_notify':change_notify_tpl
-            ,'changes':changes_tpl
-            ,'demo':demo_tpl
-            }
 
     t = tpls[tplname]
     for par,val in params.items():
@@ -259,6 +249,23 @@ def sort_iterations(i1,i2):
         
     rt= cmp(i1v,i2v)
     return rt
+
+numre = re.compile('^\d+$')
+def iteration_srt(s1,s2):
+    i1 = s1['iteration']
+    i2 = s2['iteration']
+    if numre.search(i1) and numre.search(i2):
+        rt= cmp(int(i1),int(i2))*-1
+    elif numre.search(i1):
+        rt= 1
+    elif numre.search(i2):
+        rt= -1
+    else:
+        rt= cmp(i1,i2)
+    if rt==0:
+        rt = cmp(int(s1['story'].split(cfg.STORY_SEPARATOR)[0]),int(s2['story'].split(cfg.STORY_SEPARATOR)[0]))*-1
+    return rt
+
 def status_srt(s1,s2):
     cst = dict([(cfg.STATUSES[i],i) for i in range(len(cfg.STATUSES))])
     return cmp(cst[s1[1]['status']],cst[s2[1]['status']])
@@ -297,12 +304,13 @@ def get_iterations():
     rt.sort(sort_iterations,reverse=True)
     return rt
 task_cache={}
-def get_task(number,read=False,exc=True):
+def get_task(number,read=False,exc=True,flush=False):
     """return everything we know about a task"""
     global task_cache
     tk = '%s-%s-%s'%(number,read,exc)
     if tk in task_cache: 
-        return task_cache[tk]
+        if flush: del task_cache[tk]
+        else: return task_cache[tk]
     
     number = str(number)
     tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True)]
@@ -1053,6 +1061,32 @@ def tasks_validate(tasks=None):
     print '%s tasks in all; %s failed'%(cnt,failed)
     return failed
 
+def rewrite(tid,o_params={},safe=True):
+    assert tid
+    print 'working %s'%tid
+    t = get_task(tid,read=True)
+    params = {'story_id':tid,
+              'status':t['status'],
+              'summary':t['summary'],
+              'created':t['created at'],
+              'creator':t['created by'],
+              'tags':t['tags'],
+              'assignee':t['assigned to'],
+              'points':t.get('points','?'),
+              'unstructured':t.get('unstructured','').strip(),
+              }
+    for k,v in o_params.items():
+        assert k in params,"%s not in %s"%(k,params)
+        params[k]=v
+    cont = render('task',params)
+    nowrite=False
+    if safe:
+        if cont!=open(t['path'],'r').read():
+            print 'content of %s differs, not writing.'%t['path']
+            nowrite=True
+    if not nowrite:
+        fp = codecs.open(t['path'],'w',encoding='utf-8') ; fp.write(cont) ; fp.close()
+
 def make_demo(iteration,tree=False,orgmode=False):     
     from tree import Tree
     tf = [parse_story_fn(tf,read=True) for tf in get_task_files(iteration=iteration,recurse=True)]
@@ -1284,27 +1318,7 @@ if __name__=='__main__':
         else:
             tasks = atasks
         for tid in tasks:
-            assert tid
-            print 'working %s'%tid
-            t = get_task(tid,read=True)
-            params = {'story_id':tid,
-                      'status':t['status'],
-                      'summary':t['summary'],
-                      'created':t['created at'],
-                      'creator':t['created by'],
-                      'tags':t['tags'],
-                      'assignee':t['assigned to'],
-                      'points':t.get('points','?'),
-                      'unstructured':t.get('unstructured','').strip(),
-                      }
-            cont = render('task',params)
-            nowrite=False
-            if args.safe:
-                if cont!=open(t['path'],'r').read():
-                    print 'content of %s differs, not writing.'%t['path']
-                    nowrite=True
-            if not nowrite:
-                fp = codecs.open(t['path'],'w',encoding='utf-8') ; fp.write(cont) ; fp.close()
+            rewrite(tid,safe=args.safe)
 
     if args.command=='time_tracking':
         if args.from_date:from_date = datetime.datetime.strptime(args.from_date,'%Y-%m-%d').date()

@@ -1,21 +1,58 @@
 <%inherit file="/base.html" />
+<%def name="sel(name,lst,val)">
+<select name='${name}'>
+% for st in lst:
+<option value='${st}' \
+% if st==val:
+selected=1 \
+% endif
+>${st}</option>
+% endfor
+</select>\
+</%def>
 <%def name="content()">
 <h2>Task ${task['story']}</h2>
-<h3>${task['summary']}</h3>
-
+<a href="${url}/s/${task['id']}">static render</a> :: \
+% if '/' in task['story']:
+<a href="${upr}/task/${"/".join(task['story'].split('/')[0:-1])}">one up</a> :: \
+% endif
+<a href="${upr}/">home</a><br />
+% if msg:
+<div class='msg'>${msg}</div>
+% endif
+<small>created ${task['created at']}</small>
+<form method='post'>
+<input type='hidden' name='id' value="${task['story']}" />
 <dl>
+<dt>Summary</dt>
+<dd><input class='summary' type='text' name="summary" value="${task['summary']}" /></dd>
 
 <dt>iteration</dt>
-<dd><a href="/iteration/${task['iteration']}">${task['iteration']}</a></dd>
+<dd><a href="${upr}/iteration/${task['iteration']}">${task['iteration']}</a>
+## ; move to ${self.sel('iteration',iterations,task['iteration'])}
+</dd>
 
 <dt>status</dt>
-<dd>${task['status']}</dd>
+<dd>
+${self.sel('status',statuses,task['status'])}
+</dd>
 
 <dt>assignee</dt>
-<dd><a href="/assignments/${task['assigned to']}">${task['assigned to']}</a></dd>
-</dl>
+<dd><a href="${upr}/assignments/${task['assigned to']}">${task['assigned to']}</a> ;
+change to ${self.sel('assignee',participants,task['assigned to'])}
+</se
+</dd>
 
-<h3>Content</h3>
-<pre>${cont}</pre>
+<dt>creator</dt>
+<dd><a href="${upr}/assignments/${task['created by']}">${task['created by']}</a></dd>
+
+</dl>
+<h3>Edit</h3>
+<textarea class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
+<input type='submit' value='Update' />
+</form>
+
+## <h3>Render</h3>
+## <iframe class='rndr' src=""></iframe>
 
 </%def>
