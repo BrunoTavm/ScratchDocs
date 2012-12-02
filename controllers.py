@@ -8,10 +8,23 @@ from noodles.http import Response
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
 from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite
-from config import STATUSES,RENDER_URL,REPO_DIR
+from config import STATUSES,RENDER_URL,DATADIR
 from noodles.templates import render_to
 from commands import getstatusoutput as gso
 from multiprocessing import Process
+import re
+
+def get_admin(r,d):
+    if not r.headers.get('Authorization'):
+        return d
+        #raise AuthErr('no authorization found')
+
+    username = re.compile('username="([^"]+)"').search(r.headers.get('Authorization'))
+    if username:
+        rt= username.group(1)
+        rt = rt.split('@')[0].replace('.','_')
+        return rt
+    return d
 
 @render_to('index.html')
 def iterations(request):
@@ -29,7 +42,8 @@ def assignments(request,person):
 
 @render_to('iteration.html')
 def index(request):
-    return asgn(request,'guy')
+    adm = get_admin(request,'unknown')
+    return asgn(request,adm)
 
 @render_to('iteration.html')
 def iteration(request,iteration):
@@ -46,17 +60,18 @@ def task(request,task):
         o_params = {'summary':request.params.get('summary'),
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
-                    'unstructured':request.params.get('unstructured')}
+                    'unstructured':request.params.get('unstructured').strip()}
         rewrite(tid,o_params,safe=False)
-        cmd = 'cd %s && git add %s && git commit -m "webapp update of %s"'%(REPO_DIR,t['path'],request.params.get('id'))
+        cmd = 'cd %s && git add %s && git commit -m "webapp update of %s"'%(DATADIR,t['path'],request.params.get('id'))
         st,op = gso(cmd) ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
         msg='Updated task %s'%tid
         def push():
             print 'starting push'
-            st,op = gso('cd %s && git pull && git push'%(REPO_DIR))
+            st,op = gso('cd %s && git pull && git push'%(DATADIR))
             if not st % 256==0:
                 print "git push returned %s\n%s"%(st,op)
                 raise Exception('greenlet exception') 
+            print op
             print 'done push'
         #push in the background!
         p = Process(target=push)

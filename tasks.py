@@ -30,7 +30,7 @@ def load_templates():
     rt['taskindex'] = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
     rt['iteration'] = Template(filename=os.path.join(tpldir,'iteration.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
     rt['new_story_notify'] = Template(filename=os.path.join(tpldir,'new_story_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
-    rt['change_notif'] = Template(filename=os.path.join(tpldir,'change_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
+    rt['change_notify'] = Template(filename=os.path.join(tpldir,'change_notify.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
     rt['changes'] = Template(filename=os.path.join(tpldir,'changes.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
     rt['demo'] = Template(filename=os.path.join(tpldir,'demo.org'),lookup = lk,module_directory=cfg.MAKO_DIR)     
     return rt

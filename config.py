@@ -20,8 +20,9 @@ def USERMAP(un):
     return un
 def COMMITERMAP(em,nm):
     return un
+from noodles_config import *
 from config_local import *
 import os
 SDIR = os.path.join(DATADIR,SHORTCUT_PREFIX)
 
-from noodles_config import *
+
