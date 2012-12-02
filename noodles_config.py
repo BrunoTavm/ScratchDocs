@@ -52,3 +52,6 @@ MAIL_PORT = 587
 MAIL_LOGIN = 'your smtp mail login'
 MAIL_PASSWORD = 'your smtp mail password'
 URL_PREFIX='/w'
+WEBAPP_FORCE_IDENTITY=False
+NOPUSH=False
+NOCOMMIT=False

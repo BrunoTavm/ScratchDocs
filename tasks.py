@@ -519,11 +519,16 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     newtaskdt = parse_story_fn(newtaskfn)
     assert newtaskdt
     print 'creating new task %s : %s'%(newtaskdt['story'],pfn(newtaskfn))
-    pars = params.__dict__
+    if type(params)==dict:
+        pars = dict(params)
+    else:
+        pars = params.__dict__
     pars['story_id'] = newidx
     pars['created'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    pars['creator'] = cfg.CREATOR
-    pars['status'] = cfg.DEFAULT_STATUS
+    if 'creator' not in pars:
+        pars['creator'] = cfg.CREATOR
+    if 'status' not in pars:
+        pars['status'] = cfg.DEFAULT_STATUS
 
     for k in ['summary','assignee','points','detail']:
        if k not in pars: pars[k]=None
@@ -538,8 +543,8 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     st,op = gso('mkdir -p %s'%newdir) ; assert st==0,"could not mkdir %s"%newdir
 
     assert not os.path.exists(newtaskfn)
-    render('task',params.__dict__,newtaskfn)
-
+    render('task',pars,newtaskfn)
+    pars['path']=newtaskfn
     #clear the cache for tasks
     global task_cache,taskfiles_cache
     task_cache={}
@@ -553,6 +558,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     #         jn = [newidx]
     #     taskid = cfg.STORY_SEPARATOR.join(jn)
     #     add_notification(whom=pars['assignee'],about=taskid,what='new_story')
+    return pars
 
 def makehtml(iteration=None,notasks=False,files=[]):
     #find all the .org files generated
