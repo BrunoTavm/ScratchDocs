@@ -8,6 +8,6 @@ try:
 except:
 	t = pfn(cfn)
 %>\
-| ${c[0:4]}   | ${cdt['date']} | ${cdt['message']} | ${cfn} | [[/s/${t['id']}][${t['id']}]]  | ${t.get('summary')} |
+| [[${GITWEB_URL}?p=${DOCS_REPONAME};a=commit;h=${c}][${c[0:4]}]] | ${cdt['date']} | ${cdt['message']} | ${cfn} | [[/s/${t['id']}][${t['id']}]]  | ${t.get('summary')} |
 % endfor
 % endfor

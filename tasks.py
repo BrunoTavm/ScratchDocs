@@ -770,7 +770,7 @@ def makeindex(iteration):
     itlist = render('iterations',vardict,idxfn)
 
     cfn = os.path.join(cfg.DATADIR,'changes.org')
-    render('changes',{'changes':get_changes(),'pfn':parse_story_fn},cfn)
+    render('changes',{'GITWEB_URL':cfg.GITWEB_URL,'DOCS_REPONAME':cfg.DOCS_REPONAME,'changes':get_changes(),'pfn':parse_story_fn},cfn)
 
 def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False):
     files = get_task_files(iteration=iteration,assignee=assignee,status=status,tag=tag,recent=recent)
