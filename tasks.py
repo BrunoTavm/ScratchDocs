@@ -422,7 +422,7 @@ def process_notifications(args):
         if m.get('notifications'):
             for n in m['notifications']:
                 if n.get('notified'): continue
-                print 'notification processing %s'%s
+                #print 'notification processing %s'%s
                 whom = participants[n['whom']]
                 if whom['E-Mail']!=n['author_email'] and whom['Active']=='Y':
                     send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
