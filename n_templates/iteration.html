@@ -1,6 +1,7 @@
 <%inherit file="/base.html" />
 <%def name="content()">
 <h2>${headline}</h2>
+<%def name="list_tasks(tasks)">
 <table>
 <thead>
   <tr>
@@ -23,4 +24,12 @@
 % endfor
 </tbody>
 </table>
+</%def>
+% for st in statuses:
+% if st in tasks:
+<% tsks = tasks[st] %>
+<h3>${st}</h3>
+${list_tasks(tsks)}
+% endif
+% endfor
 </%def>

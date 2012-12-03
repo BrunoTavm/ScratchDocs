@@ -1,9 +1,30 @@
 <%inherit file="base.html" />
 <%def name="content()">
 <h2>Iterations</h2>
-<ul>
+<table>
+<thead>
+  <tr>
+    <th>current</th>
+    <th>name</th>
+    <th>start</th>
+    <th>end</th>
+    <th>duration</th>
+  </tr>
+</thead>
+<tbody>
 % for it in its:
-<li><a href="${upr}/iteration/${it[1]['name']}">${it[1]['name']}</a></li>
+<tr>
+  <td>
+    % if cur==it:
+    CUR
+    % endif
+    </td>
+  <td><a href="${upr}/iteration/${it[1]['name']}">${it[1]['name']}</a></td>
+  <td>${it[1].get('start date')}</td>
+  <td>${it[1].get('end date')}</td>
+  <td>${it[1].get('start date') and it[1].get('end date') and it[1]['end date']-it[1]['start date'] or '--'}</td>
+</tr>
 % endfor
-</ul>
+</tbody>
+</table>
 </%def>

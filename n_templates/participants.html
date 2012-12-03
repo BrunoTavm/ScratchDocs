@@ -1,0 +1,30 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h2>Participants</h2>
+<table>
+<thead>
+  <tr>
+    <th>Name</th>
+    <th>Current</th>
+    <th>Alltime</th>
+    <th>E-Mail</th>
+    <th>Skype</th>
+  </tr>
+</thead>
+<tbody>
+% for p,dt in pts.items():
+<tr>
+  <td>${p}</td>
+  <td><a href="${upr}/assignments/${p}/current">lnk</a></td>
+  <td><a href="${upr}/assignments/${p}">lnk</a></td>
+  <td><a href="mailto:${dt['E-Mail']}">${dt['E-Mail']}</a></td>
+  <td>
+% if dt.get('Skype'):
+<a href="${dt['Skype'].split('][')[0].strip('[]')}">${dt['Skype'].split('][')[1].strip('[]')}</a>
+% endif
+</td>
+</tr>
+% endfor
+</tbody>
+</table>
+</%def>

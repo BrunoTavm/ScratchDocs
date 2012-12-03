@@ -7,7 +7,7 @@ from noodles.http import Response
 
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task
+from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
 from noodles.templates import render_to
 from noodles.http import Redirect
@@ -32,32 +32,54 @@ def get_admin(r,d):
         return rt
     return d
 
+@render_to('participants.html')
+def participants(request):
+    pts = get_participants()
+    return {'pts':pts}
+
 @render_to('index.html')
 def iterations(request):
     its = get_iterations()
-    return {'its':its}
+    return {'its':its,'cur':get_current_iteration(its)}
 
-def asgn(request,person):
-    tasks = [parse_fn(fn,read=True) for fn in get_fns(assignee=person)]
-    tasks.sort(iteration_srt)
-    return {'tasks':tasks,'headline':'Assignments for %s'%person}
+def asgn(request,person=None,iteration=None,recurse=True):
+    in_tasks = [parse_fn(fn,read=True) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse)]
+    tasks={}
+    for st in STATUSES:
+        tasks[st] = [t for t in in_tasks if t['status']==st]
+        tasks[st].sort(iteration_srt)
+    return {'tasks':tasks,'statuses':STATUSES}
 
 @render_to('iteration.html') 
 def assignments(request,person):
-    return asgn(request,person)
+    rt= asgn(request,person)
+    rt['headline']='Assignments for %s'%person
+    return rt
+
+@render_to('iteration.html')
+def assignments_current(request,person):
+    cur = get_current_iteration(get_iterations())
+    rt=asgn(request,person=person,iteration=cur[1]['name'])
+    rt['headline']='Current assignments for %s'%person
+    return rt
 
 @render_to('iteration.html')
 def index(request):
+    cur = get_current_iteration(get_iterations())
     adm = get_admin(request,'unknown')
-    return asgn(request,adm)
+    rt= asgn(request,adm,iteration=cur[1]['name'])
+    rt['headline']='Current assignments.'
+    return rt
 
 @render_to('iteration.html')
 def iteration(request,iteration):
-    tasks = [parse_fn(fn,read=True) for fn in get_fns(iteration=iteration)]
-    tasks.sort(iteration_srt)
-    return {'tasks':tasks,'headline':'Iteration %s'%iteration}
+    rt = asgn(request,iteration=iteration,recurse=False)
+    rt['headline']='Iteration %s'%iteration
+    return rt
 
-def pushcommit(pth,tid):
+def pushcommit(pth,tid,adm):
+    pts = get_participants()
+    commiter = pts[adm]
     def push():
         print 'starting push'
         st,op = gso('cd %s && git pull && git push'%(DATADIR))
@@ -68,7 +90,8 @@ def pushcommit(pth,tid):
         print 'done push'
     #push in the background!
     if not NOCOMMIT:
-        cmd = 'cd %s && git add %s && git commit -m "webapp update of %s"'%(DATADIR,pth,tid)
+        cmd = 'cd %s && git add %s && git commit --author="%s" -m "webapp update of %s"'%(DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
+        print cmd
         st,op = gso(cmd) ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
         msg='Updated task %s'%tid
     if not NOPUSH:
@@ -78,6 +101,8 @@ def pushcommit(pth,tid):
 @render_to('task.html')
 def task(request,task):
     msg=None
+    adm = get_admin(request,'unknown')
+
     if request.params.get('id'):
         t = get_task(request.params.get('id'),read=True,flush=True)
         tid = request.params.get('id')
@@ -99,7 +124,7 @@ def task(request,task):
                     'unstructured':request.params.get('unstructured').strip()}
         print o_params
         rewrite(tid,o_params,safe=False)
-        pushcommit(t['path'],request.params.get('id'))
+        pushcommit(t['path'],request.params.get('id'),adm)
     if request.params.get('create'):
         o_params = {'summary':request.params.get('summary'),
                     'status':request.params.get('status'),
@@ -107,13 +132,12 @@ def task(request,task):
                     'unstructured':request.params.get('unstructured').strip()}
         rt = add_task(iteration='Backlog',params=o_params)
         redir = '/'+URL_PREFIX+'task/'+rt['story_id']
-        pushcommit(rt['path'],rt['story_id'])
+        pushcommit(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)
         return rd
     if task=='new':
-        adm = get_admin(request,'unknown')
-        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','iteration':'Backlog','status':'TODO','assigned to':adm,'created by':adm}
+        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','iteration':'Backlog','status':'TODO','assigned to':adm,'created by':adm,'tags':[]}
     else:
         t = get_task(task,read=True,flush=True)
     return {'task':t,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg}

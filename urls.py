@@ -15,8 +15,10 @@ def get_map():
     urlmap(map, [
         (URL_PREFIX+'/', 'controllers#index'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
+        (URL_PREFIX+'/participants', 'controllers#participants'),
         (URL_PREFIX+'/iteration/{iteration}', 'controllers#iteration'),
         (URL_PREFIX+'/assignments/{person}', 'controllers#assignments'),
+        (URL_PREFIX+'/assignments/{person}/current', 'controllers#assignments_current'),
         (URL_PREFIX+'/task/{task:.*}','controllers#task'),
         #('/route/url', 'controllerName.actionName')
     ])
