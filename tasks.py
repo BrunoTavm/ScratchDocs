@@ -893,8 +893,8 @@ def imp_commits(args):
         #refresh the repo
         
         if not args.nofetch:
-            print 'fetching.'
-            st,op = gso('git fetch -a') ; assert st==0
+            print 'fetching at %s.'%os.getcwd()
+            st,op = gso('git fetch -a') ; assert st==0,"git fetch -a returned %s\n%s"%(st,op)
 
         print 'running show-branch'
         cmd = 'git show-branch -r'
