@@ -822,15 +822,16 @@ def get_changes(show=False,add_notifications=False):
             pt.add_row([cdata['date'],cid,cdata['message'],cfn,sid])
 
             if '@DONTNOTIFY' not in cdata['message'] and add_notifications and pfn:
-                for fn in ['created by','assigned to']:
-                    whom = pfn.get(fn)
-                    if not whom or whom=="None": continue
-                    if sid not in notifyover:
-                        notifyover[sid]={}
-                    if whom not in notifyover[sid]:
-                        notifyover[sid][whom]=[]
-                    if cid not in  notifyover[sid][whom]:
-                        notifyover[sid][whom].append(cid)
+                for fn in ['created by','assigned to','informed']:
+                    whoms = [wh for wh in pfn.get(fn).split(',') if wh not in ['','None',None]]
+                    for whom in whoms:
+                        if not whom or whom=="None": continue
+                        if sid not in notifyover:
+                            notifyover[sid]={}
+                        if whom not in notifyover[sid]:
+                            notifyover[sid][whom]=[]
+                        if cid not in  notifyover[sid][whom]:
+                            notifyover[sid][whom].append(cid)
 
     metas={}
     for sid,people in notifyover.items():
