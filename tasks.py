@@ -823,6 +823,8 @@ def get_changes(show=False,add_notifications=False):
 
             if '@DONTNOTIFY' not in cdata['message'] and add_notifications and pfn:
                 for fn in ['created by','assigned to','informed']:
+                    if not pfn.get(fn) or pfn.get('fn')=='None':
+                        continue
                     whoms = [wh for wh in pfn.get(fn).split(',') if wh not in ['','None',None]]
                     for whom in whoms:
                         if not whom or whom=="None": continue
