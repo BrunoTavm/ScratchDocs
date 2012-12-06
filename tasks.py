@@ -192,11 +192,11 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
 
     return rt
 taskfiles_cache={}
-def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False):
+def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False,flush=False):
     """return task filenames according to provided criteria"""
     global taskfiles_cache
     tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent)])
-    if tfck in taskfiles_cache: return taskfiles_cache[tfck]
+    if not flush and tfck in taskfiles_cache: return taskfiles_cache[tfck]
 
     if iteration:
         if iteration.startswith('not '):
@@ -313,7 +313,7 @@ def get_task(number,read=False,exc=True,flush=False):
         else: return task_cache[tk]
     
     number = str(number)
-    tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True)]
+    tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True,flush=flush)]
 
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
 
