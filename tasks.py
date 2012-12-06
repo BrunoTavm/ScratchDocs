@@ -1120,7 +1120,9 @@ def make_demo(iteration,tree=False,orgmode=False):
             joinedparts.append(prt)
             tsk = get_task(cfg.STORY_SEPARATOR.join(joinedparts),read=True)
             tags = (tsk['assigned to'],)+tuple(tsk['tags'])
-            tname = ('[[file:%s][%s]]'%(tsk['path'],prt) if orgmode else prt)+' '+tsk['status']+'\t'+(tsk['summary'] if len(tsk['summary'])<80 else tsk['summary'][0:80]+'..')+('\t\t:%s:'%(':'.join(tags)) if len(tags) else '')
+            summary = (tsk['summary'] if len(tsk['summary'])<80 else tsk['summary'][0:80]+'..')
+            if 'priority' in tsk['tags']: summary='_%s_'%summary
+            tname = ('[[file:%s][%s]]'%(tsk['path'],prt) if orgmode else prt)+' '+tsk['status']+'\t'+summary+('\t\t:%s:'%(':'.join(tags)) if len(tags) else '')
             tpt = Tree(tname)
             if prt not in spointer['children']: 
                 spointer['children'][prt]={'children':{}}
