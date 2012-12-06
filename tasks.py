@@ -857,7 +857,8 @@ def get_changes(show=False,add_notifications=False):
                         head,fdiff = op.split(cmd)
                         fnd=True
                 if not fnd:
-                    raise Exception(op)
+                    print 'could not split diff "%s"'%op
+                    continue
                 author = re.compile('Author: (.*)').search(head).group(1) ; authormail = re.compile('<(.*)>').search(author).group(1) ; authorname = re.compile('^([^<]+) <').search(author).group(1)
                 apnd = {'whom':person,'about':sid,'added':datetime.datetime.now().isoformat(),'what':'change','how':cid,'change':fdiff.split('\n'),'author':author,'author_email':authormail,'author_name':authorname}
                 #print json.dumps(apnd,indent=True,sort_keys=True)
