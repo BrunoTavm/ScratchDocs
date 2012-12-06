@@ -876,6 +876,7 @@ sre = re.compile('#([0-9'+re.escape(cfg.STORY_SEPARATOR)+']+)')
 dre = re.compile('Date:   (.*)')
 
 def imp_commits(args):
+    print 'importing commits.'
     if not os.path.exists(cfg.REPO_DIR): os.mkdir(cfg.REPO_DIR)
     excommits = loadcommits()
     for repo in cfg.REPOSITORIES:
@@ -885,7 +886,7 @@ def imp_commits(args):
         if not os.path.exists(repodir):
             print 'cloning.'
             cmd = 'git clone %s %s'%(repo,repodir)
-            st,op = gso(cmd) ; assert st==0
+            st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
         prevdir = os.getcwd()
         os.chdir(repodir)
         #refresh the repo
