@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import argparse
-import config as cfg
+
 from commands import getstatusoutput as gso
 from prettytable import PrettyTable
 import os
@@ -41,8 +41,6 @@ def md5(fn):
     op = op.split(' ')
     return op[0]
 
-commits = {}
-commitsfn = os.path.join(cfg.DATADIR,'commits.json')
 def loadcommits():
     global commits
     if not len(commits):
@@ -325,6 +323,7 @@ def get_task(number,read=False,exc=True,flush=False):
     rt =  tasks[number]
     task_cache[tk]=rt
     return rt
+
 def get_children(number):
     t = get_task(number)
     cmd = 'find -L %s -maxdepth 2 ! -wholename "*.git*" -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
@@ -480,6 +479,12 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
     s.web.send(message)
     print 'sent %s to %s'%(subject,email)
     return True
+def add_iteration(name,start_date=None,end_date=None):
+    itdir = os.path.join(cfg.DATADIR,name)
+    itfn = os.path.join(itdir,'iteration.org')
+    assert not os.path.exists(itdir),"%s exists."%itdir
+    os.mkdir(itdir)
+    render('iteration',{'start_date':start_date,'end_date':end_date},itfn)
 
 def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     if not iteration: 
@@ -495,15 +500,16 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
 
     if parent:
         #make sure that parent is in iteration
-        tf = [parse_story_fn(fn) for fn in get_task_files(iteration=iteration)]
+        tf = [parse_story_fn(fn) for fn in get_task_files(iteration=iteration,flush=True)]
         iterationtasks = dict([(tpfn['story'],tpfn) for tpfn in tf])
-        assert parent in iterationtasks
+        assert parent in iterationtasks,"%s not in %s"%(parent,iterationtasks)
         basedir = os.path.dirname(iterationtasks[parent]['path'])
         if force_id:
             newidx = force_id
         else:
             newidx = get_new_idx(parent=parent)
         newdir = os.path.join(basedir,newidx)
+        fullid = cfg.STORY_SEPARATOR.join([parent,newidx])
         newtaskfn = os.path.join(newdir,'task.org')
     else:
         basedir = os.path.join(cfg.DATADIR,iteration)
@@ -515,6 +521,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
         else:
             newidx = get_new_idx()
         newdir = os.path.join(basedir,newidx)
+        fullid = cfg.STORY_SEPARATOR.join([newidx])
         newtaskfn = os.path.join(newdir,'task.org')
     newtaskdt = parse_story_fn(newtaskfn)
     assert newtaskdt
@@ -543,6 +550,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     st,op = gso('mkdir -p %s'%newdir) ; assert st==0,"could not mkdir %s"%newdir
 
     assert not os.path.exists(newtaskfn)
+    pars['tags']=tags
     render('task',pars,newtaskfn)
     pars['path']=newtaskfn
     #clear the cache for tasks
@@ -558,6 +566,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     #         jn = [newidx]
     #     taskid = cfg.STORY_SEPARATOR.join(jn)
     #     add_notification(whom=pars['assignee'],about=taskid,what='new_story')
+    pars['id']=fullid
     return pars
 
 def makehtml(iteration=None,notasks=False,files=[]):
@@ -873,11 +882,6 @@ def get_changes(show=False,add_notifications=False):
         print pt
     return commits
 
-commitre = re.compile('\[origin\/([^\]]+)\]')
-cre = re.compile('commit ([0-9a-f]{40})')
-are = re.compile('Author: ([^<]*) <([^>]+)>')
-sre = re.compile('#([0-9'+re.escape(cfg.STORY_SEPARATOR)+']+)')
-dre = re.compile('Date:   (.*)')
 
 def imp_commits(args):
     print 'importing commits.'
@@ -1139,7 +1143,22 @@ def make_demo(iteration,tree=False,orgmode=False):
         print unicode(tr2)
     else:
         render('demo',{'trs':tr,'iteration':iteration,'rurl':cfg.RENDER_URL},'demo-%s.org'%iteration)
+def initvars(cfg_ref):
+    global commits,commitsfn,commitre,cre,are,sre,dre,cfg
+    cfg=cfg_ref
+    commits = {}
+    commitsfn = os.path.join(cfg.DATADIR,'commits.json')
+    commitre = re.compile('\[origin\/([^\]]+)\]')
+    cre = re.compile('commit ([0-9a-f]{40})')
+    are = re.compile('Author: ([^<]*) <([^>]+)>')
+    sre = re.compile('#([0-9'+re.escape(cfg.STORY_SEPARATOR)+']+)')
+    dre = re.compile('Date:   (.*)')
+
+
 if __name__=='__main__':
+    import config as cfg    
+    initvars(cfg)
+
     parser = argparse.ArgumentParser(description='Task Control',prog='tasks.py')
     subparsers = parser.add_subparsers(dest='command')
 
