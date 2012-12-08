@@ -82,11 +82,9 @@ def move_task(task,dest_iter):
         return False
     iterations = get_iterations()
     assert dest_iter in [i[1]['name'] for i in iterations],"%s not in %s"%(dest_iter,iterations)
-    taskdir = os.path.dirname(t['path'])
-    iterdirs = dict([(i[1]['name'],os.path.dirname(i[1]['path'])) for i in iterations])
-    cmd = 'mv %s %s'%(taskdir,iterdirs[dest_iter])
-    st,op = gso(cmd) ; assert st==0,"could not %s: %s"%(cmd,op)
-    #print cmd
+
+    unlink_task_iter(t['id'],t['iteration'])
+    link_task_iter(t['id'],dest_iter)
     return True
 def purge_task(task,force=False):
     t = get_task(task)
@@ -133,9 +131,22 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     assert len(fn)
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
     assert len(parts)>1,"%s"%"error parsing %s"%fn
-    it = parts[0]
     story = cfg.STORY_SEPARATOR.join(parts[1:-1])
+    slinkfn = '.'.join(story.split('/'))
+    assert len(slinkfn)
+    itfindcmd = 'find %s -type l -name "%s"'%(os.path.join(cfg.DATADIR,'i'),slinkfn)
+    #print itfindcmd
+    st,op = gso(itfindcmd) ; assert st==0,"%s returned %s\n%s"%(itfindcmd,st,op)
+    its = [it.replace(os.path.join(cfg.DATADIR,'i'),'').split('/')[1] for it in op.split('\n') if op!='']
+    assert len(its)>=1,"task %s is orphaned from iterations"%(story)
+    if len(its)==1:
+        it = its[0]
+    else:
+        raise Exception('iteration is tricky out of %s which is where %s appears'%(its,fn))
+
+
     rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[1:-1])}
+    assert rt['iteration']!='i'
     #raise Exception('id for %s is %s from %s'%(fn,rt['id'],parts))
     if read:
         filecont = open(fn,'r').read()
@@ -195,26 +206,23 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     global taskfiles_cache
     tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent)])
     if not flush and tfck in taskfiles_cache: return taskfiles_cache[tfck]
-
+    
     if iteration:
-        if iteration.startswith('not '):
-            pf='!'
-            itval = iteration.replace('not ','')
-        else:
-            pf=''
-            itval=iteration
-        itcnd='%s -wholename "%s/*"'%(pf,os.path.join(cfg.DATADIR,str(itval)))
+        assert iteration!='i'
+        cmd = 'find %s -type l'%(os.path.join(cfg.DATADIR,'i',iteration))
+        #print 'CMD %s ; iteration=%s'%(cmd,iteration)
     else:
-        itcnd=''
-    if not recurse:
-        add=' -maxdepth 3'
-    else:
-        add=''
-    cmd = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,add,itcnd,cfg.TASKFN)
-    #print cmd
-    st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
-    files = [fn for fn in op.split('\n') if fn!='']
+        cmd = 'find %s -type l'%(os.path.join(cfg.DATADIR,'i'))
+        #print 'CMD2 %s'%cmd
 
+    #print cmd
+    st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
+
+    files = [os.path.basename(fn) for fn in op.split('\n') if fn!='' ]
+    if not recurse:
+        files = [fn for fn in files if '.' not in fn]
+    files = [os.path.join(cfg.DATADIR,'t',fn.replace('.','/'),'task.org') for fn in files]
+    #print 'found %s files'%len(files)
     #filter by assignee. heavy.
     if assignee or status or tag or recent:
         rt = []
@@ -309,18 +317,17 @@ def get_task(number,read=False,exc=True,flush=False):
     if tk in task_cache: 
         if flush: del task_cache[tk]
         else: return task_cache[tk]
-    
+
     number = str(number)
-    tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True,flush=flush)]
-
-    tasks = dict([(pfn['story'],pfn) for pfn in tf])    
-
+    tfn = os.path.join(cfg.DATADIR,'t',number,'task.org')
+    
     if exc:
-        assert number in tasks,"%s (%s) not in %s"%(number,type(number),tasks.keys()) #'tasks')
+        assert os.path.exists(tfn),"%s does not exist"%number
     else:
         if number not in tasks: 
             return False
-    rt =  tasks[number]
+
+    rt = parse_story_fn(tfn,read=read)
     task_cache[tk]=rt
     return rt
 
@@ -338,26 +345,24 @@ def get_new_idx(parent=None):
         md = 2
         add = ' ! -wholename "%s"'%t['path']
     else:
-        tpath = cfg.DATADIR
-        md = 3
+        tpath = os.path.join(cfg.DATADIR,'t')
+        md = 2
         add = ''
     findcmd = 'find %s -maxdepth %s ! -wholename "*templates*" ! -wholename "*.git*" -type f -iname "%s" %s'%(tpath,md,cfg.TASKFN,add)
+    #print findcmd
+
     st,op = gso(findcmd) ; assert st==0
     files = [fn for fn in op.split('\n') if fn!='']
-    
-    tf = [parse_story_fn(fn) for fn in files]
-    exstrs = [t['story'] for t in tf if not re.compile('^([\d'+re.escape(cfg.STORY_SEPARATOR)+']+)$').search(t['story'])]
-    assert len(exstrs)==0,"%s is not empty"%(exstrs)
-    finalnames = [int(t['story'].split(cfg.STORY_SEPARATOR)[-1]) for t in tf]
-    if len(finalnames):
-        maxid = max(finalnames)
+    rfns = ([int((os.path.dirname(fn).replace(os.path.join(cfg.DATADIR,'t')+'/','')).split('/')[-1]) for fn in files])
+    if len(rfns):
+        maxid = max(rfns)
     else:
-        maxid=0
-    newid = maxid+1
-    return str(newid)
+        maxid = 0
+    return str(maxid+1)
 
 def get_table_contents(fn):
     ffn = os.path.join(cfg.DATADIR,fn)
+    if not os.path.exists(ffn): return {}
     fp = open(ffn,'r') ; gothead=False
     def parseline(ln):
         return [f.strip() for f in ln.split('|') if f.strip()!='']
@@ -377,6 +382,7 @@ def get_table_contents(fn):
     return rt
 
 def get_participants(disabled=False):
+
     tconts = get_table_contents('participants.org')
     rt={}
     for row in tconts:
@@ -480,19 +486,33 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
     print 'sent %s to %s'%(subject,email)
     return True
 def add_iteration(name,start_date=None,end_date=None):
-    itdir = os.path.join(cfg.DATADIR,name)
+    itdir = os.path.join(cfg.DATADIR,'i',name)
     itfn = os.path.join(itdir,'iteration.org')
     assert not os.path.exists(itdir),"%s exists."%itdir
     os.mkdir(itdir)
     render('iteration',{'start_date':start_date,'end_date':end_date},itfn)
 
+def unlink_task_iter(fullid,iteration):
+    return link_task_iter(fullid,iteration,unlink=True)
+
+def link_task_iter(fullid,iteration,unlink=False):
+    tdir = os.path.join(cfg.DATADIR,'i',iteration,fullid.replace('/','.'))
+    if unlink:
+        os.unlink(tdir)
+    else:
+        aln = 'ln -s "%s" "%s"'%('../../t/'+fullid,tdir)
+        st,op=gso(aln) ; assert st==0,"%s returned %s\n%s"%(aln,st,op)
+
 def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
+    #print 'in add task'
     if not iteration: 
         if parent:
             t = get_task(parent)
             iteration = t['iteration']
+            assert iteration!='i',t
         else:
             iteration = cfg.BACKLOG
+
     if iteration=='current':
         iterations = get_iterations()
         current_iteration = get_current_iteration(iterations)
@@ -512,7 +532,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
         fullid = cfg.STORY_SEPARATOR.join([parent,newidx])
         newtaskfn = os.path.join(newdir,'task.org')
     else:
-        basedir = os.path.join(cfg.DATADIR,iteration)
+        basedir = os.path.join(cfg.DATADIR,'t')
         if force_id:
             #make sure we don't have it already
             tf = [parse_story_fn(fn)['story'] for fn in get_task_files()]
@@ -523,9 +543,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
         newdir = os.path.join(basedir,newidx)
         fullid = cfg.STORY_SEPARATOR.join([newidx])
         newtaskfn = os.path.join(newdir,'task.org')
-    newtaskdt = parse_story_fn(newtaskfn)
-    assert newtaskdt
-    print 'creating new task %s : %s'%(newtaskdt['story'],pfn(newtaskfn))
+
     if type(params)==dict:
         pars = dict(params)
     else:
@@ -553,20 +571,17 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     pars['tags']=tags
     render('task',pars,newtaskfn)
     pars['path']=newtaskfn
+
+    link_task_iter(fullid,iteration)
+
+    #assign to iteration
     #clear the cache for tasks
     global task_cache,taskfiles_cache
     task_cache={}
     taskfiles_cache={}
 
-    # change notifications will suffice for now
-    # if pars['assignee']:
-    #     if parent:
-    #         jn = [parent,newidx]
-    #     else:
-    #         jn = [newidx]
-    #     taskid = cfg.STORY_SEPARATOR.join(jn)
-    #     add_notification(whom=pars['assignee'],about=taskid,what='new_story')
     pars['id']=fullid
+    print 'task %s@%s created'%(fullid,iteration)
     return pars
 
 def makehtml(iteration=None,notasks=False,files=[]):
@@ -1048,7 +1063,7 @@ def assign_commits():
     for fn,m in metas.items():
         savemeta(fn,m)
     print '%s metas touched.'%(len(metas))
-def tasks_validate(tasks=None):
+def tasks_validate(tasks=None,exc=False):
     cnt=0 ; failed=0
     tasks = [t for t in tasks if t!=None]
     p = get_participants(disabled=True)
@@ -1064,13 +1079,15 @@ def tasks_validate(tasks=None):
             assert t['created by']
             assert t['status']
             if t['assigned to'] and t['assigned to']!='None':
-                assert t['assigned to'] in p
+                if len(p): assert t['assigned to'] in p
             if t['created by'] and t['created by']!='None':
-                assert t['created by'] in p
+                if len(p): assert t['created by'] in p
             #print '%s : %s , %s , %s, %s'%(t['id'],t['summary'] if len(t['summary'])<40 else t['summary'][0:40]+'..',t['assigned to'],t['created by'],t['status'])
             cnt+=1
         except:
-            print 'failed validation for %s'%tf
+            print 'failed validation for %s: %s'%(tf,str(e))
+            if exc:
+                raise
             failed+=1
 
     print '%s tasks in all; %s failed'%(cnt,failed)

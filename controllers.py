@@ -7,16 +7,17 @@ from noodles.http import Response
 
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants
+from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
 from noodles.templates import render_to
 from noodles.http import Redirect
 from commands import getstatusoutput as gso
 from multiprocessing import Process
-
+import config as cfg
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 
+initvars(cfg)
 def get_admin(r,d):
 
     if force_identity:
