@@ -160,7 +160,7 @@ def task(request,task):
             iteration=request.params.get('iteration')
 
         rt = add_task(parent=parent,iteration=iteration,params=o_params,tags=tags)
-        redir = '/'+URL_PREFIX+'task/'+rt['id']
+        redir = '/'+URL_PREFIX+'s/'+rt['id']
         pushcommit(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)

@@ -12,11 +12,10 @@ selected=1 \
 </%def>
 <%def name="content()">
 <h2>Task ${task['story']}</h2>
-<a href="${upr}/task/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a> :: \
-<a href="${upr}/task/${task['id']}">permalink</a> :: \
-<a href="${url}/s/${task['id']}">static render</a> :: \
+<a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a> :: \
+<a href="${upr}/s/${task['id']}">permalink</a> :: \
 % if '/' in task['story']:
-<a href="${upr}/task/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
+<a href="${upr}/s/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
 % endif
 <a href="${upr}/">home</a><br />
 % if msg:
@@ -119,7 +118,7 @@ document.getElementById('showtog').onclick = function(ev) {
 		contel.style.display='none';
             }
 	}
-	x.open("GET",location.href.replace('/task/','/repr/'),true);
+	x.open("GET",location.href.replace('/s/','/repr/'),true);
 	x.send(null);
 
 	togel.innerHTML='edit';

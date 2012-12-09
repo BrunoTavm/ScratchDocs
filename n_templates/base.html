@@ -26,7 +26,7 @@ text-align:right;
   <a accesskey="h" href="${upr}/"><b>h</b>ome</a> :: \
   <a accesskey="i" href="${upr}/iterations"><b>i</b>terations list</a> :: \
   <a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a> :: \
-  <a accesskey="n" href="${upr}/task/new"><b>n</b>ew task</a> :: \
+  <a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a> :: \
   ${self.content()}
 </body>
 </html>
@@ -54,7 +54,7 @@ text-align:right;
 % endif
 <tr>
   <td><a href="${upr}/iteration/${t['iteration']}">${t['iteration']}</a></td>
-  <td><a href="${upr}/task/${t['story']}">${t['story']}</a></td>
+  <td><a href="${upr}/s/${t['story']}">${t['story']}</a></td>
   <td>${t['status']}</td>
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
   <td>${t.get('meta').get('commits_qty',0)}</td>
