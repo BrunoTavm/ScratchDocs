@@ -119,7 +119,7 @@ document.getElementById('showtog').onclick = function(ev) {
 		contel.style.display='none';
             }
 	}
-	x.open("GET",location.href.replace('task','repr'),true);
+	x.open("GET",location.href.replace('/task/','/repr/'),true);
 	x.send(null);
 
 	togel.innerHTML='edit';
