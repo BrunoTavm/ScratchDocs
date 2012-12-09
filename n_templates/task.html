@@ -61,8 +61,10 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 
 </dl>
 
-<h3>Edit</h3>
-<textarea class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
+<h3>Edit</h3> <a id='showtog' style='float:right' href="#">graphical repr</a>
+<textarea id='content' class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
+<div id='contentwrapper'>
+</div>
 % if task['id']:
 <input type='submit' value='Update' />
 % else:
@@ -103,6 +105,32 @@ ${self.list_tasks(children)}
 <script type='text/javascript'>
 window.onload = function() {
 document.getElementById('summary').focus();
-}
+document.getElementById('showtog').onclick = function(ev) {
+    var togel = document.getElementById('showtog');
+    var contel = document.getElementById('content');
+    var wrapel = document.getElementById('contentwrapper');
+    if (togel.innerHTML=='graphical repr')
+    {
+	var x = new XMLHttpRequest();
+	x.onreadystatechange = function() {
+            if(x.readyState == 4){
+		wrapel.innerHTML=x.response;
+		wrapel.style.display='';
+		contel.style.display='none';
+            }
+	}
+	x.open("GET",location.href.replace('task','repr'),true);
+	x.send(null);
+
+	togel.innerHTML='edit';
+    }
+    else
+    {
+	wrapel.style.display='none';
+	contel.style.display='';
+	togel.innerHTML='graphical repr';
+    }
+    ev.preventDefault();
+}}
 </script>
 </%def>

@@ -14,6 +14,7 @@ from noodles.http import Redirect
 from commands import getstatusoutput as gso
 from multiprocessing import Process
 
+
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
@@ -99,6 +100,14 @@ def pushcommit(pth,tid,adm):
         p = Process(target=push)
         p.start()
 
+def rpr(request,task):
+    t= get_task(task)
+    cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(t['path'])
+    st,op = gso(cmd) ; assert st==0
+    r = Response()
+    r.body = open(t['path'].replace('.org','.html'),'r').read()
+    return r
+
 @render_to('task.html')
 def task(request,task):
     if task.startswith('new/'):
@@ -164,4 +173,5 @@ def task(request,task):
         t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','iteration':'Backlog','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under}
     else:
         t = get_task(task,read=True,flush=True,gethours=True)
+            
     return {'task':t,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch}
