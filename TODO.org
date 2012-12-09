@@ -1,13 +1,19 @@
-* TODO add a new story [1/2]
+* bring webapp to speed
+- [ ] show tags, hours, commits in iteration view
+- [ ] show hours, commits in task view/edit
+- [ ] show children in task view/edit, navigation to parent, see iterations
+- [ ] allow subtask creation
+- [ ] permit assigning tasks to iterations
+* DONE add a new story [2/2]
 ** DONE from commandline
-** TODO from web interface
-* maxim wants [1/3]
+** DONE from web interface
+* maxim wants [2/3]
 ** DONE ability to change status from web interface
-** TODO ability to edit tags from interface
+** DONE ability to edit tags from interface
 ** TODO ability to sort tables
-* TODO new commands [0/2]
+* TODO new commands [1/2]
 ** TODO mark as status
-** TODO commit and push
+** DONE commit and push
 * import [4/4]
 ** DONE import stories
 *** DONE story tags
