@@ -44,7 +44,7 @@ def iterations(request):
     return {'its':its,'cur':get_current_iteration(its)}
 
 def asgn(request,person=None,iteration=None,recurse=True):
-    in_tasks = [parse_fn(fn,read=True) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse)]
+    in_tasks = [parse_fn(fn,read=True,known_iteration=iteration) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse)]
     tasks={}
     for st in STATUSES:
         tasks[st] = [t for t in in_tasks if t['status']==st]

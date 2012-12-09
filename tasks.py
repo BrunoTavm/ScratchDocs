@@ -126,7 +126,7 @@ def parse_attrs(node):
     rt['links']=links
     return rt
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
-def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
+def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True,known_iteration=None):
     """parse a task filename and optionally read it."""
     assert len(fn)
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
@@ -134,15 +134,19 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     story = cfg.STORY_SEPARATOR.join(parts[1:-1])
     slinkfn = '.'.join(story.split('/'))
     assert len(slinkfn)
-    itfindcmd = 'find %s -type l -name "%s"'%(os.path.join(cfg.DATADIR,'i'),slinkfn)
-    #print itfindcmd
-    st,op = gso(itfindcmd) ; assert st==0,"%s returned %s\n%s"%(itfindcmd,st,op)
-    its = [it.replace(os.path.join(cfg.DATADIR,'i'),'').split('/')[1] for it in op.split('\n') if op!='']
-    assert len(its)>=1,"task %s is orphaned from iterations"%(story)
-    if len(its)==1:
-        it = its[0]
+    
+    if known_iteration:
+        it = known_iteration
     else:
-        raise Exception('iteration is tricky out of %s which is where %s appears'%(its,fn))
+        itfindcmd = 'find %s -type l -name "%s"'%(os.path.join(cfg.DATADIR,'i'),slinkfn)
+        #print itfindcmd
+        st,op = gso(itfindcmd) ; assert st==0,"%s returned %s\n%s"%(itfindcmd,st,op)
+        its = [it.replace(os.path.join(cfg.DATADIR,'i'),'').split('/')[1] for it in op.split('\n') if op!='']
+        assert len(its)>=1,"task %s is orphaned from iterations"%(story)
+        if len(its)==1:
+            it = its[0]
+        else:
+            raise Exception('iteration is tricky out of %s which is where %s appears'%(its,fn))
 
 
     rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[1:-1])}
