@@ -104,20 +104,20 @@ def task(request,task):
     msg=None
     adm = get_admin(request,'unknown')
 
+    tags=[]
+    for k,v in request.params.items():
+        if k.startswith('tag-'):
+            tn = k.replace('tag-','')
+            if tn=='new':
+                for nt in [nt.strip() for nt in v.split(',') if nt.strip()!='']:
+                    tags.append(nt)
+            else:
+                tags.append(tn)
+    tags = list(set([tag for tag in tags if tag!='']))
+    
     if request.params.get('id'):
         t = get_task(request.params.get('id'),read=True,flush=True)
         tid = request.params.get('id')
-        tags=[]
-        for k,v in request.params.items():
-            if k.startswith('tag-'):
-                tn = k.replace('tag-','')
-                if tn=='new':
-                    for nt in [nt.strip() for nt in v.split(',') if nt.strip()!='']:
-                        tags.append(nt)
-                else:
-                    tags.append(tn)
-        tags = list(set([tag for tag in tags if tag!='']))
-
         o_params = {'summary':request.params.get('summary'),
                     'tags':tags,
                     'status':request.params.get('status'),
@@ -131,7 +131,7 @@ def task(request,task):
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
                     'unstructured':request.params.get('unstructured').strip()}
-        rt = add_task(iteration='Backlog',params=o_params)
+        rt = add_task(iteration='Backlog',params=o_params,tags=tags)
         redir = '/'+URL_PREFIX+'task/'+rt['story_id']
         pushcommit(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir

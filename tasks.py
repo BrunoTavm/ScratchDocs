@@ -125,6 +125,8 @@ def parse_attrs(node):
 
     rt['links']=links
     return rt
+
+
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
 def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True,known_iteration=None):
     """parse a task filename and optionally read it."""
@@ -135,18 +137,23 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True,k
     slinkfn = '.'.join(story.split('/'))
     assert len(slinkfn)
     
-    if known_iteration:
-        it = known_iteration
-    else:
-        itfindcmd = 'find %s -type l -name "%s"'%(os.path.join(cfg.DATADIR,'i'),slinkfn)
-        #print itfindcmd
-        st,op = gso(itfindcmd) ; assert st==0,"%s returned %s\n%s"%(itfindcmd,st,op)
-        its = [it.replace(os.path.join(cfg.DATADIR,'i'),'').split('/')[1] for it in op.split('\n') if op!='']
-        assert len(its)>=1,"task %s is orphaned from iterations"%(story)
-        if len(its)==1:
-            it = its[0]
-        else:
-            raise Exception('iteration is tricky out of %s which is where %s appears'%(its,fn))
+    
+    its = get_story_iterations(story)
+    assert len(its)==1,"task %s has iterations %s"%(story,its)
+    it=its[0]
+    
+    # if known_iteration:
+    #     it = known_iteration
+    # else:
+    #     itfindcmd = 'find %s -type l -name "%s"'%(os.path.join(cfg.DATADIR,'i'),slinkfn)
+    #     #print itfindcmd
+    #     st,op = gso(itfindcmd) ; assert st==0,"%s returned %s\n%s"%(itfindcmd,st,op)
+    #     its = [it.replace(os.path.join(cfg.DATADIR,'i'),'').split('/')[1] for it in op.split('\n') if op!='']
+    #     assert len(its)>=1,"task %s is orphaned from iterations"%(story)
+    #     if len(its)==1:
+    #         it = its[0]
+    #     else:
+    #         raise Exception('iteration is tricky out of %s which is where %s appears'%(its,fn))
 
 
     rt = {'iteration':it,'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[1:-1])}
@@ -210,7 +217,7 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     global taskfiles_cache
     tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent)])
     if not flush and tfck in taskfiles_cache: return taskfiles_cache[tfck]
-    
+
     if iteration:
         assert iteration!='i'
         cmd = 'find %s -type l'%(os.path.join(cfg.DATADIR,'i',iteration))
@@ -228,7 +235,15 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     files = [os.path.join(cfg.DATADIR,'t',fn.replace('.','/'),'task.org') for fn in files]
     #print 'found %s files'%len(files)
     #filter by assignee. heavy.
-    if assignee or status or tag or recent:
+    if assignee:
+        ast = get_assignee_stories(assignee) 
+        ofiles = files ; files=[]
+        for fn in ofiles:
+            ps = parse_story_fn(fn,read=False)
+            if ps['id'] in ast:
+                files.append(fn)
+
+    if status or tag or recent:
         rt = []
         for fn in files:
             s = parse_story_fn(fn,read=True)
@@ -496,16 +511,62 @@ def add_iteration(name,start_date=None,end_date=None):
     os.mkdir(itdir)
     render('iteration',{'start_date':start_date,'end_date':end_date},itfn)
 
+iterations_cache = {'iterations':{},'tasks':{}}
+def drop_iterations_cache():
+    global iterations_cache
+    iterations_cache = {'iterations':{},'tasks':{}}
+def get_story_iterations(story,flush=False):
+    basepath = os.path.join(cfg.DATADIR,'i')
+    st,op = gso('find %s -type l'%(basepath)) ; assert st==0
+    global iterations_cache
+    if flush: drop_iterations_cache()
+    if not len(iterations_cache['iterations']):
+        print 'populating iterations cache.'
+        for ln in op.split('\n'):
+            ln = [part for part in ln.replace(basepath,'').split('/') if part!='']
+            itn = ln[0]
+            task = ln[-1].replace('.','/')
+
+            if itn not in iterations_cache['iterations']: iterations_cache['iterations'][itn]=[]
+            iterations_cache['iterations'][itn].append(task)
+    
+            if task not in iterations_cache['tasks']: iterations_cache['tasks'][task]=[]
+            iterations_cache['tasks'][task].append(itn)
+        print 'iterations cache populated.'
+    return iterations_cache['tasks'][story]
+
 def unlink_task_iter(fullid,iteration):
     return link_task_iter(fullid,iteration,unlink=True)
 
 def link_task_iter(fullid,iteration,unlink=False):
+    drop_iterations_cache()
     tdir = os.path.join(cfg.DATADIR,'i',iteration,fullid.replace('/','.'))
     if unlink:
         os.unlink(tdir)
     else:
         aln = 'ln -s "%s" "%s"'%('../../t/'+fullid,tdir)
         st,op=gso(aln) ; assert st==0,"%s returned %s\n%s"%(aln,st,op)
+
+assignees_cache={}
+def drop_assignees_cache():
+    global assignees_cache
+    iterations_cache = {2}
+
+def get_assignee_stories(assignee,flush=False):
+    global assignees_cache
+    if flush: drop_assignees_cache()
+    if not len(assignees_cache):
+        print 'populating assignee cache'
+        st,op = gso('find %s -name "task.org" -type f'%(os.path.join(cfg.DATADIR,'t'))) ; assert st==0
+        for ln in op.split('\n'):
+
+            st = parse_story_fn(ln,read=True)
+            asgn = st['assigned to']
+            tid = st['id']
+            if asgn not in assignees_cache: assignees_cache[asgn]=[]
+            assignees_cache[asgn].append(tid)
+        print 'done populating'
+    return assignees_cache[assignee]
 
 def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     #print 'in add task'
