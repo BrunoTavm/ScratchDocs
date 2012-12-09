@@ -324,12 +324,12 @@ def get_task(number,read=False,exc=True,flush=False):
 
     number = str(number)
     tfn = os.path.join(cfg.DATADIR,'t',number,'task.org')
-    
+    pex =  os.path.exists(tfn)
     if exc:
-        assert os.path.exists(tfn),"%s does not exist"%number
-    else:
-        if number not in tasks: 
-            return False
+        assert pex,"%s does not exist"%number
+    elif not pex:
+        print 'returning false on unexistent task %s'%number
+        return False
 
     rt = parse_story_fn(tfn,read=read)
     task_cache[tk]=rt
