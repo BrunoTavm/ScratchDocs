@@ -12,9 +12,11 @@ selected=1 \
 </%def>
 <%def name="content()">
 <h2>Task ${task['story']}</h2>
-<a href="${upr}/task/${task['id']}">permalink</a> :: <a href="${url}/s/${task['id']}">static render</a> :: \
+<a href="${upr}/task/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a> :: \
+<a href="${upr}/task/${task['id']}">permalink</a> :: \
+<a href="${url}/s/${task['id']}">static render</a> :: \
 % if '/' in task['story']:
-<a href="${upr}/task/${"/".join(task['story'].split('/')[0:-1])}">one up</a> :: \
+<a href="${upr}/task/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
 % endif
 <a href="${upr}/">home</a><br />
 % if msg:
@@ -22,6 +24,10 @@ selected=1 \
 % endif
 <small>created ${task['created at']}</small>
 <form method='post'>
+% if task.get('under'):
+<h4>under ${task.get('under')}</h4>
+<input type='hidden' name='under' value="${task.get('under')}" />
+% endif
 <input type='hidden' name='id' value="${task['story']}" />
 <dl>
 <dt>Summary</dt>
@@ -36,7 +42,7 @@ selected=1 \
 </dd>
 <dt>iteration</dt>
 <dd><a href="${upr}/iteration/${task['iteration']}">${task['iteration']}</a>
-## ; move to ${self.sel('iteration',iterations,task['iteration'])}
+ ; move to ${self.sel('iteration',iterations,task['iteration'])}
 </dd>
 
 <dt>status</dt>
@@ -54,6 +60,7 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 <dd><a href="${upr}/assignments/${task['created by']}">${task['created by']}</a></dd>
 
 </dl>
+
 <h3>Edit</h3>
 <textarea class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
 % if task['id']:
@@ -62,6 +69,33 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 <input name='create' type='submit' value='Create' />
 % endif
 </form>
+
+% if len(children):
+<h3>Sub tasks</h3>
+${self.list_tasks(children)}
+% endif
+
+% if task.get('person_hours'):
+<h3>Time tracking</h3>
+<table>
+<thead>
+<tr>
+  <th>person</th>
+  <td>last tracked</th>
+  <td>hours</th>
+</tr>
+</thead>
+<tbody>
+% for ph in task['person_hours']:
+<tr>
+<td>${ph[0]}</td>
+<td>${ph[1]['last_tracked']}</td>
+<td class='ralign'>${"%4.1f"%ph[1]['hours']}</td>
+</tr>
+% endfor
+</tbody>
+</table>
+% endif
 
 ## <h3>Render</h3>
 ## <iframe class='rndr' src=""></iframe>

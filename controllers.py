@@ -7,7 +7,7 @@ from noodles.http import Response
 
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants
+from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
 from noodles.templates import render_to
 from noodles.http import Redirect
@@ -16,7 +16,8 @@ from multiprocessing import Process
 
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
-
+import config as cfg
+initvars(cfg)
 def get_admin(r,d):
 
     if force_identity:
@@ -43,7 +44,7 @@ def iterations(request):
     return {'its':its,'cur':get_current_iteration(its)}
 
 def asgn(request,person=None,iteration=None,recurse=True):
-    in_tasks = [parse_fn(fn,read=True) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse)]
+    in_tasks = [parse_fn(fn,read=True,gethours=True,hoursonlyfor=person) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse)]
     tasks={}
     for st in STATUSES:
         tasks[st] = [t for t in in_tasks if t['status']==st]
@@ -100,22 +101,29 @@ def pushcommit(pth,tid,adm):
 
 @render_to('task.html')
 def task(request,task):
+    if task.startswith('new/'):
+        under='/'.join(task.split('/')[1:])
+        task='new'
+    else:
+        under=None
+
     msg=None
     adm = get_admin(request,'unknown')
+
+    tags=[]
+    for k,v in request.params.items():
+        if k.startswith('tag-'):
+            tn = k.replace('tag-','')
+            if tn=='new':
+                for nt in [nt.strip() for nt in v.split(',') if nt.strip()!='']:
+                    tags.append(nt)
+            else:
+                tags.append(tn)
+    tags = list(set([tag for tag in tags if tag!='']))
 
     if request.params.get('id'):
         t = get_task(request.params.get('id'),read=True,flush=True)
         tid = request.params.get('id')
-        tags=[]
-        for k,v in request.params.items():
-            if k.startswith('tag-'):
-                tn = k.replace('tag-','')
-                if tn=='new':
-                    for nt in [nt.strip() for nt in v.split(',') if nt.strip()!='']:
-                        tags.append(nt)
-                else:
-                    tags.append(tn)
-        tags = list(set([tag for tag in tags if tag!='']))
 
         o_params = {'summary':request.params.get('summary'),
                     'tags':tags,
@@ -124,20 +132,36 @@ def task(request,task):
                     'unstructured':request.params.get('unstructured').strip()}
         print o_params
         rewrite(tid,o_params,safe=False)
+        t = get_task(tid,flush=True)
+        dit = request.params.get('iteration')
+        if t['iteration']!=dit:
+            move_task(tid,dit)
+        t = get_task(tid,flush=True) #for the flush
         pushcommit(t['path'],request.params.get('id'),adm)
     if request.params.get('create'):
         o_params = {'summary':request.params.get('summary'),
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
                     'unstructured':request.params.get('unstructured').strip()}
-        rt = add_task(iteration='Backlog',params=o_params)
-        redir = '/'+URL_PREFIX+'task/'+rt['story_id']
+        if request.params.get('under'):
+            parent = request.params.get('under')
+            iteration=None
+        else:
+            parent=None
+            iteration=request.params.get('iteration')
+
+        rt = add_task(parent=parent,iteration=iteration,params=o_params,tags=tags)
+        redir = '/'+URL_PREFIX+'task/'+rt['id']
         pushcommit(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)
         return rd
     if task=='new':
-        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','iteration':'Backlog','status':'TODO','assigned to':adm,'created by':adm,'tags':[]}
+        ch=[]
     else:
-        t = get_task(task,read=True,flush=True)
-    return {'task':t,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg}
+        ch = get_children(task)
+    if task=='new':
+        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','iteration':'Backlog','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under}
+    else:
+        t = get_task(task,read=True,flush=True,gethours=True)
+    return {'task':t,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch}

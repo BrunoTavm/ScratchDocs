@@ -293,7 +293,7 @@ def parse_iteration(pth):
             for k,v in attrs.items(): rt[k]=v
     return rt
 def get_iterations():
-    cmd = 'find %s -name "iteration.org" ! -wholename "*templates*" ! -wholename "*repos/*" -type f'%(cfg.DATADIR)
+    cmd = 'find  %s -maxdepth 2 -name "iteration.org" ! -wholename "*templates*" ! -wholename "*repos/*" -type f'%(cfg.DATADIR)
     #cmd = 'find %s -maxdepth 1 ! -wholename "*.git*"  -type d'%(cfg.DATADIR)
     st,op = gso(cmd) ; assert st==0
     #print op  ; raise Exception('w00t')
@@ -302,7 +302,7 @@ def get_iterations():
     rt.sort(sort_iterations,reverse=True)
     return rt
 task_cache={}
-def get_task(number,read=False,exc=True,flush=False):
+def get_task(number,read=False,exc=True,flush=False,gethours=False):
     """return everything we know about a task"""
     global task_cache
     tk = '%s-%s-%s'%(number,read,exc)
@@ -311,7 +311,7 @@ def get_task(number,read=False,exc=True,flush=False):
         else: return task_cache[tk]
     
     number = str(number)
-    tf = [parse_story_fn(fn,read=read) for fn in get_task_files(recurse=True,flush=flush)]
+    tf = [parse_story_fn(fn,read=read,gethours=gethours) for fn in get_task_files(recurse=True,flush=flush)]
 
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
 
@@ -327,7 +327,7 @@ def get_task(number,read=False,exc=True,flush=False):
 def get_children(number):
     t = get_task(number)
     cmd = 'find -L %s -maxdepth 2 ! -wholename "*.git*" -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
-    st,op = gso(cmd) ; assert st==0,"%s returned %s:\n"%(cmd,st,op)
+    st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
     chfiles = [ch for ch in op.split('\n') if ch!='']
     tf = [parse_story_fn(fn,read=True) for fn in chfiles]
     return tf
