@@ -20,6 +20,12 @@ color:red;
 .ralign {
 text-align:right;
 }
+table.taskslist {
+width:100%;
+}
+.taskslist th {
+background-color:#abc;
+}
 </style>
 </head>
 <body>
@@ -31,7 +37,7 @@ text-align:right;
 </body>
 </html>
 <%def name="list_tasks(tasks)">
-<table>
+<table class='taskslist'>
 <thead>
   <tr>
     <th>iteration</th>
@@ -41,11 +47,11 @@ text-align:right;
     <th>commits</th>
     <th>last commit</th>
     <th>hours</th>
+    <th>tags</th>
     <th>summary</th>
   </tr>
 </thead>
 <tbody>
-<% import json %>
 % for t in tasks:
 % if t.get('meta') and t.get('meta').get('lastcommits'):
 <% lcom = max([lc for lc in t.get('meta').get('lastcommits').values()]) %>
@@ -57,9 +63,10 @@ text-align:right;
   <td><a href="${upr}/s/${t['story']}">${t['story']}</a></td>
   <td>${t['status']}</td>
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
-  <td>${t.get('meta').get('commits_qty',0)}</td>
+  <td class='ralign'>${t.get('meta').get('commits_qty',0)}</td>
   <td>${lcom}</td>
   <td class='ralign'>${"%4.1f"%t.get('total_hours',0)}</td>
+  <td>${', '.join(t['tags'])}</td>
   <td>${t['summary']}</td>
 </tr>
 % endfor

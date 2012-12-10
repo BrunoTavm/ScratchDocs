@@ -30,12 +30,12 @@ selected=1 \
 <input type='hidden' name='id' value="${task['story']}" />
 <dl>
 <dt>Summary</dt>
-<dd><input id='summary' class='summary' type='text' name="summary" value="${task['summary']}" /></dd>
+<dd><input id='summary' class='summary' type='text' name="summary" value="${task['summary']|h}" /></dd>
 
 <dt>Tags</dt>
 <dd>
   % for tag in task['tags']:
-  <input type='checkbox' name="tag-${tag}" checked=1 value=1 /> ${tag} ; 
+  <input type='checkbox' name="tag-${tag|h}" checked=1 value=1 /> ${tag} ; 
   % endfor
   add tag(s): <input type='text' name='tag-new' value="" />
 </dd>
@@ -58,7 +58,17 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 <dt>creator</dt>
 <dd><a href="${upr}/assignments/${task['created by']}">${task['created by']}</a></dd>
 
+% if task.get('informed'):
+<% infs = [inf.strip(' ') for inf in task.get('informed').split(',')] %>
+<dt>informed</dt>
+<dd>
+% for inf in infs:
+<a href="/assignments/${inf}">${inf}</a> 
+% endfor
+</dd>
+% endif
 </dl>
+
 
 <h3>Edit</h3> <a id='showtog' style='float:right' href="#">graphical repr</a>
 <textarea id='content' class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
