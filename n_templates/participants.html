@@ -20,7 +20,11 @@
   <td><a href="mailto:${dt['E-Mail']}">${dt['E-Mail']}</a></td>
   <td>
 % if dt.get('Skype'):
+% if '[' in dt.get('Skype'):
 <a href="${dt['Skype'].split('][')[0].strip('[]')}">${dt['Skype'].split('][')[1].strip('[]')}</a>
+% else:
+<a href="skype:${dt['Skype']}">${dt['Skype']}</a>
+% endif
 % endif
 </td>
 </tr>
