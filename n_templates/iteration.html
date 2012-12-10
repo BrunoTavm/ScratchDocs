@@ -5,8 +5,10 @@
 % for st in statuses:
 % if st in tasks:
 <% tsks = tasks[st] %>
+% if len(tsks):
 <h3>${st}</h3>
 ${self.list_tasks(tsks)}
+% endif
 % endif
 % endfor
 </%def>
