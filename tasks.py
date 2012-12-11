@@ -190,11 +190,16 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
 
     return rt
 taskfiles_cache={}
+def flush_taskfiles_cache():
+    global taskfiles_cache
+    taskfiles_cache={}
+
 def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False,flush=False):
     """return task filenames according to provided criteria"""
     global taskfiles_cache
     tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent)])
-    if not flush and tfck in taskfiles_cache: return taskfiles_cache[tfck]
+    if flush: flush_taskfiles_cache()
+    if tfck in taskfiles_cache: return taskfiles_cache[tfck]
 
     if iteration:
         if iteration.startswith('not '):
@@ -248,6 +253,16 @@ def sort_iterations(i1,i2):
     rt= cmp(i1v,i2v)
     return rt
 
+def get_parent(tid,tl=False):
+    spl = tid.split('/')
+    if len(spl)>1:
+        if tl:
+            return spl[0]
+        else:
+            return spl[-2]
+    else:
+        return spl[0]
+
 numre = re.compile('^\d+$')
 def iteration_srt(s1,s2):
     i1 = s1['iteration']
@@ -261,7 +276,20 @@ def iteration_srt(s1,s2):
     else:
         rt= cmp(i1,i2)
     if rt==0:
-        rt = cmp(int(s1['story'].split(cfg.STORY_SEPARATOR)[0]),int(s2['story'].split(cfg.STORY_SEPARATOR)[0]))*-1
+        parts1 = s1['story'].split(cfg.STORY_SEPARATOR)
+        parts2 = s2['story'].split(cfg.STORY_SEPARATOR)
+        p1='' ; p2=''
+        while p1==p2:
+            if len(parts1):
+                p1 = parts1.pop(0)
+            else:
+                p1='0'
+            if len(parts2):
+                p2 = parts2.pop(0)
+            else:
+                p2='0'
+        rt = cmp(int(p1),int(p2))
+        #rt = cmp(int(s1['story'].split(cfg.STORY_SEPARATOR)[0]),int(s2['story'].split(cfg.STORY_SEPARATOR)[0]))*-1
     return rt
 
 def status_srt(s1,s2):

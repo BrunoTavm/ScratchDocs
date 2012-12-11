@@ -7,7 +7,7 @@ from noodles.http import Response
 
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task
+from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task,get_parent,flush_taskfiles_cache
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
 from noodles.templates import render_to
 from noodles.http import Redirect
@@ -44,12 +44,38 @@ def iterations(request):
     its = get_iterations()
     return {'its':its,'cur':get_current_iteration(its)}
 
-def asgn(request,person=None,iteration=None,recurse=True):
+def asgn(request,person=None,iteration=None,recurse=True,notdone=False):
     in_tasks = [parse_fn(fn,read=True,gethours=True,hoursonlyfor=person) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse)]
     tasks={}
+    for t in in_tasks:
+        tlp = get_parent(t['id'],tl=True)
+        partasks = [stask for stask in in_tasks if stask['id']==tlp]
+        if len(partasks): # got parents here
+            st = partasks[0]['status']
+        else: #don't have all parents in context
+            st = t['status']
+        #print 'st of %s setting to status of tlp %s: %s'%(t['id'],tlp,st) 
+        if st not in tasks: tasks[st]=[]
+
+        showtask=False
+        if not notdone: showtask=True
+        if t['status']!='DONE': showtask=True
+        if not showtask:
+            chstates = set([chst['status'] for chst in get_children(t['id'])])
+            if len(chstates)>1:
+                showtask=True
+            elif len(chstates)==1 and list(chstates)[0]!='DONE':
+                showtask=True
+            elif not len(chstates):
+                pass
+            else:
+                pass
+                #raise Exception(chstates,len(chstates))
+        if showtask:
+            tasks[st].append(t)
     for st in STATUSES:
-        tasks[st] = [t for t in in_tasks if t['status']==st]
-        tasks[st].sort(iteration_srt)
+        if st in tasks:
+            tasks[st].sort(iteration_srt)
     return {'tasks':tasks,'statuses':STATUSES}
 
 @render_to('iteration.html') 
@@ -59,10 +85,20 @@ def assignments(request,person):
     return rt
 
 @render_to('iteration.html')
-def assignments_current(request,person):
-    cur = get_current_iteration(get_iterations())
-    rt=asgn(request,person=person,iteration=cur[1]['name'])
-    rt['headline']='Current assignments for %s'%person
+def assignments_itn(request,person,iteration,mode='normal'):
+    if iteration=='current':
+        cur = get_current_iteration(get_iterations())
+        curn = cur[1]['name']
+        headline = 'Current assignments for %s'%person
+    else:        
+        curn = iteration
+        headline = 'Iteration %s assignments for %s'%(curn,person)
+    notdone=False
+    if mode=='notdone':
+        notdone=True
+        headline+='; Not Done.'
+    rt=asgn(request,person=person,iteration=curn)
+    rt['headline']=headline
     return rt
 
 @render_to('iteration.html')
@@ -79,6 +115,19 @@ def iteration(request,iteration):
     rt['headline']='Iteration %s'%iteration
     return rt
 
+@render_to('iteration.html')
+def iteration_all(request,iteration):
+    rt = asgn(request,iteration=iteration,recurse=True)
+    rt['headline']='Iteration %s with all tasks'%iteration
+    return rt
+
+@render_to('iteration.html')
+def iteration_notdone(request,iteration):
+    rt = asgn(request,iteration=iteration,recurse=True,notdone=True)
+    rt['headline']='Iteration %s with all tasks (and parents) that are not done'%iteration
+    return rt
+
+
 def pushcommit(pth,tid,adm):
     pts = get_participants()
     commiter = pts[adm]
@@ -92,7 +141,7 @@ def pushcommit(pth,tid,adm):
         print 'done push'
     #push in the background!
     if not NOCOMMIT:
-        cmd = 'cd %s && git add %s && git commit --author="%s" -m "webapp update of %s"'%(DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
+        cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
         print cmd
         st,op = gso(cmd) ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
         msg='Updated task %s'%tid
@@ -145,6 +194,7 @@ def task(request,task):
         dit = request.params.get('iteration')
         if t['iteration']!=dit:
             move_task(tid,dit)
+            flush_taskfiles_cache()
         t = get_task(tid,flush=True) #for the flush
         pushcommit(t['path'],request.params.get('id'),adm)
     if request.params.get('create'):

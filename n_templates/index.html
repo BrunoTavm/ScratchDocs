@@ -4,6 +4,7 @@
 <table class='taskslist'>
 <thead>
   <tr>
+    <th>views</th>
     <th>current</th>
     <th>name</th>
     <th>start</th>
@@ -14,6 +15,11 @@
 <tbody>
 % for it in its:
 <tr>
+  <td>
+    <a href="${upr}/iteration/${it[1]['name']}">shallow</a> |
+    <a href="${upr}/iteration/${it[1]['name']}/all">all tasks</a> |
+    <a href="${upr}/iteration/${it[1]['name']}/notdone">not done</a>
+  </td>
   <td>
     % if cur==it:
     CUR

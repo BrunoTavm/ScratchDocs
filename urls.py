@@ -17,8 +17,11 @@ def get_map():
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
         (URL_PREFIX+'/participants', 'controllers#participants'),
         (URL_PREFIX+'/iteration/{iteration}', 'controllers#iteration'),
+        (URL_PREFIX+'/iteration/{iteration}/all', 'controllers#iteration_all'),
+        (URL_PREFIX+'/iteration/{iteration}/notdone', 'controllers#iteration_notdone'),
         (URL_PREFIX+'/assignments/{person}', 'controllers#assignments'),
-        (URL_PREFIX+'/assignments/{person}/current', 'controllers#assignments_current'),
+        (URL_PREFIX+'/assignments/{person}/{iteration}', 'controllers#assignments_itn'),
+        (URL_PREFIX+'/assignments/{person}/{iteration}/{mode}', 'controllers#assignments_itn'),
         (URL_PREFIX+'/s/{task:.*}','controllers#task'),
         (URL_PREFIX+'/repr/{task:.*}','controllers#rpr'),
         #('/route/url', 'controllerName.actionName')
