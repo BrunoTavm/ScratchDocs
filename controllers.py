@@ -159,6 +159,7 @@ def rpr(request,task):
 
 @render_to('task.html')
 def task(request,task):
+    gwu = cfg.GITWEB_URL
     if task.startswith('new/'):
         under='/'.join(task.split('/')[1:])
         task='new'
@@ -167,8 +168,9 @@ def task(request,task):
 
     msg=None
     adm = get_admin(request,'unknown')
-
-    tags=[]
+    
+    
+    tags=[] ; links=[] ; informed=[] ; repobranch=[]
     for k,v in request.params.items():
         if k.startswith('tag-'):
             tn = k.replace('tag-','')
@@ -177,6 +179,32 @@ def task(request,task):
                     tags.append(nt)
             else:
                 tags.append(tn)
+        if k.startswith('link-'):
+            tn = k.replace('link-','')
+            if tn in ['new-url','new-anchor']:
+                continue #raise Exception('newlink')
+            else:
+                links.append({'url':v,'anchor':tn})
+        if k.startswith('informed-'):
+            tn = k.replace('informed-','')
+            if tn=='new': continue
+            informed.append(tn)
+        if k.startswith('repobranch-'):
+            tn = k.replace('repobranch-','')
+            if tn=='new': continue
+            repobranch.append(tn)
+    lna = request.params.get('link-new-anchor')
+    lnu = request.params.get('link-new-url')
+    if lna and lnu:
+        links.append({'anchor':lna,'url':lnu})
+
+    inn = request.params.get('informed-new')
+    if inn and inn not in informed:
+        informed.append(inn)
+
+    nrb = request.params.get('repobranch-new')
+    if nrb and '/' in nrb: repobranch.append(nrb)
+
     tags = list(set([tag for tag in tags if tag!='']))
 
     if request.params.get('id'):
@@ -187,12 +215,13 @@ def task(request,task):
                     'tags':tags,
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
-                    'unstructured':request.params.get('unstructured').strip()}
+                    'unstructured':request.params.get('unstructured').strip(),
+                    'links':links,'informed':informed,'repobranch':repobranch}
         print o_params
         rewrite(tid,o_params,safe=False)
         t = get_task(tid,flush=True)
         dit = request.params.get('iteration')
-        if t['iteration']!=dit:
+        if t['iteration']!=dit and dit:
             move_task(tid,dit)
             flush_taskfiles_cache()
         t = get_task(tid,flush=True) #for the flush
@@ -201,7 +230,8 @@ def task(request,task):
         o_params = {'summary':request.params.get('summary'),
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
-                    'unstructured':request.params.get('unstructured').strip()}
+                    'unstructured':request.params.get('unstructured').strip(),
+                    'links':links,'informed':informed,'repobranch':repobranch}
         if request.params.get('under'):
             parent = request.params.get('under')
             iteration=None
@@ -224,4 +254,4 @@ def task(request,task):
     else:
         t = get_task(task,read=True,flush=True,gethours=True)
             
-    return {'task':t,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch}
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch}

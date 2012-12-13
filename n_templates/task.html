@@ -39,9 +39,12 @@ selected=1 \
   % endfor
   add tag(s): <input type='text' name='tag-new' value="" />
 </dd>
+
 <dt>iteration</dt>
 <dd><a href="${upr}/iteration/${task['iteration']}">${task['iteration']}</a>
+% if not task.get('under','') and ((not task.get('id')) or ( '/' not in task.get('id',''))):
  ; move to ${self.sel('iteration',iterations,task['iteration'])}
+% endif
 </dd>
 
 <dt>status</dt>
@@ -58,19 +61,48 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 <dt>creator</dt>
 <dd><a href="${upr}/assignments/${task['created by']}">${task['created by']}</a></dd>
 
-% if task.get('informed'):
-<% infs = [inf.strip(' ') for inf in task.get('informed').split(',')] %>
-<dt>informed</dt>
+% if task.get('links'):
+<dt>links</dt>
 <dd>
-% for inf in infs:
-<a href="/assignments/${inf}">${inf}</a> 
-% endfor
+<ul>
+  % for li in task['links']:
+  <li>  <input type='checkbox' name="link-${li['anchor']|h}" checked=1 value="${li['url']|h}" />  <a href="${li['url']}">${li['anchor']}</a></li>
+  % endfor
+</ul>
 </dd>
 % endif
+
+% if task.get('informed'):
+<dt>informed</dt>
+<dd>
+<ul>
+% for inf in task['informed']:
+<li><input type="checkbox" name="informed-${inf|h}" checked=1 value=1 /><a href="${upr}/assignments/${inf}">${inf}</a></li>
+% endfor
+</ul>
+</dd>
+% endif
+
+% if task.get('repobranch'):
+<dt>repo/branch</dt>
+<dd>
+<ul>
+% for br in task.get('repobranch'):
+<% r,b = br.split('/') %>
+<li><input type='checkbox' name="repobranch-${br|h}" value="1" checked=1 /><a href="${gwu}?p=${r}.git;a=shortlog;h=refs/heads/${b}">${r}/${b}</a></li>
+% endfor
+</ul>
+</dd>
+% endif
+
 </dl>
 
 
 <h3>Edit</h3> <a id='showtog' style='float:right' href="#">graphical repr</a>
+
+add : link. descr: <input type='text' name='link-new-anchor' /> url: <input type='text' name='link-new-url' />
+informed: <input type='text' name='informed-new' />
+repo/branch <input type='text' name='repobranch-new' />
 <textarea id='content' class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
 <div id='contentwrapper'>
 </div>

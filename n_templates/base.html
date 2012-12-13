@@ -61,8 +61,18 @@ background-color:#ddd;
   </tr>
 </thead>
 <tbody>
-<% cnt=0 %>
+<% 
+cnt=0 
+%>
 % for t in tasks:
+<%
+if 'priority' in t['tags']:
+  pritag='<b>'
+  prietag='</b>'
+else:
+  pritag=''
+  prietag=''
+%>
 % if t.get('meta') and t.get('meta').get('lastcommits'):
 <% lcom = max([lc for lc in t.get('meta').get('lastcommits').values()]) %>
 % else:
@@ -76,14 +86,14 @@ class='odd'
   <td><a href="${upr}/iteration/${t['iteration']}">${t['iteration']}</a></td>
   <td>
 ${''.join(['&nbsp;&nbsp;' for i in range(len(t['story'].split('/'))-1)])}
-<a href="${upr}/s/${t['story']}" title="${t['summary']|h}">${t['story']}</a></td>
+${pritag}<a href="${upr}/s/${t['story']}" title="${t['summary']|h}">${t['story']}</a>${prietag}</td>
   <td>${t['status']}</td>
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
   <td class='ralign'>${t.get('meta').get('commits_qty',0)}</td>
   <td>${lcom}</td>
   <td class='ralign'>${"%4.1f"%t.get('total_hours',0)}</td>
   <td class='tagcln'>${', '.join(t['tags'])}</td>
-  <td class='sumcln' title="${t['summary']|h}">${len(t['summary'])<40 and t['summary'] or t['summary'][0:40]+'..'}</td>
+  <td class='sumcln' title="${t['summary']|h}">${pritag}${len(t['summary'])<40 and t['summary'] or t['summary'][0:40]+'..'}${prietag}</td>
 </tr>
 <% cnt+=1 %>
 % endfor

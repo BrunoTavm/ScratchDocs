@@ -14,8 +14,26 @@ ${tag}:\
 - created at :: <${created}>
 - created by :: ${creator}
 - assigned to :: ${assignee}
+% if informed:
+- informed
+% for i in informed:
+  - ${i}
+% endfor
+% endif
+% if links:
+- links
+% for l in links:
+  - [[${l['url']}][${l['anchor']}]]
+% endfor
+% endif
 % if points!='?':
 - points :: ${points}
+% endif
+% if repobranch:
+- repobranch
+% for rb in repobranch:
+  - ${rb}
+% endfor
 % endif
 ## % if unstructured or stasks or comments or detail:
 ## # UNSTRUCTURED BEYOND THIS POINT

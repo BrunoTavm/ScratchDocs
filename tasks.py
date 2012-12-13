@@ -104,15 +104,34 @@ def pfn(fn):
     else:
         return fn
 linkre = re.compile(re.escape('[[')+'([^\]]+)'+re.escape('][')+'([^\]]+)'+re.escape(']]'))
-def parse_attrs(node):
+tokre = re.compile('^\- ([^\:]+)')
+stokre = re.compile('^  \- (.+)')
+def parse_attrs(node,pth):
     try:
         rt= dict([a[2:].split(' :: ') for a in node.split('\n') if a.startswith('- ') and ' :: ' in a])
-        links=[]
-        for a in node.split('\n'):
-            res = linkre.search(a)
-            if res:
-                url,anchor = res.groups()
-                links.append({'url':url,'anchor':anchor})
+        tokagg={}
+
+        intok=False
+        for ln in node.split('\n'):
+            tokres = tokre.search(ln)
+            if not tokres: 
+                if intok:
+                    stok = stokre.search(ln)
+                    if stok:
+                        stok = stok.group(1)
+                        res = linkre.search(stok)
+                        if res:
+                            url,anchor = res.groups()
+                            tokagg[tok].append({'url':url,'anchor':anchor})
+                        else:
+                            tokagg[tok].append(stok)
+                    else:
+                        raise Exception('wtf is %s (under %s)'%(ln,tok))
+            else:
+                tok = tokres.group(1)
+                tokagg[tok]=[]
+                if tok in ['informed','links','repobranch']:
+                    intok=True
     except:
         print node.split('\n')
         raise
@@ -125,7 +144,10 @@ def parse_attrs(node):
             if len(dt)>1:
                 rt[k]+=datetime.timedelta(microseconds=int(dt[1]))
 
-    rt['links']=links
+    for ta,tv in tokagg.items():
+        rt[ta]=tv
+
+    #if '338/task.org' in pth:print json.dumps(rt,indent=True,default=lambda x: str(x)) ; raise Exception('here it is %s'%pth)
     return rt
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
 def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
@@ -149,7 +171,7 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
                 rt['tags']=node.tags
                 rt['summary']=heading
             elif node.get_heading()=='Attributes':
-                attrs = parse_attrs(unicode(node))
+                attrs = parse_attrs(unicode(node),fn)
                 for k,v in attrs.items():
                     rt[k]=v
                     if k=='tags':
@@ -317,7 +339,7 @@ def parse_iteration(pth):
     for node in root[1:]:
         head = node.get_heading()
         if node.get_heading()=='Attributes':
-            attrs = parse_attrs(unicode(node))
+            attrs = parse_attrs(unicode(node),pth)
             for k,v in attrs.items(): rt[k]=v
     return rt
 def get_iterations():
@@ -862,7 +884,10 @@ def get_changes(show=False,add_notifications=False):
                 for fn in ['created by','assigned to','informed']:
                     if not pfn.get(fn) or pfn.get('fn')=='None':
                         continue
-                    whoms = [wh for wh in pfn.get(fn).split(',') if wh not in ['','None',None]]
+                    if fn=='informed':
+                        whoms = pfn.get(fn)
+                    else:
+                        whoms = [pfn.get(fn)]
                     for whom in whoms:
                         if not whom or whom=="None": continue
                         if sid not in notifyover:
@@ -1116,7 +1141,10 @@ def rewrite(tid,o_params={},safe=True):
               'tags':t['tags'],
               'assignee':t['assigned to'],
               'points':t.get('points','?'),
+              'informed':t.get('informed'),
+              'links':t.get('links'),
               'unstructured':t.get('unstructured','').strip(),
+              'repobranch':t.get('repobranch'),
               }
     for k,v in o_params.items():
         assert k in params,"%s not in %s"%(k,params)
@@ -1280,7 +1308,7 @@ if __name__=='__main__':
             purge_task(task,bool(args.force))
     if args.command=='show':
         for task in args.tasks:
-            t = get_task(task)
+            t = get_task(task,read=True)
             print t
     if args.command=='move':
         tasks = args.fromto[0:-1]
