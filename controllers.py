@@ -207,7 +207,7 @@ def task(request,task):
 
     tags = list(set([tag for tag in tags if tag!='']))
 
-    uns = request.params.get('unstructured').strip()
+    uns = request.params.get('unstructured','').strip()
     if len(uns) and not uns.startswith('**'):
         uns='** Details\n'+uns
     if request.params.get('id'):
