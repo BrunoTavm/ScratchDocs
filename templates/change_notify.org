@@ -10,5 +10,5 @@ A task which you relate to, [[${url+'s/'+t['story']}][${t['story']}]], has been 
 ${'\n'.join(body.get('change'))}
 #+END_EXAMPLE
 *** See current tasks
-To see your current tasks, please go [[${url}assigned-${recipient['Username']}-current.html][here]].
+To see your current tasks, please go [[${url}][here]].
 
