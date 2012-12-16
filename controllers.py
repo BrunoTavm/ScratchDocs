@@ -207,6 +207,9 @@ def task(request,task):
 
     tags = list(set([tag for tag in tags if tag!='']))
 
+    uns = request.params.get('unstructured').strip()
+    if len(uns) and not uns.startswith('**'):
+        uns='** Details\n'+uns
     if request.params.get('id'):
         t = get_task(request.params.get('id'),read=True,flush=True)
         tid = request.params.get('id')
@@ -215,7 +218,7 @@ def task(request,task):
                     'tags':tags,
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
-                    'unstructured':request.params.get('unstructured').strip(),
+                    'unstructured':uns,
                     'links':links,'informed':informed,'repobranch':repobranch}
         print o_params
         rewrite(tid,o_params,safe=False)
@@ -230,7 +233,7 @@ def task(request,task):
         o_params = {'summary':request.params.get('summary'),
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
-                    'unstructured':request.params.get('unstructured').strip(),
+                    'unstructured':uns,
                     'links':links,'informed':informed,'repobranch':repobranch}
         if request.params.get('under'):
             parent = request.params.get('under')
