@@ -126,7 +126,7 @@ def parse_attrs(node,pth):
                         else:
                             tokagg[tok].append(stok)
                     else:
-                        raise Exception('wtf is %s (under %s)'%(ln,tok))
+                        raise Exception('wtf is %s (under %s) parsing %s'%(ln,tok,pth))
             else:
                 tok = tokres.group(1)
                 tokagg[tok]=[]
@@ -1157,6 +1157,7 @@ def rewrite(tid,o_params={},safe=True):
             nowrite=True
     if not nowrite:
         fp = codecs.open(t['path'],'w',encoding='utf-8') ; fp.write(cont) ; fp.close()
+    tasks_validate([tid])
 
 def make_demo(iteration,tree=False,orgmode=False):     
     from tree import Tree

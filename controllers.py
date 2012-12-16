@@ -7,7 +7,7 @@ from noodles.http import Response
 
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task,get_parent,flush_taskfiles_cache
+from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task,get_parent,flush_taskfiles_cache,tasks_validate
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
 from noodles.templates import render_to
 from noodles.http import Redirect
