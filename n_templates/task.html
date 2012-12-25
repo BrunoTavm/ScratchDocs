@@ -1,6 +1,6 @@
 <%inherit file="/base.html" />
-<%def name="sel(name,lst,val)">
-<select name='${name}'>
+<%def name="sel(name,lst,val,attr='')">
+<select name='${name}' ${attr}>
 % for st in lst:
 <option value='${st}' \
 % if st==val:
@@ -47,9 +47,9 @@ selected=1 \
 % endif
 </dd>
 
-<dt>status</dt>
+<dt>s<b>t</b>atus</dt>
 <dd>
-${self.sel('status',statuses,task['status'])}
+${self.sel('status',statuses,task['status'],attr='accesskey="t"')}
 </dd>
 
 <dt>assignee</dt>
@@ -108,9 +108,9 @@ repo/branch ${sel('repobranch-new-repo',repos,'')}/<input type='text' name='repo
 <div id='contentwrapper'>
 </div>
 % if task['id']:
-<input type='submit' value='Update' />
+<input type='submit' value='Update' accesskey='a' />
 % else:
-<input name='create' type='submit' value='Create' />
+<input name='create' type='submit' value='Create' accesskey='a' />
 % endif
 </form>
 
