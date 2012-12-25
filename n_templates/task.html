@@ -101,8 +101,9 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 <h3>Edit</h3> <a id='showtog' style='float:right' href="#">graphical repr</a>
 
 add : link. descr: <input type='text' name='link-new-anchor' /> url: <input type='text' name='link-new-url' />
-informed: <input type='text' name='informed-new' />
-repo/branch <input type='text' name='repobranch-new' />
+informed: 
+${sel('informed-new',dict({'':{}}.items()+participants.items()),'')}
+repo/branch ${sel('repobranch-new-repo',repos,'')}/<input type='text' name='repobranch-new-branch' />
 <textarea id='content' class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
 <div id='contentwrapper'>
 </div>

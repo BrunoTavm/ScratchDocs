@@ -7,7 +7,7 @@ from noodles.http import Response
 
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task,get_parent,flush_taskfiles_cache,tasks_validate
+from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
 from noodles.templates import render_to
 from noodles.http import Redirect
@@ -169,7 +169,8 @@ def task(request,task):
     msg=None
     adm = get_admin(request,'unknown')
     
-    
+    repos = [r['Name'] for r in get_table_contents('repos.org')]
+
     tags=[] ; links=[] ; informed=[] ; repobranch=[]
     for k,v in request.params.items():
         if k.startswith('tag-'):
@@ -191,7 +192,7 @@ def task(request,task):
             informed.append(tn)
         if k.startswith('repobranch-'):
             tn = k.replace('repobranch-','')
-            if tn=='new': continue
+            if tn in ['new-repo','new-branch']: continue
             repobranch.append(tn)
     lna = request.params.get('link-new-anchor')
     lnu = request.params.get('link-new-url')
@@ -202,8 +203,9 @@ def task(request,task):
     if inn and inn not in informed:
         informed.append(inn)
 
-    nrb = request.params.get('repobranch-new')
-    if nrb and '/' in nrb: repobranch.append(nrb)
+    nrb = request.params.get('repobranch-new-branch')
+    if nrb: repobranch.append(request.params.get('repobranch-new-repo')+'/'+nrb)
+
 
     tags = list(set([tag for tag in tags if tag!='']))
 
@@ -257,4 +259,4 @@ def task(request,task):
     else:
         t = get_task(task,read=True,flush=True,gethours=True)
             
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch}
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos}
