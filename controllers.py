@@ -97,7 +97,7 @@ def assignments_itn(request,person,iteration,mode='normal'):
     if mode=='notdone':
         notdone=True
         headline+='; Not Done.'
-    rt=asgn(request,person=person,iteration=curn)
+    rt=asgn(request,person=person,iteration=curn,notdone=notdone)
     rt['headline']=headline
     return rt
 
