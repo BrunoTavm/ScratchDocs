@@ -1,0 +1,50 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h3>Iteration ${it[1]['name']} commits to ${branch}</h3>
+
+<% col=0 %>
+<table>
+<thead>
+  <th>Task</th>
+  <th>Last commit</th>
+  <th>Status</th>
+  <th>Assignee</th>
+  % for r in repos:
+  <th>${r}</th>
+  % endfor
+</thead>
+<tbody>
+% for t,d in agg:
+<% onstaging = u'staging' in [d.get(ri)[0] for ri in repos if d.get(ri)] %>
+<tr ${col % 2 == 0 and 'class="odd"' or ''}>
+  <td>
+% if onstaging:
+<b><a href="/s/${t}">${t}</a></b>
+% else:
+<a href="/s/${t}">${t}</a>
+% endif
+</td>
+  <td style='min-width:85px'>
+% if onstaging:
+<b>${lastcommits[t].date()}</b>
+% else:
+${lastcommits[t].date()}
+% endif
+</td>
+  <td>${task_data[t]['status']}</td>
+  <td>${task_data[t]['assigned to']}</td>
+  % for r in repos:
+  <td>
+    % if d.get(r):
+    ${"; ".join(["<a href='%s?p=%s.git;a=commitdiff;h=refs/heads/%s;hp=staging'>%s</>"%(gwu,r,ri,ri) for ri in d.get(r)])}
+    ## ${d.get('r')}
+    % endif
+  </td>
+  % endfor
+</tr>
+<% col+=1 %>
+% endfor
+</tbody>
+</table>
+
+</%def>

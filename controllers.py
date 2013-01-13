@@ -14,7 +14,9 @@ from noodles.http import Redirect
 from commands import getstatusoutput as gso
 from multiprocessing import Process
 
-
+from tasks import loadmeta
+from tasks import parsegitdate
+import os
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
@@ -127,6 +129,60 @@ def iteration_notdone(request,iteration):
     rt['headline']='Iteration %s with all tasks (and parents) that are not done'%iteration
     return rt
 
+@render_to('iteration_commits.html')
+def iteration_commits(request,iteration,branch):
+    gwu = cfg.GITWEB_URL
+    its = get_iterations()
+    it = [it for it in its if it[1]['name']==iteration][0]
+    start_date = it[1]['start date']
+    end_date = it[1]['end date']
+    print('commits on iteration %s to branch %s'%(iteration,branch))
+    tf = get_fns(iteration=iteration,recurse=True)
+    metas = [os.path.join(os.path.dirname(t),'meta.json') for t in tf]
+    agg={} ; repos=[] ; task_data={} ; lastcommits={}
+    
+    for m in metas:
+        tid = '/'.join(os.path.dirname(m).split('/')[2:])
+        if not os.path.exists(m): continue
+        md = loadmeta(m)
+        if 'branchlastcommits' not in md: continue
+        blc = md['branchlastcommits']
+        for br,stmp in blc.items():
+            if  '/' not in br:
+                #print "%s has no /"%(br)
+                continue
+            try:
+                repo,br = br.split('/')
+            except ValueError:
+                #print '%s has too many /'%(br)
+                continue
+            stmp = parsegitdate(stmp)
+            if not (stmp>=start_date and stmp<=end_date):
+                continue
+            if not (branch=='all' or branch==br):
+                continue
+            if tid not in agg:
+                agg[tid]={}
+                if repo not in agg:
+                    agg[tid][repo]=[]
+                agg[tid][repo].append(br)
+
+            if tid not in task_data:
+                t = get_task(tid,read=True)
+                task_data[tid]=t
+
+            if tid not in lastcommits: lastcommits[tid]=stmp
+            if stmp>=lastcommits[tid]: lastcommits[tid]=stmp
+
+            if repo not in repos: repos.append(repo)
+                
+            #print(tid,repo,br,stmp)
+    agg = list(agg.items())
+    def lcsort(i1,i2):
+        return cmp(lastcommits[i1[0]],lastcommits[i2[0]])
+    agg.sort(lcsort,reverse=True)
+    return {'agg':agg,'it':it,'branch':branch,'repos':repos,'gwu':gwu,'task_data':task_data,'lastcommits':lastcommits}
+    #raise Exception(metas)
 
 def pushcommit(pth,tid,adm):
     pts = get_participants()
