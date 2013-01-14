@@ -36,7 +36,7 @@ ${lastcommits[t].date()}
   % for r in repos:
   <td>
     % if d.get(r):
-    ${"; ".join(["<a href='%s?p=%s.git;a=commitdiff;h=refs/heads/%s;hp=staging'>%s</>"%(gwu,r,ri,ri) for ri in d.get(r)])}
+    ${"<br />".join(["<a title='%s' href='%s?p=%s.git;a=commitdiff;h=refs/heads/%s;hp=staging'>%s</a>"%(ri,gwu,r,ri,(len(ri)>20 and ri[0:20]+'..' or ri)) for ri in d.get(r)])}
     ## ${d.get('r')}
     % endif
   </td>

@@ -19,7 +19,9 @@ TPLDIR='templates'
 def USERMAP(un):
     return un
 def COMMITERMAP(em,nm):
-    return un
+    assert '@' not in em
+    assert '.' not in em
+    return em
 from noodles_config import *
 from config_local import *
 import os

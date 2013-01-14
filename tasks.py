@@ -946,7 +946,7 @@ def imp_commits(args):
         repodir = os.path.join(cfg.REPO_DIR,os.path.basename(repo))
         if not os.path.exists(repodir):
             print 'cloning.'
-            cmd = 'git clone %s %s'%(repo,repodir)
+            cmd = 'git clone -b staging %s %s'%(repo,repodir)
             st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
         prevdir = os.getcwd()
         os.chdir(repodir)
@@ -982,7 +982,7 @@ def imp_commits(args):
         #now go over the ignored branches
         if len(ignoredbranches): 
             for ign in set(ignoredbranches):
-                st,op = gso('git checkout origin/%s'%(ign)); assert st==0
+                st,op = gso('git checkout origin/%s'%(ign)); assert st==0,"checkout origin/%s inside %s returned %s\n%s"%(ign,repodir,st,op)
                 st,op = gso('git log --pretty=oneline --since=%s'%(datetime.datetime.now()-datetime.timedelta(days=10)).strftime('%Y-%m-%d')) ; assert st==0
                 for lln in op.split('\n'):
                     if lln=='': continue
@@ -1012,10 +1012,15 @@ def imp_commits(args):
                 task = storyres.group(1)
             else:
                 task = None
-            cinfo = {'s':dt,'br':branch,'u':un,'t':task} #'repo':repon, 'cid':cid <-- these are out to save space
+            cinfo = {'s':dt,'br':[branch],'u':un,'t':task} #'repo':repon, 'cid':cid <-- these are out to save space
             if branch not in branches: branches.append(branch)
             key = '%s/%s'%(repon,cid)
-            excommits[key]=cinfo
+
+            if key not in excommits: 
+                excommits[key]=cinfo
+            else:
+                if branch not in excommits[key]['br']:
+                    excommits[key]['br'].append(branch)
             cnt+=1
             #print '%s: %s/%s %s by %s on task %s'%(dt,repon,branch,cid,un,task)
         print 'found out about %s commits, branches %s'%(cnt ,branches)
@@ -1050,7 +1055,21 @@ def assign_commits():
     metas={}
     print 'going over commits.'
     for ck,ci in exc.items():
+
+        #HEAD actually means staging in our book.
+        branches = [cibr.replace('HEAD','staging') for cibr in ci['br']]
+        #check if commit is on staging and exclude from other branches if so
+        if 'staging' in branches: branches=['staging']
+
+
+        # myrepo,cid = ck.split('/')
+        # st,op = gso('cd repos/%s && git branch --contains %s'%(myrepo,cid)) ; assert st==0
+        # contbranches = [cbr.strip('* ') for cbr in op.split('\n')]
+        # if '(no branch)' in contbranches: contbranches.remove('(no branch)')
+
         if not ci['t']: continue
+
+
         repo,cid = ck.split('/')
         t = get_task(ci['t'],exc=False)
         
@@ -1081,9 +1100,10 @@ def assign_commits():
         if 'commiters' not in m: m['commiters']=[]
         if repocommiter not in m['commiters']: m['commiters'].append(repocommiter)
         
-        repobranch = '/'.join([repo,ci['br']])
-        if 'branches' not in m: m['branches']=[]
-        if repobranch not in m['branches']: m['branches'].append(repobranch)
+        for cibr in branches:
+            repobranch = '/'.join([repo,cibr])
+            if 'branches' not in m: m['branches']=[]
+            if repobranch not in m['branches']: m['branches'].append(repobranch)
 
 
 
@@ -1092,16 +1112,17 @@ def assign_commits():
         if lastdatekey not in m['lastcommits'] or parsegitdate(m['lastcommits'][lastdatekey])<dt:
             m['lastcommits'][lastdatekey]=ci['s']
 
-        lastbranchkey = '%s/%s'%(repo,ci['br'])
-        if 'branchlastcommits' not in m: m['branchlastcommits']={}
-        if lastbranchkey not in m['branchlastcommits'] or parsegitdate(m['branchlastcommits'][lastbranchkey])<dt:
-            m['branchlastcommits'][lastbranchkey]=ci['s']
+        for cibr in branches:
+            lastbranchkey = '%s/%s'%(repo,cibr)
+            if 'branchlastcommits' not in m: m['branchlastcommits']={}
+            if lastbranchkey not in m['branchlastcommits'] or parsegitdate(m['branchlastcommits'][lastbranchkey])<dt:
+                m['branchlastcommits'][lastbranchkey]=ci['s']
 
     print 'saving.'
     for fn,m in metas.items():
         savemeta(fn,m)
     print '%s metas touched.'%(len(metas))
-def tasks_validate(tasks=None):
+def tasks_validate(tasks=None,catch=True,amend=False):
     cnt=0 ; failed=0
     tasks = [t for t in tasks if t!=None]
     p = get_participants(disabled=True)
@@ -1112,6 +1133,21 @@ def tasks_validate(tasks=None):
     for tf in tfs:
         try:
             t = parse_story_fn(tf,read=True)
+            if t.get('meta') and t['meta'].get('branchlastcommits'):
+                for blc in t['meta'].get('branchlastcommits'):
+                    try:
+                        assert '/' in blc,"%s has no /"%(blc)
+                        assert 'git.ezscratch.com' not in blc,"git.ezscratch.com in %s"%(blc)
+                        assert len(blc.split('/'))<=2,"%s has too many /"%(blc)
+                        assert 'HEAD' not in blc,"%s has HEAD"%(blc)
+                    except:
+                        if amend:
+                            for fn in ['lastcommits','commits_qty','branchlastcommits','commiters','last_commit','branches']:
+                                if t['meta'].get(fn):
+                                    del t['meta'][fn]
+                            savemeta(t['metadata'],t['meta'])
+                        else:
+                            raise
             assert t['summary']
             assert t['assigned to']
             assert t['created by']
@@ -1122,8 +1158,9 @@ def tasks_validate(tasks=None):
                 assert t['created by'] in p
             #print '%s : %s , %s , %s, %s'%(t['id'],t['summary'] if len(t['summary'])<40 else t['summary'][0:40]+'..',t['assigned to'],t['created by'],t['status'])
             cnt+=1
-        except:
-            print 'failed validation for %s'%tf
+        except Exception,e:
+            if not catch: raise
+            print 'failed validation for %s - %s'%(tf,e)
             failed+=1
 
     print '%s tasks in all; %s failed'%(cnt,failed)
@@ -1276,8 +1313,10 @@ if __name__=='__main__':
     git.add_argument('--orgmode',dest='orgmode',action='store_true')
 
     val = subparsers.add_parser('validate')
+    val.add_argument('--nocatch',action='store_true',default=False)
+    val.add_argument('--amend',action='store_true',default=False)
     val.add_argument('tasks',nargs='?',action='append')
-
+    
     commit = subparsers.add_parser('commit')
     commit.add_argument('--tasks',dest='tasks',action='store_true')
     commit.add_argument('--metas',dest='metas',action='store_true')
@@ -1372,7 +1411,7 @@ if __name__=='__main__':
     if args.command=='makedemo':
         make_demo(iteration=args.iteration,tree=args.tree,orgmode=args.orgmode)
     if args.command=='validate':
-        tasks_validate(args.tasks)
+        tasks_validate(args.tasks,catch=not args.nocatch,amend=args.amend)
     if args.command=='commit':
         prevdir = os.getcwd()
         os.chdir(cfg.DATADIR)

@@ -147,25 +147,28 @@ def iteration_commits(request,iteration,branch):
         md = loadmeta(m)
         if 'branchlastcommits' not in md: continue
         blc = md['branchlastcommits']
+
         for br,stmp in blc.items():
             if  '/' not in br:
-                #print "%s has no /"%(br)
+                print "%s has no /"%(br)
                 continue
             try:
                 repo,br = br.split('/')
             except ValueError:
-                #print '%s has too many /'%(br)
+                print '%s has too many /'%(br)
                 continue
             stmp = parsegitdate(stmp)
             if not (stmp>=start_date and stmp<=end_date):
+                #print 'bad commit date %s'%stmp
                 continue
             if not (branch=='all' or branch==br):
+                #print 'branch mismatch %s<>%s'%(branch,br)
                 continue
             if tid not in agg:
                 agg[tid]={}
-                if repo not in agg:
-                    agg[tid][repo]=[]
-                agg[tid][repo].append(br)
+            if repo not in agg[tid]:
+                agg[tid][repo]=[]
+            agg[tid][repo].append(br)
 
             if tid not in task_data:
                 t = get_task(tid,read=True)
@@ -175,8 +178,8 @@ def iteration_commits(request,iteration,branch):
             if stmp>=lastcommits[tid]: lastcommits[tid]=stmp
 
             if repo not in repos: repos.append(repo)
-                
             #print(tid,repo,br,stmp)
+
     agg = list(agg.items())
     def lcsort(i1,i2):
         return cmp(lastcommits[i1[0]],lastcommits[i2[0]])
