@@ -158,7 +158,7 @@ def iteration_commits(request,iteration,branch):
                 print '%s has too many /'%(br)
                 continue
             stmp = parsegitdate(stmp)
-            if not (stmp>=start_date and stmp<=end_date):
+            if not (stmp.date()>=start_date.date() and stmp.date()<=end_date.date()):
                 #print 'bad commit date %s'%stmp
                 continue
             if not (branch=='all' or branch==br):
@@ -179,7 +179,6 @@ def iteration_commits(request,iteration,branch):
 
             if repo not in repos: repos.append(repo)
             #print(tid,repo,br,stmp)
-
     agg = list(agg.items())
     def lcsort(i1,i2):
         return cmp(lastcommits[i1[0]],lastcommits[i2[0]])
