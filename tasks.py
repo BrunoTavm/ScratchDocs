@@ -983,7 +983,7 @@ def imp_commits(args):
         if len(ignoredbranches): 
             for ign in set(ignoredbranches):
                 st,op = gso('git checkout origin/%s'%(ign)); assert st==0,"checkout origin/%s inside %s returned %s\n%s"%(ign,repodir,st,op)
-                st,op = gso('git log --pretty=oneline --since=%s'%(datetime.datetime.now()-datetime.timedelta(days=10)).strftime('%Y-%m-%d')) ; assert st==0
+                st,op = gso('git log --pretty=oneline --since=%s'%(datetime.datetime.now()-datetime.timedelta(days=30)).strftime('%Y-%m-%d')) ; assert st==0
                 for lln in op.split('\n'):
                     if lln=='': continue
                     lcid = lln.split(' ')[0]
