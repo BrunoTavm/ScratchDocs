@@ -13,13 +13,14 @@ from noodles.templates import render_to
 from noodles.http import Redirect
 from commands import getstatusoutput as gso
 from multiprocessing import Process
-
+import datetime
 from tasks import loadmeta
 from tasks import parsegitdate
 import os
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
+
 initvars(cfg)
 def get_admin(r,d):
 
@@ -128,6 +129,37 @@ def iteration_notdone(request,iteration):
     rt = asgn(request,iteration=iteration,recurse=True,notdone=True)
     rt['headline']='Iteration %s with all tasks (and parents) that are not done'%iteration
     return rt
+
+@render_to('iteration_time.html')
+def iteration_time(request,iteration):
+    its = get_iterations()
+    it = [it for it in its if it[1]['name']==iteration][0]
+    start_date = it[1]['start date'].date()
+    end_date = it[1]['end date'].date()
+    tf = get_fns(iteration=iteration,recurse=True)
+    hours = [os.path.join(os.path.dirname(t),'hours.json') for t in tf]
+    agg={} ; persons={} ; ptasks={}
+    for h in hours:
+        tid = '/'.join(os.path.dirname(h).split('/')[2:])
+        if not os.path.exists(h): continue
+        md = loadmeta(h)
+        for stmp,data in md.items():
+            stmp = datetime.datetime.strptime(stmp,'%Y-%m-%d').date()
+            if not (stmp>=start_date and stmp<=end_date): continue
+            for person,hours in data.items():
+                if stmp not in agg: agg[stmp]={}
+                if person not in agg[stmp]: agg[stmp][person]={}
+                if person not in persons: persons[person]=0
+                if person not in ptasks: ptasks[person]=[]
+                persons[person]+=hours
+                if tid not in ptasks[person]: ptasks[person].append(tid)
+                if tid not in agg[stmp][person]: agg[stmp][person][tid]=0
+                agg[stmp][person][tid]+=hours
+    agg = list(agg.items())
+    agg.sort(lambda i1,i2: cmp(i1[0],i2[0]))
+    persons = list(persons.items())
+    persons.sort(lambda i1,i2: cmp(i1[1],i2[1]),reverse=True)
+    return {'persons':persons,'agg':agg,'it':it,'ptasks':ptasks}
 
 @render_to('iteration_commits.html')
 def iteration_commits(request,iteration,branch):

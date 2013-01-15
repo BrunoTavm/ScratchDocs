@@ -1132,7 +1132,7 @@ def tasks_validate(tasks=None,catch=True,amend=False):
         tfs = get_task_files()
     for tf in tfs:
         try:
-            t = parse_story_fn(tf,read=True)
+            t = parse_story_fn(tf,read=True,gethours=True)
             if t.get('meta') and t['meta'].get('branchlastcommits'):
                 for blc in t['meta'].get('branchlastcommits'):
                     try:
@@ -1146,6 +1146,17 @@ def tasks_validate(tasks=None,catch=True,amend=False):
                                 if t['meta'].get(fn):
                                     del t['meta'][fn]
                             savemeta(t['metadata'],t['meta'])
+                        else:
+                            raise
+            if t.get('person_hours'): 
+                for person,hrs in t.get('person_hours'):
+                    try:
+                        assert '@' not in person,"%s is bad"%(person)
+                    except:
+                        if amend:
+                            hrsfn = t['metadata'].replace('meta.json','hours.json')
+                            assert os.path.exists(hrsfn)
+                            savemeta(hrsfn,{})
                         else:
                             raise
             assert t['summary']

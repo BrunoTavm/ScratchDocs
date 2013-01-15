@@ -20,6 +20,7 @@ def get_map():
         (URL_PREFIX+'/iteration/{iteration}/all', 'controllers#iteration_all'),
         (URL_PREFIX+'/iteration/{iteration}/notdone', 'controllers#iteration_notdone'),
         (URL_PREFIX+'/iteration/{iteration}/commits/{branch}', 'controllers#iteration_commits'),
+        (URL_PREFIX+'/iteration/{iteration}/time', 'controllers#iteration_time'),
         (URL_PREFIX+'/assignments/{person}', 'controllers#assignments'),
         (URL_PREFIX+'/assignments/{person}/{iteration}', 'controllers#assignments_itn'),
         (URL_PREFIX+'/assignments/{person}/{iteration}/{mode}', 'controllers#assignments_itn'),

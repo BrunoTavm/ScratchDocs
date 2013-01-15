@@ -1,0 +1,52 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h3>Time tracking by day for iteration ${it[1]['name']}</h3>
+[ <a href="?t=">tasks</a> :: <a href="?t=tot">totals</a>
+% if request.params.get('t'):
+:: <a href="?t=${request.params.get('t')}">${request.params.get('t')}</a>
+% endif
+]
+<table>
+<thead>
+<th>date</th>
+% for person in persons:
+<th>${person[0].replace('@ezscratch.com','')}</th>
+% endfor
+</thead>
+
+% for dt,data in agg:
+<tr \
+% if dt.weekday() in [5,6]:
+class="odd"
+% endif
+>
+<td>${dt}</td>
+
+% for person in persons:
+<td style='text-align:right'>
+% if person[0] in data:
+% if request.params.get('t')=='tot':
+<a href="?t=${",".join(data[person[0]].keys())}">${"%4.1f"%sum(data[person[0]].values())}</a>
+% elif not request.params.get('t'):
+${", ".join(["<a href='?t=%s'>%s</a>"%(k,k) for k in data[person[0]].keys()])}
+% else:
+<% val = sum([v for k,v in data[person[0]].items() if k in request.params.get('t').split(',')]) %>
+${val and "%4.1f"%val or ''}
+% endif
+% else:
+
+% endif
+</td>
+% endfor
+</tr>
+% endfor
+<tr>
+<td>TOT</td>
+% for person in persons:
+<td style='text-align:right'>
+<a href="?t=${",".join(ptasks[person[0]])}">${"%4.1f"%person[1]}</a>
+</td>
+% endfor
+</tr>
+</table>
+</%def>
