@@ -237,10 +237,20 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
         add=' -maxdepth 3'
     else:
         add=''
-    cmd = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"%(cfg.DATADIR,add,itcnd,cfg.TASKFN)
-    #print cmd
-    st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
-    files = [fn for fn in op.split('\n') if fn!='']
+    cmdtpl = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"
+    if iteration:
+        itdir = os.path.join(cfg.DATADIR,iteration)
+        st,op  = gso('find %s -maxdepth 1 -type l '%(itdir)) ; assert st==0
+        itdirs = [itdir]+[ldir+'/' for ldir in op.split('\n') if op!='']
+        cmds = [cmdtpl%(dr,add,itcnd,cfg.TASKFN) for dr in itdirs]
+    else:
+        cmds = [cmdtpl%(cfg.DATADIR,add,itcnd,cfg.TASKFN)]
+    files=[]
+    for cmd in cmds:
+        #print cmd
+        st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
+        files += [fn for fn in op.split('\n') if fn!='']
+    files=list(set(files))
 
     #filter by assignee. heavy.
     if assignee or status or tag or recent:
