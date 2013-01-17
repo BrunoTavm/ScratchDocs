@@ -1132,10 +1132,11 @@ def assign_commits():
     for fn,m in metas.items():
         savemeta(fn,m)
     print '%s metas touched.'%(len(metas))
-def tasks_validate(tasks=None,catch=True,amend=False):
+def tasks_validate(tasks=None,catch=True,amend=False,checkhours=True,checkreponames=True):
     cnt=0 ; failed=0
     tasks = [t for t in tasks if t!=None]
     p = get_participants(disabled=True)
+    firstbad=None
     if tasks:
         tfs = [get_task(taskid,read=False)['path'] for taskid in tasks]
     else:
@@ -1143,28 +1144,41 @@ def tasks_validate(tasks=None,catch=True,amend=False):
     for tf in tfs:
         try:
             t = parse_story_fn(tf,read=True,gethours=True)
-            if t.get('meta') and t['meta'].get('branchlastcommits'):
+            if checkreponames and t.get('meta') and t['meta'].get('branchlastcommits'):
                 for blc in t['meta'].get('branchlastcommits'):
                     try:
                         assert '/' in blc,"%s has no /"%(blc)
                         assert 'git.ezscratch.com' not in blc,"git.ezscratch.com in %s"%(blc)
                         assert len(blc.split('/'))<=2,"%s has too many /"%(blc)
                         assert 'HEAD' not in blc,"%s has HEAD"%(blc)
-                    except:
+                    except Exception,e:
                         if amend:
+                            print 'amending %s'%e
                             for fn in ['lastcommits','commits_qty','branchlastcommits','commiters','last_commit','branches']:
                                 if t['meta'].get(fn):
                                     del t['meta'][fn]
                             savemeta(t['metadata'],t['meta'])
                         else:
                             raise
-            if t.get('person_hours'): 
+            if t.get('meta') and t['meta'].get('commiters'):
+                for blc in t['meta'].get('commiters'):
+                    br,person = blc.split('-')
+                    assert '.' not in person,"bad commiter - %s"%person
+
+            if checkhours and t.get('person_hours'): 
                 for person,hrs in t.get('person_hours'):
                     try:
-                        assert '@' not in person,"%s is bad"%(person)
-                    except:
+                        assert '@' not in person,"hours in person: %s is bad"%(person)
+                    except Exception,e:
                         if amend:
+                            print 'amending %s'%e
                             hrsfn = t['metadata'].replace('meta.json','hours.json')
+                            hrsm = loadmeta(hrsfn)
+                            for hdt,items in hrsm.items():
+                                if person in items:
+                                    if not firstbad or hdt<firstbad: firstbad=hdt
+
+                            hrsfn = hrsfn
                             assert os.path.exists(hrsfn)
                             savemeta(hrsfn,{})
                         else:
@@ -1184,7 +1198,7 @@ def tasks_validate(tasks=None,catch=True,amend=False):
             print 'failed validation for %s - %s'%(tf,e)
             failed+=1
 
-    print '%s tasks in all; %s failed'%(cnt,failed)
+    print '%s tasks in all; %s failed; firstbad=%s'%(cnt,failed,firstbad)
     return failed
 
 def rewrite(tid,o_params={},safe=True):
