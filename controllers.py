@@ -87,8 +87,7 @@ def assignments(request,person):
     rt['headline']='Assignments for %s'%person
     return rt
 
-@render_to('iteration.html')
-def assignments_itn(request,person,iteration,mode='normal'):
+def assignments_itn_func(request,person,iteration,mode='normal'):
     if iteration=='current':
         cur = get_current_iteration(get_iterations())
         curn = cur[1]['name']
@@ -105,12 +104,15 @@ def assignments_itn(request,person,iteration,mode='normal'):
     return rt
 
 @render_to('iteration.html')
+def assignments_itn(request,person,iteration,mode='normal'):
+    return assignments_itn_func(request,person,iteration,mode)
+
+@render_to('iteration.html')
 def index(request):
-    cur = get_current_iteration(get_iterations())
-    adm = get_admin(request,'unknown')
-    rt= asgn(request,adm,iteration=cur[1]['name'])
-    rt['headline']='Current assignments.'
-    return rt
+    iteration =         cur = get_current_iteration(get_iterations())
+    curn = cur[1]['name']
+    return assignments_itn_func(request,get_admin(request,'unknown'),iteration=curn,mode='notdone')
+
 
 @render_to('iteration.html')
 def iteration(request,iteration):
@@ -325,6 +327,7 @@ def task(request,task):
         o_params = {'summary':request.params.get('summary'),
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
+                    'creator':get_admin(request,'unknown'),
                     'unstructured':uns,
                     'links':links,'informed':informed,'repobranch':repobranch}
         if request.params.get('under'):
@@ -333,7 +336,6 @@ def task(request,task):
         else:
             parent=None
             iteration=request.params.get('iteration')
-
         rt = add_task(parent=parent,iteration=iteration,params=o_params,tags=tags)
         redir = '/'+URL_PREFIX+'s/'+rt['id']
         pushcommit(rt['path'],rt['story_id'],adm)

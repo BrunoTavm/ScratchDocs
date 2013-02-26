@@ -234,7 +234,7 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
     else:
         itcnd=''
     if not recurse:
-        add=' -maxdepth 3'
+        add=' -maxdepth 2'
     else:
         add=''
     cmdtpl = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"
@@ -603,6 +603,7 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     if pars['summary'] and type(pars['summary'])==list:
         pars['summary']=' '.join(pars['summary'])
 
+    pars['informed']=cfg.ALWAYS_INFORMED
 
     assert not os.path.exists(newdir),"%s exists"%newdir
     dn = os.path.dirname(newdir)

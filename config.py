@@ -16,6 +16,7 @@ REPOSITORIES=[]
 REPO_DIR='repos'
 DOCS_REPONAME=None
 TPLDIR='templates'
+ALWAYS_INFORMED=[]
 def USERMAP(un):
     return un
 def COMMITERMAP(em,nm):
@@ -26,5 +27,4 @@ from noodles_config import *
 from config_local import *
 import os
 SDIR = os.path.join(DATADIR,SHORTCUT_PREFIX)
-
 
