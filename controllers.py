@@ -348,7 +348,13 @@ def task(request,task):
         ch = get_children(task)
     if task=='new':
         t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','iteration':'Backlog','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under}
+        opar=[]
     else:
         t = get_task(task,read=True,flush=True,gethours=True)
-            
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos}
+        par = task ; parents=[]
+        parents = task.split('/')
+        opar = []
+        for i in xrange(len(parents)-1):
+            opar.append('/'.join(parents[:i+1]))
+    parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos,'parents':parents}

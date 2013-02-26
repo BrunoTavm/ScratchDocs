@@ -29,6 +29,9 @@ selected=1 \
 % endif
 <input type='hidden' name='id' value="${task['story']}" />
 <dl>
+% for pid,psum in parents:
+<a title="${pid}" href="${upr}/s/${pid}">${psum}</a> &#8250;
+% endfor
 <dt>Summary</dt>
 <dd><input id='summary' class='summary' type='text' name="summary" value="${task['summary']|h}" /></dd>
 
