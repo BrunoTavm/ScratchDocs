@@ -1192,6 +1192,11 @@ def tasks_validate(tasks=None,catch=True,amend=False,checkhours=True,checkrepona
                 assert t['assigned to'] in p
             if t['created by'] and t['created by']!='None':
                 assert t['created by'] in p
+            #checking for dupes
+            cmd = "find %s -type f -iregex '^([^\]+)/%s$'"%(cfg.DATADIR,'/'.join([t['id'],'task.org']))
+            st,op = gso(cmd) ; assert st==0
+            dfiles = op.split('\n')
+            assert len(dfiles)==1,"%s is not 1 for %s"%(dfiles,cmd)
             #print '%s : %s , %s , %s, %s'%(t['id'],t['summary'] if len(t['summary'])<40 else t['summary'][0:40]+'..',t['assigned to'],t['created by'],t['status'])
             cnt+=1
         except Exception,e:
@@ -1350,6 +1355,7 @@ if __name__=='__main__':
 
     val = subparsers.add_parser('validate')
     val.add_argument('--nocatch',action='store_true',default=False)
+    val.add_argument('--nocheckhours',action='store_true',default=False)
     val.add_argument('--amend',action='store_true',default=False)
     val.add_argument('tasks',nargs='?',action='append')
     
@@ -1447,7 +1453,7 @@ if __name__=='__main__':
     if args.command=='makedemo':
         make_demo(iteration=args.iteration,tree=args.tree,orgmode=args.orgmode)
     if args.command=='validate':
-        tasks_validate(args.tasks,catch=not args.nocatch,amend=args.amend)
+        tasks_validate(args.tasks,catch=not args.nocatch,amend=args.amend,checkhours = not args.nocheckhours)
     if args.command=='commit':
         prevdir = os.getcwd()
         os.chdir(cfg.DATADIR)
