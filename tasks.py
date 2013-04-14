@@ -216,10 +216,10 @@ def flush_taskfiles_cache():
     global taskfiles_cache
     taskfiles_cache={}
 
-def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False,flush=False):
+def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None):
     """return task filenames according to provided criteria"""
     global taskfiles_cache
-    tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent)])
+    tfck = ",".join([str(iteration),str(assignee),str(status),str(tag),str(recurse),str(recent),unicode(query)])
     if flush: flush_taskfiles_cache()
     if tfck in taskfiles_cache: return taskfiles_cache[tfck]
 
@@ -237,18 +237,28 @@ def get_task_files(iteration=None,assignee=None,status=None,tag=None,recurse=Tru
         add=' -maxdepth 2'
     else:
         add=''
-    cmdtpl = "find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s'"
+    if query:        
+        add2=u' -print0 | "xargs" -0 -e grep -i -e "%s" -l'%query
+    else:        
+        add2=''
+    cmdtpl = u"find  %s  %s ! -wholename '*templates*' ! -wholename '*.git*' %s -type f -name '%s' %s"
+
     if iteration:
         itdir = os.path.join(cfg.DATADIR,iteration)
         st,op  = gso('find %s -maxdepth 1 -type l '%(itdir)) ; assert st==0
         itdirs = [itdir]+[ldir+'/' for ldir in op.split('\n') if op!='']
-        cmds = [cmdtpl%(dr,add,itcnd,cfg.TASKFN) for dr in itdirs]
+        cmds = [cmdtpl%(dr,add,itcnd,cfg.TASKFN,add2) for dr in itdirs]
     else:
-        cmds = [cmdtpl%(cfg.DATADIR,add,itcnd,cfg.TASKFN)]
+        cmds = [cmdtpl%(cfg.DATADIR,add,itcnd,cfg.TASKFN,add2)]
     files=[]
     for cmd in cmds:
         #print cmd
-        st,op = gso(cmd) ;assert st==0,"%s => %s"%(cmd,op)
+        s = cmd.encode('utf-8')
+        st,op = gso(s) ;
+        if not query:
+            assert st==0,"%s => %s\n%s"%(cmd,st,op)
+        else:
+            assert st in [0,123,31488],"%s => %s\n%s"%(cmd,st,op)
         files += [fn for fn in op.split('\n') if fn!='']
     files=list(set(files))
 

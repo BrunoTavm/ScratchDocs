@@ -47,8 +47,8 @@ def iterations(request):
     its = get_iterations()
     return {'its':its,'cur':get_current_iteration(its)}
 
-def asgn(request,person=None,iteration=None,recurse=True,notdone=False):
-    in_tasks = [parse_fn(fn,read=True,gethours=True,hoursonlyfor=person) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse)]
+def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=None):
+    in_tasks = [parse_fn(fn,read=True,gethours=True,hoursonlyfor=person) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse,query=query)]
     tasks={}
     for t in in_tasks:
         tlp = get_parent(t['id'],tl=True)
@@ -87,7 +87,7 @@ def assignments(request,person):
     rt['headline']='Assignments for %s'%person
     return rt
 
-def assignments_itn_func(request,person,iteration,mode='normal'):
+def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=None):
     if iteration=='current':
         cur = get_current_iteration(get_iterations())
         curn = cur[1]['name']
@@ -99,7 +99,7 @@ def assignments_itn_func(request,person,iteration,mode='normal'):
     if mode=='notdone':
         notdone=True
         headline+='; Not Done.'
-    rt=asgn(request,person=person,iteration=curn,notdone=notdone)
+    rt=asgn(request,person=person,iteration=curn,notdone=notdone,query=query)
     rt['headline']=headline
     return rt
 
@@ -111,7 +111,10 @@ def assignments_itn(request,person,iteration,mode='normal'):
 def index(request):
     iteration =         cur = get_current_iteration(get_iterations())
     curn = cur[1]['name']
-    return assignments_itn_func(request,get_admin(request,'unknown'),iteration=curn,mode='notdone')
+    return assignments_itn_func(request
+                                ,get_admin(request,'unknown')
+                                ,iteration=curn
+                                ,mode='notdone')
 
 
 @render_to('iteration.html')
@@ -358,3 +361,14 @@ def task(request,task):
             opar.append('/'.join(parents[:i+1]))
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos,'parents':parents}
+
+
+@render_to('iteration.html')
+def search(request):
+    return assignments_itn_func(request
+                                ,person=None
+                                ,iteration=None
+                                ,mode='normal'
+                                ,query=request.params.get('q'))
+
+

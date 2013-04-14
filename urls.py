@@ -26,6 +26,7 @@ def get_map():
         (URL_PREFIX+'/assignments/{person}/{iteration}/{mode}', 'controllers#assignments_itn'),
         (URL_PREFIX+'/s/{task:.*}','controllers#task'),
         (URL_PREFIX+'/repr/{task:.*}','controllers#rpr'),
+        (URL_PREFIX+'/search','controllers#search'),
         #('/route/url', 'controllerName.actionName')
     ])
 

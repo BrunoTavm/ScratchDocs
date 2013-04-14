@@ -35,6 +35,9 @@ width:10%;
 .odd {
 background-color:#ddd;
 }
+.search {
+float:right;
+}
 </style>
 </head>
 <body>
@@ -42,6 +45,10 @@ background-color:#ddd;
   <a accesskey="i" href="${upr}/iterations"><b>i</b>terations list</a> :: \
   <a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a> :: \
   <a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a> :: \
+  <form class='search' method='get' action='${upr}/search'>
+    <input type='text' name='q' value="" />
+    <input type='submit' value='Search' />
+  </form>
   ${self.content()}
 </body>
 </html>
