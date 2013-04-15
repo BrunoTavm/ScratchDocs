@@ -613,7 +613,8 @@ def add_task(iteration=None,parent=None,params={},force_id=None,tags=[]):
     if pars['summary'] and type(pars['summary'])==list:
         pars['summary']=' '.join(pars['summary'])
 
-    pars['informed']=cfg.ALWAYS_INFORMED
+    for ai in cfg.ALWAYS_INFORMED:
+        if ai not in pars['informed']: pars['informed'].append(ai)
 
     assert not os.path.exists(newdir),"%s exists"%newdir
     dn = os.path.dirname(newdir)
