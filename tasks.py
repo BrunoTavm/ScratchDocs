@@ -106,6 +106,7 @@ def pfn(fn):
 linkre = re.compile(re.escape('[[')+'([^\]]+)'+re.escape('][')+'([^\]]+)'+re.escape(']]'))
 tokre = re.compile('^\- ([^\:]+)')
 stokre = re.compile('^  \- (.+)')
+iteration_date_formats = ['%Y-%m-%d %a','%Y-%m-%d']
 def parse_attrs(node,pth):
     try:
         rt= dict([a[2:].split(' :: ') for a in node.split('\n') if a.startswith('- ') and ' :: ' in a])
@@ -137,7 +138,12 @@ def parse_attrs(node,pth):
         raise
     for k,v in rt.items():
         if k.endswith('date'):
-            rt[k]=datetime.datetime.strptime(v.strip('<>[]'),'%Y-%m-%d')
+            for frm in iteration_date_formats:
+                try:
+                    rt[k]=datetime.datetime.strptime(v.strip('<>[]'),frm)
+                    break
+                except ValueError:
+                    pass
         if k in ['created at']:
             dt = v.strip('<>[]').split('.')
             rt[k]=datetime.datetime.strptime(dt[0],'%Y-%m-%d %H:%M:%S')
@@ -365,7 +371,7 @@ def parse_iteration(pth):
 def get_iterations():
     cmd = 'find  %s -maxdepth 2 -name "iteration.org" ! -wholename "*templates*" ! -wholename "*repos/*" -type f'%(cfg.DATADIR)
     #cmd = 'find %s -maxdepth 1 ! -wholename "*.git*"  -type d'%(cfg.DATADIR)
-    st,op = gso(cmd) ; assert st==0
+    st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
     #print op  ; raise Exception('w00t')
     dirs = op.split('\n')
     rt = [(os.path.dirname(path),parse_iteration(path)) for path in dirs if len(path.split('/'))>1]
