@@ -247,7 +247,7 @@ def pushcommit(pth,tid,adm):
 def rpr(request,task):
     t= get_task(task)
     cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(t['path'])
-    st,op = gso(cmd) ; assert st==0
+    st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
     r = Response()
     r.body = open(t['path'].replace('.org','.html'),'r').read()
     return r
