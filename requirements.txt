@@ -3,4 +3,5 @@ prettytable
 mako
 orgparse
 sendgrid
-
+dulwich
+SQLAlchemy

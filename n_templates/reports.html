@@ -1,0 +1,10 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script type='text/javascript'>
+  google.load('visualization','1',{packages:['corechart']});
+  var commits = ${commits|n};
+  var odesk = ${odesk|n};
+</script>
+<script type='text/javascript' src='reports.js'></script>
+</%def>

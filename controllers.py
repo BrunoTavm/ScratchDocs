@@ -20,6 +20,7 @@ import os
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
+import json
 
 initvars(cfg)
 def get_admin(r,d):
@@ -365,6 +366,7 @@ def task(request,task):
 
 @render_to('iteration.html')
 def search(request):
+    
     return assignments_itn_func(request
                                 ,person=None
                                 ,iteration=None
@@ -372,3 +374,44 @@ def search(request):
                                 ,query=request.params.get('q'))
 
 
+def default(obj):
+    """Default JSON serializer."""
+    import calendar, datetime
+    if isinstance(obj, datetime.datetime) or isinstance(obj, datetime.date):
+        rt= int(obj.strftime('%s'))
+        print '%s => %s'%(obj,rt)
+        return rt
+        # return obj.strftime('%s')
+        # if obj.utcoffset() is not None:
+        #     obj = obj - obj.utcoffset()
+        # millis = int(
+        #     calendar.timegm(obj.timetuple()) * 1000 +
+        #     obj.microsecond / 1000
+        # )
+        # return millis
+    else:
+        raise Exception('hai %s'%type(obj))
+
+@render_to('reports.html')
+def reports(request):
+    from reports.orm import *
+    # commits_raw = [c.jsonify() for c in s.query(Commit).order_by(Commit.commited_on).all()]
+    # commits = json.dumps(commits_raw,indent=True,default=default)
+    oqry = s.query(OdeskWork.worked_on,
+                    sa.func.sum(OdeskWork.hours))\
+                    .group_by(OdeskWork.worked_on)\
+                    .order_by(OdeskWork.worked_on)\
+                    .all()
+
+    odesk = json.dumps(oqry,indent=True,default=default)
+    raise Exception(odesk)
+    rt= {
+        #'commits':commits,
+        'odesk':odesk}
+    return rt
+
+@render_to('reports.js')
+def reports_static(request):
+    return {}
+    pass
+    

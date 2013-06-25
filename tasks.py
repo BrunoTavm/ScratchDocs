@@ -13,7 +13,7 @@ import re
 import codecs
 import json
 import tempfile
-
+import config as cfg    
 
 def load_templates():
     if not os.path.exists(cfg.MAKO_DIR): os.mkdir(cfg.MAKO_DIR)
@@ -1308,7 +1308,6 @@ def initvars(cfg_ref):
 
 
 if __name__=='__main__':
-    import config as cfg    
     initvars(cfg)
 
     parser = argparse.ArgumentParser(description='Task Control',prog='tasks.py')
@@ -1382,6 +1381,11 @@ if __name__=='__main__':
     commit.add_argument('--hours',dest='hours',action='store_true')
     commit.add_argument('--nopush',dest='nopush',action='store_true')
 
+    reports = subparsers.add_parser('reports')
+    reports.add_argument('--aggregate-commits',dest='aggregate_commits',action='store_true')
+    reports.add_argument('--aggregate-odesk',dest='aggregate_odesk',action='store_true')
+    reports.add_argument('--aggregate-tasks',dest='aggregate_tasks',action='store_true')
+    
     tt = subparsers.add_parser('time_tracking')
     tt.add_argument('--from',dest='from_date')
     tt.add_argument('--to',dest='to_date')
@@ -1471,6 +1475,16 @@ if __name__=='__main__':
         make_demo(iteration=args.iteration,tree=args.tree,orgmode=args.orgmode)
     if args.command=='validate':
         tasks_validate(args.tasks,catch=not args.nocatch,amend=args.amend,checkhours = not args.nocheckhours)
+    if args.command=='reports':
+        if args.aggregate_commits:
+            import reports.commit_agg
+            reports.commit_agg.import_commits()
+        if args.aggregate_odesk:
+            import reports.odesk_agg
+            reports.odesk_agg.import_odesk()
+        if args.aggregate_tasks:
+            import reports.tasks_agg
+            reports.tasks_agg.import_tasks()
     if args.command=='commit':
         prevdir = os.getcwd()
         os.chdir(cfg.DATADIR)

@@ -27,6 +27,8 @@ def get_map():
         (URL_PREFIX+'/s/{task:.*}','controllers#task'),
         (URL_PREFIX+'/repr/{task:.*}','controllers#rpr'),
         (URL_PREFIX+'/search','controllers#search'),
+        (URL_PREFIX+'/reports/','controllers#reports'),
+        (URL_PREFIX+'/reports.js','controllers#reports_static'),
         #('/route/url', 'controllerName.actionName')
     ])
 
