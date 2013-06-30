@@ -39,7 +39,7 @@ def get_admin(r,d):
 
 @render_to('participants.html')
 def participants(request):
-    pts = get_participants()
+    pts = get_participants(sort=True)
     return {'pts':pts}
 
 @render_to('index.html')
