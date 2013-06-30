@@ -287,7 +287,7 @@ def task(request,task):
             if tn in ['new-url','new-anchor']:
                 continue #raise Exception('newlink')
             else:
-                links.append({'url':v,'anchor':tn})
+                links.append({'url':v,'anchor':unicode(tn,'utf-8')})
         if k.startswith('informed-'):
             tn = k.replace('informed-','')
             if tn=='new': continue

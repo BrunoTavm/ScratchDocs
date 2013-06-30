@@ -24,7 +24,9 @@ def load_templates():
         tpldir = os.path.join(_prefix,'templates')
     lk = TemplateLookup(directories=['.'])
     rt = {}
-    rt['task'] = Template(filename=(os.path.join(tpldir,'task.org')),lookup = lk,module_directory=cfg.MAKO_DIR)
+    taskfn = os.path.join(tpldir,'task.org')
+    assert os.path.exists(taskfn),"%s does not exist ; am in %s"%(taskfn,os.getcwd())
+    rt['task'] = Template(filename=(taskfn),lookup = lk,module_directory=cfg.MAKO_DIR)
     rt['iterations'] = Template(filename=os.path.join(tpldir,'iterations.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
     rt['tasks'] = Template(filename=os.path.join(tpldir,'tasks.org'),lookup = lk,module_directory=cfg.MAKO_DIR)
     rt['taskindex'] = Template(filename=os.path.join(tpldir,'taskindex.org'),lookup = lk,module_directory=cfg.MAKO_DIR)            
