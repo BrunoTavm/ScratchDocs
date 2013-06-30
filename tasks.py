@@ -452,12 +452,15 @@ def get_table_contents(fn):
         #only active ones:
     return rt
 
-def get_participants(disabled=False):
+def get_participants(disabled=False,sort=False):
     tconts = get_table_contents('participants.org')
     rt={}
     for row in tconts:
         if disabled or row['Active']=='Y':
             rt[row['Username']]=row
+    if sort:
+        rt = rt.items()
+        rt.sort(lambda r1,r2: cmp(r1[0],r2[0]))
     return rt
 
 def get_story_trans():

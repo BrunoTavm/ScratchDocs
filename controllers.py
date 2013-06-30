@@ -360,7 +360,8 @@ def task(request,task):
         for i in xrange(len(parents)-1):
             opar.append('/'.join(parents[:i+1]))
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':get_participants(),'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos,'parents':parents}
+    prt = [r[0] for r in get_participants(sort=True)]
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos,'parents':parents}
 
 
 @render_to('iteration.html')

@@ -105,7 +105,7 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 
 add : link. descr: <input type='text' name='link-new-anchor' /> url: <input type='text' name='link-new-url' />
 informed: 
-${sel('informed-new',dict({'':{}}.items()+participants.items()),'')}
+${sel('informed-new',['']+participants,'')}
 repo/branch ${sel('repobranch-new-repo',repos,'')}/<input type='text' name='repobranch-new-branch' />
 <textarea id='content' class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
 <div id='contentwrapper'>
