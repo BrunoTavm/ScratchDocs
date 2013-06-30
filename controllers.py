@@ -53,12 +53,16 @@ def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=Non
     for t in in_tasks:
         tlp = get_parent(t['id'],tl=True)
         partasks = [stask for stask in in_tasks if stask['id']==tlp]
-        if len(partasks): # got parents here
-            st = partasks[0]['status']
-        else: #don't have all parents in context
-            st = t['status']
+        st = t['status']
         #print 'st of %s setting to status of tlp %s: %s'%(t['id'],tlp,st) 
         if st not in tasks: tasks[st]=[]
+
+        #obtain parent descriptions
+        parents = t['id'].split('/')
+        opar=[]
+        for i in xrange(len(parents)-1): opar.append('/'.join(parents[:i+1]))
+        parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
+        t['pdescrs']=parents
 
         showtask=False
         if not notdone: showtask=True

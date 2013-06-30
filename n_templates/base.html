@@ -52,7 +52,8 @@ float:right;
   ${self.content()}
 </body>
 </html>
-<%def name="list_tasks(tasks)">
+<%def name="list_tasks(tasks,header=True,body=True,footer=True,cnt={'cnt':0})">
+% if header:
 <table class='taskslist'>
 <thead>
   <tr>
@@ -60,17 +61,14 @@ float:right;
     <th>id</th>
     <th>status</th>
     <th>assignee</th>    
-    <th>commits</th>
-    <th>last commit</th>
-    <th>hours</th>
     <th>tags</th>
+    <th>parents</th>
     <th>summary</th>
   </tr>
 </thead>
 <tbody>
-<% 
-cnt=0 
-%>
+% endif
+% if body:
 % for t in tasks:
 <%
 if 'priority' in t['tags']:
@@ -80,30 +78,30 @@ else:
   pritag=''
   prietag=''
 %>
-% if t.get('meta') and t.get('meta').get('lastcommits'):
-<% lcom = max([lc for lc in t.get('meta').get('lastcommits').values()]) %>
-% else:
-<% lcom = '--' %>
-% endif
 <tr \
-% if cnt %2 ==0:
+% if cnt['cnt'] %2 ==0:
 class='odd'
 % endif
 >
   <td><a href="${upr}/iteration/${t['iteration']}">${t['iteration']}</a></td>
   <td>
-${''.join(['&nbsp;&nbsp;' for i in range(len(t['story'].split('/'))-1)])}
 ${pritag}<a href="${upr}/s/${t['story']}" title="${t['summary']|h}">${t['story']}</a>${prietag}</td>
   <td>${t['status']}</td>
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
-  <td class='ralign'>${t.get('meta').get('commits_qty',0)}</td>
-  <td>${lcom}</td>
-  <td class='ralign'>${"%4.1f"%t.get('total_hours',0)}</td>
   <td class='tagcln'>${', '.join(t['tags'])}</td>
+  <td style='text-align:right'>
+<% mlen = 30 %>
+% for pid,psum in t['pdescrs']:
+<a title="${psum}" href="${upr}/s/${pid}">${(len(psum)<=mlen and psum or (psum[0:mlen]+'..'))}</a> &#8250;
+% endfor
+</td>
   <td class='sumcln' title="${t['summary']|h}">${pritag}${len(t['summary'])<40 and t['summary'] or t['summary'][0:40]+'..'}${prietag}</td>
 </tr>
-<% cnt+=1 %>
+<% cnt['cnt']+=1 %>
 % endfor
+% endif
+% if footer:
 </tbody>
 </table>
+% endif
 </%def>
