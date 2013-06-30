@@ -42,6 +42,14 @@ def participants(request):
     pts = get_participants(sort=True)
     return {'pts':pts}
 
+def get_parent_descriptions(tid):
+    #obtain parent descriptions
+    parents = tid.split('/')
+    opar=[]
+    for i in xrange(len(parents)-1): opar.append('/'.join(parents[:i+1]))
+    parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
+    return parents
+
 @render_to('index.html')
 def iterations(request):
     its = get_iterations()
@@ -57,12 +65,7 @@ def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=Non
         #print 'st of %s setting to status of tlp %s: %s'%(t['id'],tlp,st) 
         if st not in tasks: tasks[st]=[]
 
-        #obtain parent descriptions
-        parents = t['id'].split('/')
-        opar=[]
-        for i in xrange(len(parents)-1): opar.append('/'.join(parents[:i+1]))
-        parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
-        t['pdescrs']=parents
+        t['pdescrs']=get_parent_descriptions(t['id'])
 
         showtask=False
         if not notdone: showtask=True

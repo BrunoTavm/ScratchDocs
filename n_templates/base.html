@@ -91,9 +91,11 @@ ${pritag}<a href="${upr}/s/${t['story']}" title="${t['summary']|h}">${t['story']
   <td class='tagcln'>${', '.join(t['tags'])}</td>
   <td style='text-align:right'>
 <% mlen = 30 %>
+% if t.get('pdescrs'):
 % for pid,psum in t['pdescrs']:
 <a title="${psum}" href="${upr}/s/${pid}">${(len(psum)<=mlen and psum or (psum[0:mlen]+'..'))}</a> &#8250;
 % endfor
+% endif
 </td>
   <td class='sumcln' title="${t['summary']|h}">${pritag}${len(t['summary'])<40 and t['summary'] or t['summary'][0:40]+'..'}${prietag}</td>
 </tr>
