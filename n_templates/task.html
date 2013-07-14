@@ -43,13 +43,6 @@ selected=1 \
   add tag(s): <input type='text' name='tag-new' value="" />
 </dd>
 
-<dt>iteration</dt>
-<dd><a href="${upr}/iteration/${task['iteration']}">${task['iteration']}</a>
-% if not task.get('under','') and ((not task.get('id')) or ( '/' not in task.get('id',''))):
- ; move to ${self.sel('iteration',iterations,task['iteration'])}
-% endif
-</dd>
-
 <dt>s<b>t</b>atus</dt>
 <dd>
 ${self.sel('status',statuses,task['status'],attr='accesskey="t"')}

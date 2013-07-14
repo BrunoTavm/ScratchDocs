@@ -5,7 +5,7 @@
 <thead>
   <tr>
     <th>Name</th>
-    <th>Alltime</th>
+    <th>Tasks</th>
     <th>E-Mail</th>
     <th>Skype</th>
   </tr>
@@ -19,8 +19,9 @@ class='odd'\
 % endif
 >
   <td>${p}</td>
-  <td>[ <a href="${upr}/assignments/${p}/current">current</a> | <a href="${upr}/assignments/${p}/current/notdone">current not done</a>
-  | <a href="${upr}/assignments/${p}">all time</a> ]</td>
+  <td>[ 
+    <a href="${upr}/assignments/${p}">link</a> ]
+  </td>
   <td><a href="mailto:${dt['E-Mail']}">${dt['E-Mail']}</a></td>
   <td>
 % if dt.get('Skype'):

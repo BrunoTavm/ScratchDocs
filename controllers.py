@@ -7,7 +7,7 @@ from noodles.http import Response
 
 from tasks import parse_story_fn as parse_fn
 from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,iteration_srt,get_participants,rewrite,get_new_idx,add_task,get_current_iteration,get_participants,initvars,move_task,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
+from tasks import get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,initvars,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
 from noodles.templates import render_to
 from noodles.http import Redirect
@@ -16,10 +16,12 @@ from multiprocessing import Process
 import datetime
 from tasks import loadmeta
 from tasks import parsegitdate
+from tasks import index_tasks
 import os
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
+import gevent_profiler
 
 initvars(cfg)
 def get_admin(r,d):
@@ -43,6 +45,8 @@ def participants(request):
     return {'pts':pts}
 
 def get_parent_descriptions(tid):
+    assert tid
+    #print 'getting parent descriptions of %s'%tid
     #obtain parent descriptions
     parents = tid.split('/')
     opar=[]
@@ -53,10 +57,11 @@ def get_parent_descriptions(tid):
 @render_to('index.html')
 def iterations(request):
     its = get_iterations()
-    return {'its':its,'cur':get_current_iteration(its)}
+    return {'its':its}
 
 def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=None):
-    in_tasks = [parse_fn(fn,read=True,gethours=True,hoursonlyfor=person) for fn in get_fns(assignee=person,iteration=iteration,recurse=recurse,query=query)]
+    fns_list = get_fns(assignee=person,recurse=recurse,query=query)
+    in_tasks = [parse_fn(fn,read=True,gethours=False,hoursonlyfor=person) for fn in fns_list]
     tasks={}
     for t in in_tasks:
         tlp = get_parent(t['id'],tl=True)
@@ -83,9 +88,9 @@ def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=Non
                 #raise Exception(chstates,len(chstates))
         if showtask:
             tasks[st].append(t)
-    for st in STATUSES:
-        if st in tasks:
-            tasks[st].sort(iteration_srt)
+    # for st in STATUSES:
+    #     if st in tasks:
+    #         tasks[st].sort(iteration_srt)
     return {'tasks':tasks,'statuses':STATUSES}
 
 @render_to('iteration.html') 
@@ -93,20 +98,22 @@ def assignments(request,person):
     rt= asgn(request,person)
     rt['headline']='Assignments for %s'%person
     return rt
-
+@render_to('iteration.html')
+def assignments_mode(request,person,mode):
+    if mode=='notdone': notdone=True
+    else: notdone =False
+    rt = asgn(request,person=person,notdone=notdone)
+    rt['headline']='Assignments for %s, %s'%(person,mode)
+    return rt
 def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=None):
-    if iteration=='current':
-        cur = get_current_iteration(get_iterations())
-        curn = cur[1]['name']
-        headline = 'Current assignments for %s'%person
-    else:        
-        curn = iteration
-        headline = 'Iteration %s assignments for %s'%(curn,person)
     notdone=False
+    headline=''
     if mode=='notdone':
         notdone=True
         headline+='; Not Done.'
-    rt=asgn(request,person=person,iteration=curn,notdone=notdone,query=query)
+    else:
+        headline+=''
+    rt=asgn(request,person=person,notdone=notdone,query=query)
     rt['headline']=headline
     return rt
 
@@ -116,13 +123,10 @@ def assignments_itn(request,person,iteration,mode='normal'):
 
 @render_to('iteration.html')
 def index(request):
-    iteration =         cur = get_current_iteration(get_iterations())
-    curn = cur[1]['name']
-    return assignments_itn_func(request
+    rt= assignments_itn_func(request
                                 ,get_admin(request,'unknown')
-                                ,iteration=curn
                                 ,mode='notdone')
-
+    return rt
 
 @render_to('iteration.html')
 def iteration(request,iteration):
@@ -148,7 +152,7 @@ def iteration_time(request,iteration):
     it = [it for it in its if it[1]['name']==iteration][0]
     start_date = it[1]['start date'].date()
     end_date = it[1]['end date'].date()
-    tf = get_fns(iteration=iteration,recurse=True)
+    tf = get_fns(recurse=True)
     hours = [os.path.join(os.path.dirname(t),'hours.json') for t in tf]
     agg={} ; persons={} ; ptasks={}
     for h in hours:
@@ -181,7 +185,7 @@ def iteration_commits(request,iteration,branch):
     start_date = it[1]['start date']
     end_date = it[1]['end date']
     print('commits on iteration %s to branch %s'%(iteration,branch))
-    tf = get_fns(iteration=iteration,recurse=True)
+    tf = get_fns(recurse=True)
     metas = [os.path.join(os.path.dirname(t),'meta.json') for t in tf]
     agg={} ; repos=[] ; task_data={} ; lastcommits={}
     
@@ -314,10 +318,11 @@ def task(request,task):
     uns = request.params.get('unstructured','').strip()
     if len(uns) and not uns.startswith('**'):
         uns='** Details\n'+uns
+    assignees=[request.params.get('assignee')]
     if request.params.get('id'):
         t = get_task(request.params.get('id'),read=True,flush=True)
+        assignees.append(t['assigned to'])
         tid = request.params.get('id')
-
         o_params = {'summary':request.params.get('summary'),
                     'tags':tags,
                     'status':request.params.get('status'),
@@ -328,9 +333,6 @@ def task(request,task):
         rewrite(tid,o_params,safe=False)
         t = get_task(tid,flush=True)
         dit = request.params.get('iteration')
-        if t['iteration']!=dit and dit:
-            move_task(tid,dit)
-            flush_taskfiles_cache()
         t = get_task(tid,flush=True) #for the flush
         pushcommit(t['path'],request.params.get('id'),adm)
     if request.params.get('create'):
@@ -368,15 +370,17 @@ def task(request,task):
             opar.append('/'.join(parents[:i+1]))
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
+    index_tasks(t['id'])
     return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos,'parents':parents}
 
 
 @render_to('iteration.html')
 def search(request):
-    return assignments_itn_func(request
+    rt= assignments_itn_func(request
                                 ,person=None
                                 ,iteration=None
                                 ,mode='normal'
                                 ,query=request.params.get('q'))
+    return rt
 
 
