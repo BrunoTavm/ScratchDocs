@@ -24,7 +24,7 @@ def get_map():
         (URL_PREFIX+'/s/{task:.*}','controllers#task'),
         (URL_PREFIX+'/repr/{task:.*}','controllers#rpr'),
         (URL_PREFIX+'/search','controllers#search'),
-        #('/route/url', 'controllerName.actionName')
+        ('/favicon.ico', 'controllers#favicon')
     ])
 
     return map

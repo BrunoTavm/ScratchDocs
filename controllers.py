@@ -21,6 +21,7 @@ import os
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
+from noodles.http import BaseResponse
 
 
 
@@ -408,4 +409,9 @@ def history(request,task):
     rt = {'op':op,'tid':task}
     return rt
 
-
+def favicon(request):
+    response = BaseResponse()
+    response.headerlist.append(('Content-type', 'image/x-icon'))
+    f = open('sd/favicon.ico').read()
+    response.body = f
+    return response
