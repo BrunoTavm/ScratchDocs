@@ -271,7 +271,6 @@ def task(request,task):
         task='new'
     else:
         under=None
-
     msg=None
     adm = get_admin(request,'unknown')
     
@@ -302,6 +301,7 @@ def task(request,task):
             repobranch.append(tn)
     lna = request.params.get('link-new-anchor')
     lnu = request.params.get('link-new-url')
+
     if lna and lnu:
         links.append({'anchor':lna,'url':lnu})
 
@@ -332,9 +332,9 @@ def task(request,task):
         print o_params
         rewrite(tid,o_params,safe=False)
         t = get_task(tid,flush=True)
-        dit = request.params.get('iteration')
         t = get_task(tid,flush=True) #for the flush
         pushcommit(t['path'],request.params.get('id'),adm)
+
     if request.params.get('create'):
         o_params = {'summary':request.params.get('summary'),
                     'status':request.params.get('status'),
@@ -344,11 +344,9 @@ def task(request,task):
                     'links':links,'informed':informed,'repobranch':repobranch}
         if request.params.get('under'):
             parent = request.params.get('under')
-            iteration=None
         else:
             parent=None
-            iteration=request.params.get('iteration')
-        rt = add_task(parent=parent,iteration=iteration,params=o_params,tags=tags)
+        rt = add_task(parent=parent,params=o_params,tags=tags)
         redir = '/'+URL_PREFIX+'s/'+rt['id']
         pushcommit(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
@@ -358,8 +356,9 @@ def task(request,task):
         ch=[]
     else:
         ch = get_children(task)
+
     if task=='new':
-        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','iteration':'Backlog','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under}
+        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under}
         opar=[]
     else:
         t = get_task(task,read=True,flush=True,gethours=True)
@@ -370,8 +369,8 @@ def task(request,task):
             opar.append('/'.join(parents[:i+1]))
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
-    index_tasks(t['id'])
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'iterations':[i[1]['name'] for i in get_iterations()],'msg':msg,'children':ch,'repos':repos,'parents':parents}
+    if task!='new': index_tasks(t['id'])
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents}
 
 
 @render_to('iteration.html')

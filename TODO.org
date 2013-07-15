@@ -1,6 +1,6 @@
-* TODO add a new story [1/2]
+* DONE add a new story [2/2]
 ** DONE from commandline
-** TODO from web interface
+** DONE from web interface
 * maxim wants [1/3]
 ** DONE ability to change status from web interface
 ** TODO ability to edit tags from interface
