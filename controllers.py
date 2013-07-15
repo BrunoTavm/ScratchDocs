@@ -402,7 +402,8 @@ def history(request,task):
     commitsi = cre.finditer(op)
     for c in commitsi:
         cid = c.group(1)
-        op = op.replace(cid,"<a href='http://git.ezscratch.com/h=%(cid)s'>%(cid)s</a>"%{'cid':cid})
+        url = '%(gitweb_url)s/?p=%(docs_reponame)s;a=commitdiff;h=%(cid)s'%{'cid':cid,'gitweb_url':cfg.GITWEB_URL,'docs_reponame':cfg.DOCS_REPONAME}
+        op = op.replace(cid,"<a href='%(url)s'>%(cid)s</a>"%{'cid':cid,'url':url})
         
     rt = {'op':op,'tid':task}
     return rt
