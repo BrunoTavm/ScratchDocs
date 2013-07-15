@@ -215,7 +215,7 @@ def filterby(fieldname,value,rtl):
     adir = os.path.join(cfg.DATADIR,fieldname,value)
     fcmd = 'find %s -type l -exec basename {} \;'%adir
     print fcmd
-    st,op = gso(fcmd)  ; assert st==0
+    st,op = gso(fcmd)  ; assert st==0,fcmd
     atids = [atid.replace('.','/') for atid in op.split('\n')]
     afiles = [os.path.join(cfg.DATADIR,atid,'task.org') for atid in atids]
     rf = set(rtl).intersection(set(afiles))

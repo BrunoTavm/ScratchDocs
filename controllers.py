@@ -21,7 +21,7 @@ import os
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
-import gevent_profiler
+
 
 
 initvars(cfg)
