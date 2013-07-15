@@ -38,7 +38,7 @@ selected=1 \
 <dt>Tags</dt>
 <dd>
   % for tag in task['tags']:
-  <input type='checkbox' name="tag-${tag|h}" checked=1 value=1 /> ${tag} ; 
+  <input type='checkbox' name="tag-${tag|h}" checked=1 value=1 /> <a href="${upr}/tag/${tag}">${tag}</a> ; 
   % endfor
   add tag(s): <input type='text' name='tag-new' value="" />
 </dd>

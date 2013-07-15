@@ -1,0 +1,9 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h2>Tags</h2>
+<table>
+% for tag in tags:
+<tr><td><a href="${upr}/tag/${tag[1]}">${tag[0]}</a></td><td>${tag[1]}</td></tr>
+% endfor
+</table>
+</%def>

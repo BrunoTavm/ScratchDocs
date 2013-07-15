@@ -59,8 +59,8 @@ def iterations(request):
     its = get_iterations()
     return {'its':its}
 
-def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=None):
-    fns_list = get_fns(assignee=person,recurse=recurse,query=query)
+def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=None,tag=None):
+    fns_list = get_fns(assignee=person,recurse=recurse,query=query,tag=tag)
     in_tasks = [parse_fn(fn,read=True,gethours=False,hoursonlyfor=person) for fn in fns_list]
     tasks={}
     for t in in_tasks:
@@ -88,9 +88,6 @@ def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=Non
                 #raise Exception(chstates,len(chstates))
         if showtask:
             tasks[st].append(t)
-    # for st in STATUSES:
-    #     if st in tasks:
-    #         tasks[st].sort(iteration_srt)
     return {'tasks':tasks,'statuses':STATUSES}
 
 @render_to('iteration.html') 
@@ -105,7 +102,7 @@ def assignments_mode(request,person,mode):
     rt = asgn(request,person=person,notdone=notdone)
     rt['headline']='Assignments for %s, %s'%(person,mode)
     return rt
-def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=None):
+def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=None,tag=None):
     notdone=False
     headline=''
     if mode=='notdone':
@@ -113,13 +110,13 @@ def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=
         headline+='; Not Done.'
     else:
         headline+=''
-    rt=asgn(request,person=person,notdone=notdone,query=query)
+    rt=asgn(request,person=person,notdone=notdone,query=query,tag=tag)
     rt['headline']=headline
     return rt
 
 @render_to('iteration.html')
-def assignments_itn(request,person,iteration,mode='normal'):
-    return assignments_itn_func(request,person,iteration,mode)
+def assignments_itn(request,person,iteration,mode='normal',tag=None):
+    return assignments_itn_func(request,person,iteration,mode,tag=tag)
 
 @render_to('iteration.html')
 def index(request):
@@ -372,6 +369,20 @@ def task(request,task):
     if task!='new': index_tasks(t['id'])
     return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents}
 
+@render_to('tags.html')
+def tags(request):
+    st,op = gso('find %s -type l -exec dirname {} \; | sort | uniq -c | sort -n -r'%os.path.join(cfg.DATADIR,'tagged')) ; assert st==0
+    tags = [[e.strip().replace('tagged/','') for e in t.split(' ./')] for t in op.split('\n')]
+    rt = {'tags':tags}
+    return rt
+@render_to('iteration.html')
+def bytag(request,tag):
+    rt= assignments_itn_func(request
+                             ,person=None
+                             ,iteration=None
+                             ,tag=tag
+                             ,mode='normal')
+    return rt
 
 @render_to('iteration.html')
 def search(request):

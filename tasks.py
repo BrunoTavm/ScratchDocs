@@ -211,6 +211,17 @@ def flush_taskfiles_cache():
     global taskfiles_cache
     taskfiles_cache={}
 
+def filterby(fieldname,value,rtl):
+    adir = os.path.join(cfg.DATADIR,fieldname,value)
+    fcmd = 'find %s -type l -exec basename {} \;'%adir
+    print fcmd
+    st,op = gso(fcmd)  ; assert st==0
+    atids = [atid.replace('.','/') for atid in op.split('\n')]
+    afiles = [os.path.join(cfg.DATADIR,atid,'task.org') for atid in atids]
+    rf = set(rtl).intersection(set(afiles))
+    rtl = list(rf)
+    return rtl
+
 def get_task_files(assignee=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None):
     """return task filenames according to provided criteria"""
     global taskfiles_cache
@@ -241,14 +252,14 @@ def get_task_files(assignee=None,status=None,tag=None,recurse=True,recent=False,
     files=list(set(files))
 
     if assignee:
-        adir = os.path.join(cfg.DATADIR,'assigned',assignee)
-        st,op = gso('find %s -type l -exec basename {} \;'%adir)  ; assert st==0
-        atids = [atid.replace('.','/') for atid in op.split('\n')]
-        afiles = [os.path.join(cfg.DATADIR,atid,'task.org') for atid in atids]
-        rf = set(files).intersection(set(afiles))
-        files = list(rf)
+        files = filterby('assigned',assignee,files)
+        print '%s files remaining after assignees filtering'%(len(files))
+    if tag:
+        files = filterby('tagged',tag,files)
+        print '%s files remaining after tag filtering'%(len(files))
+
     #filter by assignee. heavy.
-    if status or tag or recent:
+    if status or recent:
         raise Exception('not in here')
         rt = []
         for fn in files:
@@ -259,8 +270,6 @@ def get_task_files(assignee=None,status=None,tag=None,recurse=True,recent=False,
             if status and s['status']==status:
                 incl=True
             if status and status.startswith('not ') and status.replace('not ','')!=s['status']:
-                incl=True
-            if tag and 'tags' in s and tag in s['tags']:
                 incl=True
             if recent and 'created at' in s and s['created at']>=(datetime.datetime.now()-datetime.timedelta(days=cfg.RECENT_DAYS)):
                 incl=True
@@ -1210,8 +1219,9 @@ def make_demo(iteration,tree=False,orgmode=False):
     else:
         render('demo',{'trs':tr,'iteration':iteration,'rurl':cfg.RENDER_URL},'demo-%s.org'%iteration)
 
-def index_tasks(tid=None):
-    asgndir = os.path.join(cfg.DATADIR,'assigned')
+    
+def index_assigned(tid=None,dirname='assigned',idxfield='assigned to'):
+    asgndir = os.path.join(cfg.DATADIR,dirname)
     if tid:
         st,op = gso('find %s -type l -iname %s -exec rm {} \;'%(asgndir,tid.replace('/','.'))) ; assert st==0
         tfs = [get_task(tid)['path']]
@@ -1230,16 +1240,25 @@ def index_tasks(tid=None):
         #print 'parsed %s ; getting task'%pfn['id']
         t = get_task(pfn['id'],read=True)
         #print t['id'],t['assigned to']
-        blpath = os.path.join(asgndir,t['assigned to'])
-        if not os.path.exists(blpath):
-            st,op = gso('mkdir %s'%blpath) ; assert st==0
-            acnt+=1
-        tpath = os.path.join(blpath,t['id'].replace('/','.'))
-        lncmd = 'ln -s %s %s'%('../../'+fn,tpath)
-        #print lncmd
-        st,op = gso(lncmd) ; assert st==0
-    print 'indexed under %s assignees'%(acnt)
+        if type(t[idxfield]) in [unicode,str]:
+            myidxs=[t[idxfield]]
+        else:
+            myidxs=t[idxfield]
+
+        for myidx in myidxs:
+            blpath = os.path.join(asgndir,myidx)
+            if not os.path.exists(blpath):
+                st,op = gso('mkdir %s'%blpath) ; assert st==0
+                acnt+=1
+            tpath = os.path.join(blpath,t['id'].replace('/','.'))
+            lncmd = 'ln -s %s %s'%('../../'+fn,tpath)
+            #print lncmd
+            st,op = gso(lncmd) ; assert st==0
+    print 'indexed under %s %s'%(acnt,idxfield)
         
+def index_tasks(tid=None):
+    index_assigned(tid) #index task assignment
+    index_assigned(tid,'tagged','tags') #index tagging
 
 
 def initvars(cfg_ref):
