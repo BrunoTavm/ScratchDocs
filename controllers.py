@@ -23,6 +23,7 @@ from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
 import gevent_profiler
 
+
 initvars(cfg)
 def get_admin(r,d):
 
@@ -391,6 +392,19 @@ def search(request):
                                 ,iteration=None
                                 ,mode='normal'
                                 ,query=request.params.get('q'))
+    return rt
+
+from tasks import cre
+
+@render_to('task_history.html')
+def history(request,task):
+    st,op = gso('git log --follow -- %s'%(os.path.join(cfg.DATADIR,task,'task.org'))) ; assert st==0
+    commitsi = cre.finditer(op)
+    for c in commitsi:
+        cid = c.group(1)
+        op = op.replace(cid,"<a href='http://git.ezscratch.com/h=%(cid)s'>%(cid)s</a>"%{'cid':cid})
+        
+    rt = {'op':op,'tid':task}
     return rt
 
 

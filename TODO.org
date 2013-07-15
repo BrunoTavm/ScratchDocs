@@ -22,7 +22,7 @@
 ** notification sent to parent story related people
 * DONE see which task clocked tasks in specified period and how much and by whom
 * TODO see which branches and commits are in all tasks filterable by dates  
-* support DUPE status
+* DONE support DUPE status
 * DONE task priorities - mark tasks important
 * DONE pre-commit task file validation
 * TODO contain stories
@@ -44,8 +44,8 @@
 ** DONE show last changes to stories
 ** DONE show state and tags in task headline
 ** DONE see in task render what iteration it is under
-* add iteration
-* TODO unit/integration tests for common use cases
+* DONE add iteration
+* DONE unit/integration tests for common use cases
 * notes
 - iteration ids are unique
 - main story ids are unique (=Story)

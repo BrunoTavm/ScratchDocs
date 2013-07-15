@@ -20,6 +20,7 @@ def get_map():
         (URL_PREFIX+'/tags', 'controllers#tags'),
         (URL_PREFIX+'/tag/{tag}', 'controllers#bytag'),
         (URL_PREFIX+'/assignments/{person}/{mode}', 'controllers#assignments_mode'),
+        (URL_PREFIX+'/s/{task:.*}/log','controllers#history'),
         (URL_PREFIX+'/s/{task:.*}','controllers#task'),
         (URL_PREFIX+'/repr/{task:.*}','controllers#rpr'),
         (URL_PREFIX+'/search','controllers#search'),

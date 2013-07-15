@@ -17,7 +17,9 @@ selected=1 \
 % if '/' in task['story']:
 <a href="${upr}/s/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
 % endif
-<a href="${upr}/">home</a><br />
+<a href="${upr}/">home</a> ::
+<a href="${upr}/s/${task['story']}/log" accesskey='i'>h<b>i</b>story</a>
+<br />
 % if msg:
 <div class='msg'>${msg}</div>
 % endif
