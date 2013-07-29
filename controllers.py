@@ -22,7 +22,7 @@ import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
 import config as cfg
 from noodles.http import BaseResponse
-
+import copy
 
 
 initvars(cfg)
@@ -61,8 +61,8 @@ def iterations(request):
     its = get_iterations()
     return {'its':its}
 
-def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=None,tag=None):
-    fns_list = get_fns(assignee=person,recurse=recurse,query=query,tag=tag)
+def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None):
+    fns_list = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag)
     in_tasks = [parse_fn(fn,read=True,gethours=False,hoursonlyfor=person) for fn in fns_list]
     tasks={}
     for t in in_tasks:
@@ -90,6 +90,27 @@ def asgn(request,person=None,iteration=None,recurse=True,notdone=False,query=Non
                 #raise Exception(chstates,len(chstates))
         if showtask:
             tasks[st].append(t)
+    def srt(t1,t2):
+        t1ids = [int(tp) for tp in (t1['id'].split('/'))]
+        t2ids = [int(tp) for tp in (t2['id'].split('/'))]
+
+        t1ids.insert(0,int('priority' in t1['tags']))
+        t2ids.insert(0,int('priority' in t2['tags']))
+        t1idsc = copy.copy(t1ids)
+        t2idsc = copy.copy(t2ids)
+
+
+        while True and len(t1ids) and len(t2ids):
+            t1id = t1ids.pop(0)
+            t2id = t2ids.pop(0)
+            #print 'comparing %s & %s which were extracted from %s, %s'%(t1id,t2id,t1idsc,t2idsc)
+            rt= cmp(t1id,t2id)
+            if rt!=0: break
+        #print('returning %s for %s <> %s'%(rt,t1idsc,t2idsc))
+        #if 'priority' in t2['tags'] and 'priority' not in t1['tags']: raise Exception(t2idsc,t2['id'])
+        return rt
+    for st in tasks:
+        tasks[st].sort(srt,reverse=True)
     return {'tasks':tasks,'statuses':STATUSES}
 
 @render_to('iteration.html') 
@@ -97,6 +118,13 @@ def assignments(request,person):
     rt= asgn(request,person)
     rt['headline']='Assignments for %s'%person
     return rt
+
+@render_to('iteration.html') 
+def created(request,person):
+    rt= asgn(request,created=person)
+    rt['headline']='Created by %s'%person
+    return rt
+
 @render_to('iteration.html')
 def assignments_mode(request,person,mode):
     if mode=='notdone': notdone=True
@@ -139,6 +167,11 @@ def iteration_all(request,iteration):
     rt['headline']='Iteration %s with all tasks'%iteration
     return rt
 
+@render_to('iteration.html')
+def top_level(request):
+    rt = asgn(request,recurse=False)
+    rt['headline']='Top level.'
+    return rt
 @render_to('iteration.html')
 def iteration_notdone(request,iteration):
     rt = asgn(request,iteration=iteration,recurse=True,notdone=True)
@@ -264,6 +297,7 @@ def rpr(request,task):
 
 @render_to('task.html')
 def task(request,task):
+    if task.endswith('/'): task=task[0:-1]
     gwu = cfg.GITWEB_URL
     if task.startswith('new/'):
         under='/'.join(task.split('/')[1:])
@@ -409,9 +443,12 @@ def history(request,task):
     rt = {'op':op,'tid':task}
     return rt
 
+
 def favicon(request):
     response = BaseResponse()
-    response.headerlist.append(('Content-type', 'image/x-icon'))
+    response.headerlist=[('Content-Type', 'image/x-icon')]
     f = open('sd/favicon.ico').read()
     response.body = f
+
+    print(response.headerlist)
     return response

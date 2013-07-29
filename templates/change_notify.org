@@ -7,7 +7,7 @@ A task which you relate to, [[${url+'s/'+t['story']}][${t['story']}]], has been 
 - summary :: ${t['summary']}
 *** Change
 #+BEGIN_EXAMPLE
-${'\n'.join(body.get('change'))}
+${'\n'.join(body.get('change',[]))}
 #+END_EXAMPLE
 *** See current tasks
 To see your current tasks, please go [[${url}][here]].

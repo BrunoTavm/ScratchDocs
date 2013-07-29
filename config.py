@@ -17,6 +17,7 @@ REPO_DIR='repos'
 DOCS_REPONAME=None
 TPLDIR='templates'
 ALWAYS_INFORMED=[]
+NOSEND=False
 def USERMAP(un):
     return un
 def COMMITERMAP(em,nm):
