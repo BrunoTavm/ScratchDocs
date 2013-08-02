@@ -561,6 +561,7 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
     message = sendgrid.Message(sender,subject,open(tf.name).read(),open(expname).read())
     message.add_to(email,p[whom]['Name'])
     if not cfg.NOSEND: 
+        print u'sending %s to %s'%(subject,email)
         s.web.send(message)
         print u'sent %s to %s'%(subject,email)
     return True
