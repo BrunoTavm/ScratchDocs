@@ -562,7 +562,7 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
     message.add_to(email,p[whom]['Name'])
     if not cfg.NOSEND: 
         s.web.send(message)
-        print 'sent %s to %s'%(subject,email)
+        print u'sent %s to %s'%(subject,email)
     return True
 def add_iteration(name,start_date=None,end_date=None):
     raise Exception('TODO')
