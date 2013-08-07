@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 import argparse
 
 from commands import getstatusoutput as gso
@@ -469,7 +470,8 @@ def process_notifications(args):
                 if whom['E-Mail']!=n['author_email'] and whom['Active']=='Y':
                     send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
                 else:
-                    print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
+                    #print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
+                    pass
                 n['notified']=datetime.datetime.now().isoformat()
                 savemeta(meta,m)
                 files_touched.append(meta)
@@ -561,9 +563,7 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
     message = sendgrid.Message(sender,subject,open(tf.name).read(),open(expname).read())
     message.add_to(email,p[whom]['Name'])
     if not cfg.NOSEND: 
-        print u'sending %s to %s'%(subject,email)
         s.web.send(message)
-        print u'sent %s to %s'%(subject,email)
     return True
 def add_iteration(name,start_date=None,end_date=None):
     raise Exception('TODO')
