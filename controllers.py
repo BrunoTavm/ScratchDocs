@@ -44,7 +44,7 @@ def get_admin(r,d):
 @render_to('participants.html')
 def participants(request):
     pts = get_participants(sort=True)
-    return {'pts':pts}
+    return {'pts':pts,'request':request}
 
 def get_parent_descriptions(tid):
     assert tid
@@ -59,7 +59,7 @@ def get_parent_descriptions(tid):
 @render_to('index.html')
 def iterations(request):
     its = get_iterations()
-    return {'its':its}
+    return {'its':its,'request':request}
 
 def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None):
     fns_list = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag)
@@ -111,7 +111,7 @@ def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=Fa
         return rt
     for st in tasks:
         tasks[st].sort(srt,reverse=True)
-    return {'tasks':tasks,'statuses':STATUSES}
+    return {'tasks':tasks,'statuses':STATUSES,'request':request}
 
 @render_to('iteration.html') 
 def assignments(request,person):
@@ -207,7 +207,7 @@ def iteration_time(request,iteration):
     agg.sort(lambda i1,i2: cmp(i1[0],i2[0]))
     persons = list(persons.items())
     persons.sort(lambda i1,i2: cmp(i1[1],i2[1]),reverse=True)
-    return {'persons':persons,'agg':agg,'it':it,'ptasks':ptasks}
+    return {'persons':persons,'agg':agg,'it':it,'ptasks':ptasks,'request':request}
 
 @render_to('iteration_commits.html')
 def iteration_commits(request,iteration,branch):
@@ -263,7 +263,7 @@ def iteration_commits(request,iteration,branch):
     def lcsort(i1,i2):
         return cmp(lastcommits[i1[0]],lastcommits[i2[0]])
     agg.sort(lcsort,reverse=True)
-    return {'agg':agg,'it':it,'branch':branch,'repos':repos,'gwu':gwu,'task_data':task_data,'lastcommits':lastcommits}
+    return {'agg':agg,'it':it,'branch':branch,'repos':repos,'gwu':gwu,'task_data':task_data,'lastcommits':lastcommits,'request':request}
     #raise Exception(metas)
 
 def pushcommit(pth,tid,adm):
@@ -403,7 +403,7 @@ def task(request,task):
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
     if task!='new': index_tasks(t['id'])
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents}
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents,'request':request}
 
 @render_to('tags.html')
 def tags(request):
@@ -440,7 +440,7 @@ def history(request,task):
         url = '%(gitweb_url)s/?p=%(docs_reponame)s;a=commitdiff;h=%(cid)s'%{'cid':cid,'gitweb_url':cfg.GITWEB_URL,'docs_reponame':cfg.DOCS_REPONAME}
         op = op.replace(cid,"<a href='%(url)s'>%(cid)s</a>"%{'cid':cid,'url':url})
         
-    rt = {'op':op,'tid':task}
+    rt = {'op':op,'tid':task,'request':request}
     return rt
 
 
@@ -449,6 +449,4 @@ def favicon(request):
     response.headerlist=[('Content-Type', 'image/x-icon')]
     f = open('sd/favicon.ico').read()
     response.body = f
-
-    print(response.headerlist)
     return response

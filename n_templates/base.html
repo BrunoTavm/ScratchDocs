@@ -51,7 +51,7 @@ text-decoration:none;
   <a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a> :: \
   <a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a> :: \
   <form class='search' method='get' action='${upr}/search'>
-    <input type='text' name='q' value="" accesskey='/' />
+    <input type='text' name='q' value="${request.params.get('q','')|x}" accesskey='/' />
     <input type='submit' value='Search' />
   </form>
   ${self.content()}
