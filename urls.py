@@ -4,7 +4,7 @@ filedesc: default url mapping
 '''
 from routes import Mapper
 from config import DEBUG,URL_PREFIX
-from noodles.utils import urlmap,include
+from noodles.utils.maputils import urlmap,include
 from routes.route import Route
 import os
 
