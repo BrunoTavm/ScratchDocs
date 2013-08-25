@@ -559,8 +559,8 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
         sender = body.get('authormail')
     else:
         sender = cfg.SENDER
-
-    message = sendgrid.Message(sender,subject,open(tf.name).read(),open(expname).read())
+    subject_utf8 = subject.encode('utf-8')
+    message = sendgrid.Message(sender,subject_utf8,open(tf.name).read(),open(expname).read())
     message.add_to(email,p[whom]['Name'])
     if not cfg.NOSEND: 
         s.web.send(message)

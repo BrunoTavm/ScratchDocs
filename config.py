@@ -17,6 +17,10 @@ REPO_DIR='repos'
 DOCS_REPONAME=None
 TPLDIR='templates'
 ALWAYS_INFORMED=[]
+HOST='0.0.0.0'
+USE_ALCHEMY_MW=False
+import logging
+LOG_LEVEL=logging.WARNING
 NOSEND=False
 def USERMAP(un):
     return un

@@ -1,3 +1,5 @@
+* TODO TOP LEVEL tasks
+* DONE search tasks by their creator
 * DONE add a new story [2/2]
 ** DONE from commandline
 ** DONE from web interface
