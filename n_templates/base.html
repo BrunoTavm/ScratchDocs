@@ -93,7 +93,7 @@ ${pritag}<a href="${upr}/s/${t['story']}" title="${t['summary']|h}">${t['story']
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
   <td class='tagcln'>${', '.join(t['tags'])}</td>
   <td class='sumcln'
-  title="${t['summary']|h}"><a class='textlike' href="${upr}/s/${t['story']}">${pritag}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag}</a></td>
+  title="${t['summary']|h}"><a class='textlike' href="${upr}/s/${t['story']}">${pritag|n}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag|n}</a></td>
   <td style='text-align:right'>
 <% mlen = 30 %>
 % if t.get('pdescrs'):

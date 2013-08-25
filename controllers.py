@@ -152,7 +152,7 @@ def assignments_itn(request,person,iteration,mode='normal',tag=None):
 def index(request):
     rt= assignments_itn_func(request
                                 ,get_admin(request,'unknown')
-                                ,mode='notdone')
+                                ,mode='normal')
     return rt
 
 @render_to('iteration.html')
