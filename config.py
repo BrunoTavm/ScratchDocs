@@ -21,6 +21,7 @@ HOST='0.0.0.0'
 USE_ALCHEMY_MW=False
 import logging
 LOG_LEVEL=logging.WARNING
+NOSEND=False
 def USERMAP(un):
     return un
 def COMMITERMAP(em,nm):

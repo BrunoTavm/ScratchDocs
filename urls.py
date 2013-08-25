@@ -14,9 +14,11 @@ def get_map():
     # Add routes here
     urlmap(map, [
         (URL_PREFIX+'/', 'controllers#index'),
+        (URL_PREFIX+'/tl', 'controllers#top_level'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
         (URL_PREFIX+'/participants', 'controllers#participants'),
         (URL_PREFIX+'/assignments/{person}', 'controllers#assignments'),
+        (URL_PREFIX+'/created/{person}', 'controllers#created'),
         (URL_PREFIX+'/tags', 'controllers#tags'),
         (URL_PREFIX+'/tag/{tag}', 'controllers#bytag'),
         (URL_PREFIX+'/assignments/{person}/{mode}', 'controllers#assignments_mode'),

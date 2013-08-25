@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 import argparse
 
 from commands import getstatusoutput as gso
@@ -212,17 +213,25 @@ def flush_taskfiles_cache():
     taskfiles_cache={}
 
 def filterby(fieldname,value,rtl):
-    adir = os.path.join(cfg.DATADIR,fieldname,value)
-    fcmd = 'find %s -type l -exec basename {} \;'%adir
-    print fcmd
-    st,op = gso(fcmd)  ; assert st==0,fcmd
-    atids = [atid.replace('.','/') for atid in op.split('\n')]
-    afiles = [os.path.join(cfg.DATADIR,atid,'task.org') for atid in atids]
-    rf = set(rtl).intersection(set(afiles))
-    rtl = list(rf)
+
+    if fieldname in ['tagged']:
+        values = value.split(',')
+    else:
+        values = [value]
+
+    while len(values):
+        value = values.pop()
+        adir = os.path.join(cfg.DATADIR,fieldname,value)
+        fcmd = 'find %s -type l -exec basename {} \;'%adir
+        print fcmd
+        st,op = gso(fcmd)  ; assert st==0,fcmd
+        atids = [atid.replace('.','/') for atid in op.split('\n')]
+        afiles = [os.path.join(cfg.DATADIR,atid,'task.org') for atid in atids]
+        rf = set(rtl).intersection(set(afiles))
+        rtl = list(rf)
     return rtl
 
-def get_task_files(assignee=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None):
+def get_task_files(assignee=None,created=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None):
     """return task filenames according to provided criteria"""
     global taskfiles_cache
     if flush: flush_taskfiles_cache()
@@ -254,6 +263,9 @@ def get_task_files(assignee=None,status=None,tag=None,recurse=True,recent=False,
     if assignee:
         files = filterby('assigned',assignee,files)
         print '%s files remaining after assignees filtering'%(len(files))
+    if created:
+        files = filterby('creators',created,files)
+        print '%s files remaining after created filtering'%(len(files))
     if tag:
         files = filterby('tagged',tag,files)
         print '%s files remaining after tag filtering'%(len(files))
@@ -387,7 +399,7 @@ def get_table_contents(fn):
     ffn = os.path.join(cfg.DATADIR,fn)
     fp = open(ffn,'r') ; gothead=False
     def parseline(ln):
-        return [f.strip() for f in ln.split('|') if f.strip()!='']
+        return [f.strip() for f in ln.split('|')] # if f.strip()!='']
     rt=[]
     while True:
         ln = fp.readline()
@@ -409,6 +421,7 @@ def get_participants(disabled=False,sort=False):
     for row in tconts:
         if disabled or row['Active']=='Y':
             rt[row['Username']]=row
+
     if sort:
         rt = rt.items()
         rt.sort(lambda r1,r2: cmp(r1[0],r2[0]))
@@ -450,19 +463,22 @@ def process_notifications(args):
         m = loadmeta(meta)
         if m.get('notifications'):
             for n in m['notifications']:
-                if n.get('notified'): continue
+                if n.get('notified'): 
+                    continue
                 #print 'notification processing %s'%s
                 whom = participants[n['whom']]
                 if whom['E-Mail']!=n['author_email'] and whom['Active']=='Y':
                     send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
                 else:
-                    print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
+                    #print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
+                    pass
                 n['notified']=datetime.datetime.now().isoformat()
                 savemeta(meta,m)
                 files_touched.append(meta)
     if len(files_touched) and not args.nocommit:
         print 'commiting %s touched files.'%(len(files_touched))
-        cmd = 'git add '+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles." && git push'
+        cmd = 'git add '+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles."'
+        if not cfg.NOPUSH: cmd+=' && git push'
         st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
 
 def send_notification(whom,about,what,how=None,justverify=False,body={}):
@@ -474,21 +490,61 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
     try:
         email = p[whom]['E-Mail']
     except KeyError:
-        print '%s not in %s'%(whom,p.keys())
+        #print '%s not in %s'%(whom,p.keys())
         return False
     t= get_task(about,read=True)
     tpl = what+'_notify'
     tf = tempfile.NamedTemporaryFile(delete=False,suffix='.org')
-    if what=='new_story':
-        subject = 'New task %s'%t['story']
-        rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom]}
-    elif what=='change':
-        subject = '%s changed by %s'%(t['story'],body['author_name'])
+
+    #try to figure out what changed
+    ch = body.get('change',[])
+    if u'--- /dev/null' in ch:
+        verb='created'
+        app = u' - %s'%t['summary']
+    else:
+        verb='changed'
+        app=''
+    stchangere=re.compile('^(\-|\+)\* (%s)'%'|'.join(cfg.STATUSES))
+    stch = filter(lambda r: stchangere.search(r),ch)
+    canlines=0
+    if len(stch)==2:
+        sw = stchangere.search(stch[0]).group(2)
+        sn = stchangere.search(stch[1]).group(2)
+        scdigest=('%s -> %s'%(sw,sn))
+        app+='; %s'%scdigest
+        canlines+=1
+    asgnchangere=re.compile('^(\-|\+)'+re.escape('- assigned to :: ')+'(.+)')
+    asch = filter(lambda r: asgnchangere.search(r),ch)
+    if len(asch)==2:
+        aw = asgnchangere.search(asch[0]).group(2)
+        an = asgnchangere.search(asch[1]).group(2)
+        asdigest=('reassigned %s -> %s'%(aw,an))
+        app+='; %s'%asdigest
+        canlines+=1
+    laddre = re.compile('^(\+)')
+    laddres = filter(lambda r: not r.startswith('+++') and laddre.search(r) or False,ch)
+    lremre = re.compile('^(\+)')
+    lremres = filter(lambda r: not r.startswith('+++') and lremre.search(r) or False,ch)
+    if len(laddres)==len(lremres):
+        if canlines!=len(laddres):
+            app+='; %sl'%(len(laddres))
+    else:
+        app+='; +%s -%s'%(len(laddres),len(lremres))
+
+    #construct the rendered mail template informing of the change
+    if what=='change':
+        subject = '%s %s by %s'%(t['story'],verb,body.get('author_name','Uknown'))+app
+        if verb=='changed' and app=='':
+            print 'BAD:',subject
+        elif verb=='changed':
+            print subject
         assert cfg.GITWEB_URL
         assert cfg.DOCS_REPONAME
         rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom],'commit':how,'gitweb':cfg.GITWEB_URL,'docsrepo':cfg.DOCS_REPONAME,'body':body}
+    elif what in ['new_story']:
+        return False
     else:
-        raise Exception('unknown topic %s'%what)
+        raise Exception('unknown topic %s for %s'%(what,about))
     notify = render(tpl,rdt,tf.name)
     #print open(tf.name,'r').read() ; raise Exception('bye')
     if justverify:
@@ -506,8 +562,8 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
 
     message = sendgrid.Message(sender,subject,open(tf.name).read(),open(expname).read())
     message.add_to(email,p[whom]['Name'])
-    s.web.send(message)
-    print 'sent %s to %s'%(subject,email)
+    if not cfg.NOSEND: 
+        s.web.send(message)
     return True
 def add_iteration(name,start_date=None,end_date=None):
     raise Exception('TODO')
@@ -803,6 +859,13 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False)
 def get_changes(show=False,add_notifications=False):
     st,op = gso('git log --pretty=oneline -30') ; assert st==0
     commits = dict([(c.split(' ')[0],{'message':' '.join(c.split(' ')[1:])}) for c in op.split('\n') if c!=''])
+
+    ps = get_participants()
+    pinf={}
+    for p,pv in ps.items():
+        if pv.get('Informed'): 
+            pinf[p]= set(pv['Informed'].strip().split(','))
+
     for cid,cmsg in commits.items():
         cmd = "git show %s | egrep '^Date:'"%cid
         st,op = gso(cmd)
@@ -839,6 +902,14 @@ def get_changes(show=False,add_notifications=False):
                         whoms = pfn.get(fn)
                     else:
                         whoms = [pfn.get(fn)]
+                    #NOTIFY ANYONE WITH A TAG ALERT
+                    for twhom,ttags in pinf.items():
+                        tag_inter = pfn['tags'].intersection(ttags)
+                        if len(tag_inter):
+                            if twhom not in whoms: 
+                                print 'notifying %s over tag subscription %s'%(twhom,tag_inter)
+                                whoms.append(twhom)
+
                     for whom in whoms:
                         if not whom or whom=="None": continue
                         if sid not in notifyover:
@@ -1257,6 +1328,7 @@ def index_assigned(tid=None,dirname='assigned',idxfield='assigned to'):
     print 'indexed under %s %s'%(acnt,idxfield)
         
 def index_tasks(tid=None):
+    index_assigned(tid,'creators','created by') #task creator
     index_assigned(tid) #index task assignment
     index_assigned(tid,'tagged','tags') #index tagging
 

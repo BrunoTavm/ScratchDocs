@@ -38,15 +38,20 @@ background-color:#ddd;
 .search {
 float:right;
 }
+.textlike {
+color:black;
+text-decoration:none;
+}
 </style>
 </head>
 <body>
   <a accesskey="h" href="${upr}/"><b>h</b>ome</a> :: \
+  <a accesskey="o" href="${upr}/tl">t<b>o</b>p level</a> :: \
   <a accesskey="g" href="${upr}/tags">ta<b>g</b>s</a> :: \
   <a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a> :: \
   <a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a> :: \
   <form class='search' method='get' action='${upr}/search'>
-    <input type='text' name='q' value="" />
+    <input type='text' name='q' value="" accesskey='/' />
     <input type='submit' value='Search' />
   </form>
   ${self.content()}
@@ -88,7 +93,7 @@ ${pritag}<a href="${upr}/s/${t['story']}" title="${t['summary']|h}">${t['story']
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
   <td class='tagcln'>${', '.join(t['tags'])}</td>
   <td class='sumcln'
-  title="${t['summary']|h}">${pritag}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag}</td>
+  title="${t['summary']|h}"><a class='textlike' href="${upr}/s/${t['story']}">${pritag}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag}</a></td>
   <td style='text-align:right'>
 <% mlen = 30 %>
 % if t.get('pdescrs'):
