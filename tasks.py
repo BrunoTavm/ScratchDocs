@@ -14,6 +14,7 @@ import re
 import codecs
 import json
 import tempfile
+import time
 
 
 def load_templates():
@@ -458,17 +459,25 @@ def process_notifications(args):
     tfs = get_meta_files()
     files_touched=[]
     participants = get_participants(disabled=True)
+    if args.renotify:
+        newer_than = datetime.datetime.strptime(args.renotify,'%Y-%m-%d')
+    else:
+        newer_than = None
 
     for meta,s in tfs:
         m = loadmeta(meta)
         if m.get('notifications'):
             for n in m['notifications']:
-                if n.get('notified'): 
+                if n.get('notified') and not args.renotify:
                     continue
+                if newer_than:
+                    added = datetime.datetime(*time.strptime(n['added'].split('.')[0], "%Y-%m-%dT%H:%M:%S")[:6])
+                    if not added>=newer_than:
+                        continue
                 #print 'notification processing %s'%s
                 whom = participants[n['whom']]
-                if whom['E-Mail']!=n['author_email'] and whom['Active']=='Y':
-                    send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n)
+                if whom['E-Mail']!=n.get('author_email') and whom['Active']=='Y':
+                    send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n,nosend=args.nosend)
                 else:
                     #print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
                     pass
@@ -481,7 +490,7 @@ def process_notifications(args):
         if not cfg.NOPUSH: cmd+=' && git push'
         st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
 
-def send_notification(whom,about,what,how=None,justverify=False,body={}):
+def send_notification(whom,about,what,how=None,justverify=False,body={},nosend=False):
     import sendgrid # we import here because we don't want to force everyone installing this.
     assert cfg.RENDER_URL,"no RENDER_URL specified in config."
     assert cfg.SENDER,"no sender specified in config."
@@ -522,22 +531,28 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
         app+='; %s'%asdigest
         canlines+=1
     laddre = re.compile('^(\+)')
-    laddres = filter(lambda r: not r.startswith('+++') and laddre.search(r) or False,ch)
-    lremre = re.compile('^(\+)')
-    lremres = filter(lambda r: not r.startswith('+++') and lremre.search(r) or False,ch)
+    laddres = filter(lambda r: not r.startswith('+++') and laddre.search(r) or False,ch[4:]) #skipping diff header
+    lremre = re.compile('^(\-)')
+    lremres = filter(lambda r: not r.startswith('+++') and lremre.search(r) or False,ch[4:]) #skipping diff header
+    bork=False
     if len(laddres)==len(lremres):
         if canlines!=len(laddres):
             app+='; %sl'%(len(laddres))
-    else:
-        app+='; +%s -%s'%(len(laddres),len(lremres))
+            #bork=True
+    elif verb=='changed':
+        app+=';'
+        if len(laddres): app+=' +%s'%len(laddres)
+        if len(lremres):  app+='/-%s'%len(lremres)
 
     #construct the rendered mail template informing of the change
     if what=='change':
         subject = '%s %s by %s'%(t['story'],verb,body.get('author_name','Uknown'))+app
-        if verb=='changed' and app=='':
-            print 'BAD:',subject
-        elif verb=='changed':
-            print subject
+        #debug code:
+        if bork:
+            print '\n'.join(ch)
+            print('=> '+subject)
+
+
         assert cfg.GITWEB_URL
         assert cfg.DOCS_REPONAME
         rdt = {'t':t,'url':cfg.RENDER_URL,'recipient':p[whom],'commit':how,'gitweb':cfg.GITWEB_URL,'docsrepo':cfg.DOCS_REPONAME,'body':body}
@@ -562,7 +577,7 @@ def send_notification(whom,about,what,how=None,justverify=False,body={}):
     subject_utf8 = subject.encode('utf-8')
     message = sendgrid.Message(sender,subject_utf8,open(tf.name).read(),open(expname).read())
     message.add_to(email,p[whom]['Name'])
-    if not cfg.NOSEND: 
+    if not cfg.NOSEND and not nosend: 
         s.web.send(message)
     return True
 def add_iteration(name,start_date=None,end_date=None):
@@ -1392,6 +1407,9 @@ if __name__=='__main__':
     
     pr = subparsers.add_parser('process_notifications')
     pr.add_argument('--nocommit',dest='nocommit',action='store_true')
+    pr.add_argument('--nosend',dest='nosend',action='store_true')
+    pr.add_argument('--renotify',dest='renotify')
+
 
     ch = subparsers.add_parser('changes')
     ch.add_argument('--notifications',dest='notifications',action='store_true')
