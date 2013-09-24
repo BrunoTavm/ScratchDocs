@@ -431,6 +431,29 @@ def search(request):
 
 from tasks import cre
 
+def read_journal(jfn):
+    if os.path.exists(jfn):
+        raise NotImplemented
+    else:
+        return {}
+
+@render_to('journal_edit.html')
+def journal_edit(request,task,jid):
+    t = get_task(task)
+    jfn = os.path.join(os.path.dirname(t['path']),'journal.org')
+    j = read_journal(jfn)
+    if jid=='new':
+        pass
+    return {'t':t,'j':j}
+
+@render_to('journal.html')
+def journal(request,task):
+    t = get_task(task)
+    jfn = os.path.join(os.path.dirname(t['path']),'journal.org')
+    j = read_journal(jfn)
+    
+    return {'t':t,'j':j}
+
 @render_to('task_history.html')
 def history(request,task):
     st,op = gso('git log --follow -- %s'%(os.path.join(cfg.DATADIR,task,'task.org'))) ; assert st==0

@@ -1,6 +1,5 @@
 mysql-python
 prettytable
-mako
 orgparse
 sendgrid
-
+-r noodles/requirements.txt

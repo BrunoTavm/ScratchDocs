@@ -1316,7 +1316,7 @@ def index_assigned(tid=None,dirname='assigned',idxfield='assigned to'):
         st,op = gso('rm -rf %s/*'%(asgndir)) ; assert st==0
 
 
-    assert os.path.exists(asgndir)
+    assert os.path.exists(asgndir),"%s does not exist"%asgndir
 
     print 'reindexing %s task files'%(len(tfs))
     acnt=0
