@@ -1,0 +1,8 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h2>Journal</h2> 
+<a href="${upr}/s/${t['id']}/journal/new">new entry</a> <br />
+% for je in j:
+<h3>${je}</h3>
+% endfor
+</%def>
