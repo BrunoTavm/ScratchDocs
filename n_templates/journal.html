@@ -2,7 +2,15 @@
 <%def name="content()">
 <h2>Journal</h2> 
 <a href="${upr}/s/${t['id']}/journal/new">new entry</a> <br />
-% for je in j:
-<h3>${je}</h3>
+% for ji in reversed(j):
+<h3>${ji['created at']} - ${ji['creator']}</h3>
+<dl>
+% for a,v in ji['attrs'].items():
+<dt>${a}</dt>
+<dd>${v}</dd>
+% endfor
+</dl>
+<pre>${ji['content']|n}</pre>
+<hr />
 % endfor
 </%def>

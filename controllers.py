@@ -20,6 +20,7 @@ from tasks import index_tasks
 import os
 import re
 from config_local import WEBAPP_FORCE_IDENTITY as force_identity
+from config import METASTATES
 import config as cfg
 from noodles.http import BaseResponse
 import copy
@@ -287,12 +288,18 @@ def pushcommit(pth,tid,adm):
         p = Process(target=push)
         p.start()
 
-def rpr(request,task):
+def rpr(request,task,journal=False,render_only=False):
     t= get_task(task)
-    cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(t['path'])
+    if journal:        vn = 'jpath'
+    else:        vn = 'path'
+    cmd = 'emacs -batch --visit="%s" --funcall org-export-as-html-batch'%(t[vn])
     st,op = gso(cmd) ; assert st==0,"%s returned %s\n%s"%(cmd,st,op)
+
+    rt = open(t[vn].replace('.org','.html'),'r').read()
+    if render_only: return rt
+
     r = Response()
-    r.body = open(t['path'].replace('.org','.html'),'r').read()
+    r.body = rt
     return r
 
 @render_to('task.html')
@@ -429,30 +436,96 @@ def search(request):
                                 ,query=request.params.get('q'))
     return rt
 
+import codecs
 from tasks import cre
-
+import orgparse
+from tasks import date_formats,parse_attrs
 def read_journal(jfn):
     if os.path.exists(jfn):
-        raise NotImplemented
+        items=[]
+        root = orgparse.load(jfn)
+        heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {}
+        for node in root[1:]:
+            print 'NODE',node
+            if node.level==2: 
+                if heading:
+                    print 'encountered new heading; appending'
+                    #get rid of previous data item
+                    assert unstructured or len(attrs)
+                    apnd = {'creator':creator,
+                            'attrs':attrs,
+                            'created at':created,
+                            'content':unstructured.decode('utf-8')}
+                    items.append(apnd)
+                heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {} ; unstructured = '\n'.join(str(node).split('\n')[1:])
+                heading = node.get_heading() 
+                assert heading.startswith('<'),"heading does not contain date: %s"%heading
+                creator = node.tags.pop()
+                created = datetime.datetime.strptime(heading.strip('<>'),date_formats[2])
+                print 'gotten heading %s , %s'%(creator,created)
+            elif node.level==3 and node.get_heading().lower()=='attributes':
+                attrs = parse_attrs(str(node),jfn,no_tokagg=True)
+                gotattrs=True
+            elif node.level==3 and node.get_heading().lower()=='content':
+                print 'adding unstructured'
+                unstructured+='\n'.join(str(node).split('\n')[1:])+'\n'
+        apnd = {'creator':creator,
+                'attrs':attrs,
+                'created at':created,
+                'content':unstructured.decode('utf-8')}
+        items.append(apnd)
+        print items
+        return items
     else:
-        return {}
+        return []
+
+
+def render_journal_content(user,content,metastates):
+    now = datetime.datetime.now()
+    cnt = """\n** <%s> :%s:\n"""%(now.strftime(date_formats[2]),user)
+    if len(metastates):
+        cnt+="*** Attributes\n"
+        for ms,msv in metastates.items():
+            cnt+="- %s :: %s\n"%(ms,msv)
+    if len(content):
+        cnt+="*** Content\n"
+        cnt+=content.replace('\r','')+'\n'
+    return cnt
 
 @render_to('journal_edit.html')
 def journal_edit(request,task,jid):
     t = get_task(task)
-    jfn = os.path.join(os.path.dirname(t['path']),'journal.org')
-    j = read_journal(jfn)
-    if jid=='new':
-        pass
-    return {'t':t,'j':j}
+    jfn = t['jpath']
+    if request.method=='POST':
+        metastates={}
+        for ms,msvals in METASTATES.items():
+            msv = request.params.get(ms)
+            if msv and msv in msvals:
+                metastates[ms]=msv
+        
+        assert len(metastates) or len(request.params.get('content'))
+
+        if not os.path.exists(jfn): #put a header in it
+            open(jfn,'a').write('#+OPTIONS: toc:nil        (no default TOC at all)\n#+STARTUP:showeverything')
+
+        apnd = render_journal_content(get_admin(request,'unknown'),request.params.get('content'),metastates)
+        fp = codecs.open(jfn,'a',encoding='utf-8')
+        fp.write(apnd)
+        fp.close()
+        redir = '/'+URL_PREFIX+'s/'+task+'/journal'
+        rd = Redirect(redir)
+        return rd
+
+    j = rpr(request,task,journal=True,render_only=True)
+
+    return {'t':t,'j':j,'metastates':METASTATES}
 
 @render_to('journal.html')
 def journal(request,task):
     t = get_task(task)
-    jfn = os.path.join(os.path.dirname(t['path']),'journal.org')
-    j = read_journal(jfn)
-    
-    return {'t':t,'j':j}
+    jfn = t['jpath']
+    jitems = read_journal(jfn)
+    return {'t':t,'j':jitems}
 
 @render_to('task_history.html')
 def history(request,task):

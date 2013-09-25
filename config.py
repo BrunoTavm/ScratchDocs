@@ -28,6 +28,11 @@ def COMMITERMAP(em,nm):
     assert '@' not in em
     assert '.' not in em
     return em
+METASTATES={
+    'functional review':('needed','doing','failed','passed'),
+    'code review':('needed','doing','failed','passed'),
+    'tests passage':('no','random fails','100%'),
+    }
 from noodles_config import *
 from config_local import *
 import os

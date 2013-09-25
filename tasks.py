@@ -98,9 +98,10 @@ def pfn(fn):
 linkre = re.compile(re.escape('[[')+'([^\]]+)'+re.escape('][')+'([^\]]+)'+re.escape(']]'))
 tokre = re.compile('^\- ([^\:]+)')
 stokre = re.compile('^  \- (.+)')
-date_formats = ['%Y-%m-%d %a','%Y-%m-%d']
-def parse_attrs(node,pth):
+date_formats = ['%Y-%m-%d %a','%Y-%m-%d','%Y-%m-%d %a %H:%M']
+def parse_attrs(node,pth,no_tokagg=False):
     try:
+        print node
         rt= dict([a[2:].split(' :: ') for a in node.split('\n') if a.startswith('- ') and ' :: ' in a])
         tokagg={}
 
@@ -141,11 +142,13 @@ def parse_attrs(node,pth):
             rt[k]=datetime.datetime.strptime(dt[0],'%Y-%m-%d %H:%M:%S')
             if len(dt)>1:
                 rt[k]+=datetime.timedelta(microseconds=int(dt[1]))
+    if not no_tokagg:
+        for ta,tv in tokagg.items():
+            rt[ta]=tv
 
-    for ta,tv in tokagg.items():
-        rt[ta]=tv
-
-    #if '338/task.org' in pth:print json.dumps(rt,indent=True,default=lambda x: str(x)) ; raise Exception('here it is %s'%pth)
+    #if '338/task.org' in pth:print
+    #json.dumps(rt,indent=True,default=lambda x: str(x)) ; raise
+    #Exception('here it is %s'%pth)
     return rt
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
 def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
@@ -154,7 +157,7 @@ def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
     assert len(parts)>1,"%s"%"error parsing %s"%fn
     story = cfg.STORY_SEPARATOR.join(parts[0:-1])
-    rt = {'story':story,'path':fn,'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[0:-1])}
+    rt = {'story':story,'path':fn,'jpath':os.path.join(os.path.dirname(fn),'journal.org'),'metadata':os.path.join(os.path.dirname(fn),'meta.json'),'id':cfg.STORY_SEPARATOR.join(parts[0:-1])}
     #raise Exception('id for %s is %s from %s'%(fn,rt['id'],parts))
     if read:
         filecont = open(fn,'r').read()
