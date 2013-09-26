@@ -10,19 +10,22 @@ selected=1 \
 % endfor
 </select>\
 </%def>
-<%def name="content()">
+<%def name="taskmenu()">
 <h2>Task ${task['story']}</h2>
-<a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a> :: \
-<a href="${upr}/s/${task['id']}">permalink</a> :: \
-% if '/' in task['story']:
-<a href="${upr}/s/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
-% endif
-<a href="${upr}/">home</a> ::
+[ <a href="${upr}/s/${task['story']}">summary</a> ::
 <a href="${upr}/s/${task['story']}/log"
    accesskey='i'>h<b>i</b>story</a> :: 
 <a href="${upr}/s/${task['story']}/journal"
-   accesskey='j'><b>j</b>ournal</a> 
-<br />
+   accesskey='j'><b>j</b>ournal</a> ]
+
+:: <a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a> :: \
+% if '/' in task['story']:
+<a href="${upr}/s/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
+% endif
+<hr />
+</%def>
+<%def name="content()">
+${taskmenu()}
 % if msg:
 <div class='msg'>${msg}</div>
 % endif
@@ -52,7 +55,8 @@ selected=1 \
 <dd>
 ${self.sel('status',statuses,task['status'],attr='accesskey="t"')}
 </dd>
-
+<dt>metastates</dt>
+<dd>${'; '.join([k+": "+v for k,v in metastates.items()])}</dd>
 <dt>assignee</dt>
 <dd><a href="${upr}/assignments/${task['assigned to']}">${task['assigned to']}</a> ;
 change to ${self.sel('assignee',participants,task['assigned to'])}

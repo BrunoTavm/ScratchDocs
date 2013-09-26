@@ -1,9 +1,19 @@
-<%inherit file="/base.html" />
+<%inherit file="/task.html" />
 <%def name="content()">
-<h2>Journal</h2> 
-<a href="${upr}/s/${t['id']}/journal/new">new entry</a> <br />
+% if task:
+${self.taskmenu()}
+<h2>Journal for ${task['id']}</h2> 
+<a href="${upr}/s/${task['id']}/journal/new">new entry</a> <br />
+% else:
+<h2>Global journal</h2>
+% endif
+
 % for ji in reversed(j):
-<h3>${ji['created at']} - ${ji['creator']}</h3>
+<h4>\
+% if not task:
+<a href="${upr}/s/${ji['tid']}">${ji['tid']}</a> - 
+% endif
+${ji['created at']} - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a></h4>
 <dl>
 % for a,v in ji['attrs'].items():
 <dt>${a}</dt>
@@ -11,6 +21,5 @@
 % endfor
 </dl>
 <pre>${ji['content']|n}</pre>
-<hr />
 % endfor
 </%def>

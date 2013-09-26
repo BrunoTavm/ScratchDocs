@@ -14,6 +14,8 @@ def get_map():
     # Add routes here
     urlmap(map, [
         (URL_PREFIX+'/', 'controllers#index'),
+        (URL_PREFIX+'/journal', 'controllers#global_journal'),
+        (URL_PREFIX+'/journal/by/{creator}', 'controllers#global_journal'),
         (URL_PREFIX+'/tl', 'controllers#top_level'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
         (URL_PREFIX+'/participants', 'controllers#participants'),

@@ -398,7 +398,7 @@ def task(request,task):
         ch = get_children(task)
 
     if task=='new':
-        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under}
+        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under,'jpath':None}
         opar=[]
     else:
         t = get_task(task,read=True,flush=True,gethours=True)
@@ -410,7 +410,8 @@ def task(request,task):
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
     if task!='new': index_tasks(t['id'])
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents,'request':request}
+    metastates = read_current_metastates(t['jpath'])
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents,'request':request,'metastates':metastates}
 
 @render_to('tags.html')
 def tags(request):
@@ -440,8 +441,21 @@ import codecs
 from tasks import cre
 import orgparse
 from tasks import date_formats,parse_attrs
+
+def read_current_metastates(jfn):
+    rt={}
+    items = read_journal(jfn)
+    for i in items:
+       for attr,attrv in i['attrs'].items():
+           rt[attr]=attrv
+    return rt
+
 def read_journal(jfn):
-    if os.path.exists(jfn):
+    if jfn:
+        tid = parse_fn(jfn,read=False,gethours=False,getmeta=False)['story']
+    else:
+        tid = None
+    if jfn and os.path.exists(jfn):
         items=[]
         root = orgparse.load(jfn)
         heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {}
@@ -452,7 +466,8 @@ def read_journal(jfn):
                     print 'encountered new heading; appending'
                     #get rid of previous data item
                     assert unstructured or len(attrs)
-                    apnd = {'creator':creator,
+                    apnd = {'tid':tid,
+                            'creator':creator,
                             'attrs':attrs,
                             'created at':created,
                             'content':unstructured.decode('utf-8')}
@@ -469,7 +484,8 @@ def read_journal(jfn):
             elif node.level==3 and node.get_heading().lower()=='content':
                 print 'adding unstructured'
                 unstructured+='\n'.join(str(node).split('\n')[1:])+'\n'
-        apnd = {'creator':creator,
+        apnd = {'tid':tid,
+                'creator':creator,
                 'attrs':attrs,
                 'created at':created,
                 'content':unstructured.decode('utf-8')}
@@ -479,6 +495,17 @@ def read_journal(jfn):
     else:
         return []
 
+@render_to('journal.html')
+def global_journal(request,creator=None):
+    cmd = 'find %s -name "journal.org" -type f'%cfg.DATADIR
+    st,op = gso(cmd) ; assert st==0
+    ai = []
+    for jfn in op.split('\n'):
+        ji = read_journal(jfn)
+        if creator: ji = [i for i in ji if i['creator']==creator]
+        ai+=ji
+    ai.sort(lambda x1,x2: cmp(x1['created at'],x2['created at']))
+    return {'j':ai,'task':None}
 
 def render_journal_content(user,content,metastates):
     now = datetime.datetime.now()
@@ -525,10 +552,11 @@ def journal(request,task):
     t = get_task(task)
     jfn = t['jpath']
     jitems = read_journal(jfn)
-    return {'t':t,'j':jitems}
+    return {'task':t,'j':jitems}
 
 @render_to('task_history.html')
 def history(request,task):
+    t = get_task(task)
     st,op = gso('git log --follow -- %s'%(os.path.join(cfg.DATADIR,task,'task.org'))) ; assert st==0
     commitsi = cre.finditer(op)
     for c in commitsi:
@@ -536,7 +564,7 @@ def history(request,task):
         url = '%(gitweb_url)s/?p=%(docs_reponame)s;a=commitdiff;h=%(cid)s'%{'cid':cid,'gitweb_url':cfg.GITWEB_URL,'docs_reponame':cfg.DOCS_REPONAME}
         op = op.replace(cid,"<a href='%(url)s'>%(cid)s</a>"%{'cid':cid,'url':url})
         
-    rt = {'op':op,'tid':task,'request':request}
+    rt = {'op':op,'task':t,'request':request}
     return rt
 
 
