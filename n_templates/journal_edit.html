@@ -1,18 +1,1 @@
 <%inherit file="/base.html" />
-<%def name="content()">
-<h2>Journal entry edit</h2> 
-<form method='post' action=''>
-<h3>metastates</h3>
-% for ms,vals in metastates.items():
-${ms} <select name='${ms}'>
-<option value="">..</option>
-% for v in vals:
-<option value="${v}">${v}</option>
-% endfor
-</select><br />
-% endfor
-<h3>content</h3>
-<textarea class='content' name='content'></textarea>
-<input type='submit' />
-</form>
-</%def>

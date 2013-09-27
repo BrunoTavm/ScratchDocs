@@ -1,13 +1,31 @@
 <%inherit file="/task.html" />
+<%def name="new_entry()">
+<h4>New entry</h4> 
+<form method='post' action="${upr}/s/${task['id']}/j/new">
+<h3>metastates</h3>
+% for ms,vals in metastates.items():
+${ms} <select name='${ms}'>
+<option value="">..</option>
+% for v in vals:
+<option value="${v}">${v}</option>
+% endfor
+</select><br />
+% endfor
+<h3>content</h3>
+<textarea class='content' name='content'></textarea>
+<input type='submit' />
+</form>
+</%def>
 <%def name="content()">
 % if task:
 ${self.taskmenu()}
 <h2>Journal for ${task['id']}</h2> 
 <a href="${upr}/s/${task['id']}/journal/new">new entry</a> <br />
+${new_entry()}
+
 % else:
 <h2>Global journal</h2>
 % endif
-
 % for ji in reversed(j):
 <h4>\
 % if not task:

@@ -442,12 +442,17 @@ from tasks import cre
 import orgparse
 from tasks import date_formats,parse_attrs
 
-def read_current_metastates(jfn):
+def read_current_metastates(jfn,metainfo=False):
     rt={}
     items = read_journal(jfn)
     for i in items:
        for attr,attrv in i['attrs'].items():
-           rt[attr]=attrv
+           if metainfo:
+               rt[attr]={'value':attrv,
+                         'updated':i['created at'],
+                         'updated by':i['creator']}
+           else:
+               rt[attr]=attrv
     return rt
 
 def read_journal(jfn):
@@ -495,17 +500,39 @@ def read_journal(jfn):
     else:
         return []
 
-@render_to('journal.html')
-def global_journal(request,creator=None):
+def get_all_journals():
     cmd = 'find %s -name "journal.org" -type f'%cfg.DATADIR
     st,op = gso(cmd) ; assert st==0
+    return op.split('\n')
+
+@render_to('journal.html')
+def global_journal(request,creator=None):
     ai = []
-    for jfn in op.split('\n'):
+    for jfn in get_all_journals():
         ji = read_journal(jfn)
         if creator: ji = [i for i in ji if i['creator']==creator]
         ai+=ji
     ai.sort(lambda x1,x2: cmp(x1['created at'],x2['created at']))
     return {'j':ai,'task':None}
+
+@render_to('queue.html')
+def queue(request):
+    queue={}
+    for jfn in get_all_journals():
+        tfn = jfn.replace('journal.org','task.org')
+        t = parse_fn(tfn,read=True,gethours=False,getmeta=False)
+        tid = t['story']
+        print t
+        assert t.get('status'),"could not get status for %s"%tid
+        cm = read_current_metastates(jfn,True)
+        lupd = sorted(cm.values(),lambda x1,x2: cmp(x1['updated'],x2['updated']),reverse=True)
+        if len(lupd): lupd=lupd[0]['updated']
+        else: lupd=None
+        queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),'last updated':lupd,'status':t['status']}
+        
+    queue = queue.items()
+    queue.sort(lambda x1,x2: cmp((x1[1]['last updated'] and x1[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1)),(x2[1]['last updated'] and x2[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1))),reverse=True)
+    return {'queue':queue,'metastates':METASTATES}
 
 def render_journal_content(user,content,metastates):
     now = datetime.datetime.now()
@@ -539,7 +566,7 @@ def journal_edit(request,task,jid):
         fp = codecs.open(jfn,'a',encoding='utf-8')
         fp.write(apnd)
         fp.close()
-        redir = '/'+URL_PREFIX+'s/'+task+'/journal'
+        redir = '/'+URL_PREFIX+'s/'+task+'/j'
         rd = Redirect(redir)
         return rd
 
@@ -552,7 +579,7 @@ def journal(request,task):
     t = get_task(task)
     jfn = t['jpath']
     jitems = read_journal(jfn)
-    return {'task':t,'j':jitems}
+    return {'task':t,'j':jitems,'metastates':METASTATES}
 
 @render_to('task_history.html')
 def history(request,task):

@@ -366,8 +366,9 @@ def get_task(number,read=False,exc=True,flush=False,gethours=False):
     rt =  tasks[number]
     task_cache[tk]=rt
     return rt
-
+taskre = re.compile('^([\d\/]+)$')
 def get_children(number):
+    assert taskre.search(number),"invalid task %s"%number
     t = get_task(number)
     cmd = 'find -L %s -maxdepth 2 ! -wholename "*.git*" -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
     st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
