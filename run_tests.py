@@ -13,12 +13,12 @@ class TestTask(unittest.TestCase):
     def test_iteration_creation(self):
         tasks.add_iteration('testiter')
         rt = tasks.add_task('testiter',parent=None,params={'summary':'1st test task'},tags=['chuckacha'])
-        tf = tasks.get_task_files(iteration='testiter',flush=True)
+        tf = tasks.get_fns(iteration='testiter',flush=True)
         assert len(tf)==1
         for i in range(5):
             rt2 = tasks.add_task(iteration=None,parent=rt['id'],params={'summary':'1st subtask'},tags=['subtask'])
             print rt2
-            tf = tasks.get_task_files(iteration='testiter',recurse=True,flush=True)
+            tf = tasks.get_fns(iteration='testiter',recurse=True,flush=True)
             assert len(tf)==i+2
         t1 = tasks.get_task(rt['id'],read=True)
         assert t1['id']==rt['id']

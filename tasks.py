@@ -15,6 +15,8 @@ import codecs
 import json
 import tempfile
 import time
+import subprocess
+from multiprocessing import Process
 
 
 def load_templates():
@@ -101,7 +103,6 @@ stokre = re.compile('^  \- (.+)')
 date_formats = ['%Y-%m-%d %a','%Y-%m-%d','%Y-%m-%d %a %H:%M']
 def parse_attrs(node,pth,no_tokagg=False):
     try:
-        print node
         rt= dict([a[2:].split(' :: ') for a in node.split('\n') if a.startswith('- ') and ' :: ' in a])
         tokagg={}
 
@@ -151,7 +152,7 @@ def parse_attrs(node,pth,no_tokagg=False):
     #Exception('here it is %s'%pth)
     return rt
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
-def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
+def parse_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     """parse a task filename and optionally read it."""
     assert len(fn),"%s empty"%fn
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
@@ -235,7 +236,7 @@ def filterby(fieldname,value,rtl):
         rtl = list(rf)
     return rtl
 
-def get_task_files(assignee=None,created=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None):
+def get_fns(assignee=None,created=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None):
     """return task filenames according to provided criteria"""
     global taskfiles_cache
     if flush: flush_taskfiles_cache()
@@ -279,7 +280,7 @@ def get_task_files(assignee=None,created=None,status=None,tag=None,recurse=True,
         raise Exception('not in here')
         rt = []
         for fn in files:
-            s = parse_story_fn(fn,read=True)
+            s = parse_fn(fn,read=True)
             incl=False
             if assignee and s['assigned to'] and s['assigned to']==assignee:
                 incl=True
@@ -352,9 +353,9 @@ def get_task(number,read=False,exc=True,flush=False,gethours=False):
     
     number = str(number)
     gtf = [os.path.join(cfg.DATADIR,number,'task.org')]
-    #gtf = get_task_files(recurse=True,flush=flush)
+    #gtf = get_fns(recurse=True,flush=flush)
 
-    tf = [parse_story_fn(fn,read=read,gethours=gethours) for fn in gtf]
+    tf = [parse_fn(fn,read=read,gethours=gethours) for fn in gtf]
 
     tasks = dict([(pfn['story'],pfn) for pfn in tf])    
 
@@ -373,7 +374,7 @@ def get_children(number):
     cmd = 'find -L %s -maxdepth 2 ! -wholename "*.git*" -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
     st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
     chfiles = [ch for ch in op.split('\n') if ch!='']
-    tf = [parse_story_fn(fn,read=True) for fn in chfiles]
+    tf = [parse_fn(fn,read=True) for fn in chfiles]
     return tf
 def get_new_idx(parent=None):
     if parent:
@@ -389,7 +390,7 @@ def get_new_idx(parent=None):
     st,op = gso(findcmd) ; assert st==0
     files = [fn for fn in op.split('\n') if fn!='']
     
-    tf = [parse_story_fn(fn) for fn in files]
+    tf = [parse_fn(fn) for fn in files]
     exstrs = [t['story'] for t in tf if not re.compile('^([\d'+re.escape(cfg.STORY_SEPARATOR)+']+)$').search(t['story'])]
     assert len(exstrs)==0,"%s is not empty"%(exstrs)
     finalnames = [int(t['story'].split(cfg.STORY_SEPARATOR)[-1]) for t in tf]
@@ -455,7 +456,7 @@ def add_notification(whom,about,what):
 def get_meta_files():
     cmd = 'find %s -name meta.json -type f'%(cfg.DATADIR)
     st,op = gso(cmd) ; assert st==0
-    files = [(ln,parse_story_fn(ln)) for ln in op.split('\n') if ln!='']
+    files = [(ln,parse_fn(ln)) for ln in op.split('\n') if ln!='']
     return files
     
 
@@ -595,7 +596,7 @@ def add_iteration(name,start_date=None,end_date=None):
 def add_task(parent=None,params={},force_id=None,tags=[]):
 
     if parent:
-        tf = [parse_story_fn(fn) for fn in get_task_files(flush=True)]
+        tf = [parse_fn(fn) for fn in get_fns(flush=True)]
         iterationtasks = dict([(tpfn['story'],tpfn) for tpfn in tf])
         assert parent in iterationtasks,"%s not in %s"%(parent,iterationtasks)
         basedir = os.path.dirname(iterationtasks[parent]['path'])
@@ -610,7 +611,7 @@ def add_task(parent=None,params={},force_id=None,tags=[]):
         basedir = os.path.join(cfg.DATADIR)
         if force_id:
             #make sure we don't have it already
-            tf = [parse_story_fn(fn)['story'] for fn in get_task_files()]
+            tf = [parse_fn(fn)['story'] for fn in get_fns()]
             assert str(force_id) not in tf,"task %s already exists - %s."%(force_id,get_task(force_id))
             newidx = str(force_id)
         else:
@@ -618,7 +619,7 @@ def add_task(parent=None,params={},force_id=None,tags=[]):
         newdir = os.path.join(basedir,newidx)
         fullid = cfg.STORY_SEPARATOR.join([newidx])
         newtaskfn = os.path.join(newdir,'task.org')
-    newtaskdt = parse_story_fn(newtaskfn)
+    newtaskdt = parse_fn(newtaskfn)
     assert newtaskdt
     print 'creating new task %s : %s'%(newtaskdt['story'],pfn(newtaskfn))
     if type(params)==dict:
@@ -732,7 +733,7 @@ def get_current_iteration(iterations):
     return current_iteration
 
 def makeindex():
-    recent = [(tf,parse_story_fn(tf,read=True,gethours=True)) for tf in get_task_files(recent=True)]
+    recent = [(tf,parse_fn(tf,read=True,gethours=True)) for tf in get_fns(recent=True)]
     recent.sort(hours_srt,reverse=True)
         
     assignees={}
@@ -740,15 +741,15 @@ def makeindex():
     if not os.path.exists(cfg.SDIR): os.mkdir(cfg.SDIR)
 
     #and render its index in the shortcuts folder
-    idxstories = [(fn,parse_story_fn(fn,read=True,gethours=True)) for fn in get_task_files(recurse=True)]
+    idxstories = [(fn,parse_fn(fn,read=True,gethours=True)) for fn in get_fns(recurse=True)]
     vardict = {'term':'Index','value':'','stories':by_status(idxstories),'relpath':True,'statuses':cfg.STATUSES,'statusagg':{}}
     routfile= os.path.join(cfg.SDIR,'index.org')
     #print 'rendering %s'%routfile
     render('tasks',vardict,routfile)
 
     #print 'walking iteration %s'%it[0]
-    taskfiles = get_task_files(recurse=True)
-    stories = [(fn,parse_story_fn(fn,read=True,gethours=True)) for fn in taskfiles]
+    taskfiles = get_fns(recurse=True)
+    stories = [(fn,parse_fn(fn,read=True,gethours=True)) for fn in taskfiles]
     stories_by_id = dict([(st[1]['id'],st[1]) for st in stories])
     stories.sort(taskid_srt,reverse=True)        
 
@@ -837,8 +838,8 @@ def makeindex():
             
             assigned_files[assignee][asfn]=afn
 
-            tf = get_task_files(assignee=assignee,recurse=True)
-            stories = [(fn,parse_story_fn(fn,read=True,gethours=True,hoursonlyfor=assignee)) for fn in tf]
+            tf = get_fns(assignee=assignee,recurse=True)
+            stories = [(fn,parse_fn(fn,read=True,gethours=True,hoursonlyfor=assignee)) for fn in tf]
             stories.sort(status_srt)
             vardict = {'term':'Assignee','value':'%s (%s)'%(assignee,storycnt),'stories':by_status(stories),'relpath':False,'statuses':cfg.STATUSES,'statusagg':{}}
             cont = render('tasks',vardict,ofn)
@@ -855,15 +856,15 @@ def makeindex():
     itlist = render('iterations',vardict,idxfn)
 
     cfn = os.path.join(cfg.DATADIR,'changes.org')
-    render('changes',{'GITWEB_URL':cfg.GITWEB_URL,'DOCS_REPONAME':cfg.DOCS_REPONAME,'changes':get_changes(),'pfn':parse_story_fn},cfn)
+    render('changes',{'GITWEB_URL':cfg.GITWEB_URL,'DOCS_REPONAME':cfg.DOCS_REPONAME,'changes':get_changes(),'pfn':parse_fn},cfn)
 
 def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False):
-    files = get_task_files(assignee=assignee,status=status,tag=tag,recent=recent)
+    files = get_fns(assignee=assignee,status=status,tag=tag,recent=recent)
     pt = PrettyTable(['id','summary','assigned to','status','tags'])
     pt.align['summary']='l'
     cnt=0
     for fn in files:
-        sd = parse_story_fn(fn,read=True)
+        sd = parse_fn(fn,read=True)
         if iteration and iteration.startswith('not ') and sd['iteration']==iteration.replace('not ',''): 
             continue
         elif iteration and not iteration.startswith('not ') and sd['iteration']!=str(iteration): continue
@@ -898,7 +899,7 @@ def get_changes(show=False,add_notifications=False):
             for r in ['--- a/','+++ a/','--- b/','+++ b/']: l=l.replace(r,'')
             if l not in ulines: 
                 ulines.append(l)
-                #pt.add_row([dt,cid,cmsg['message'],l,parse_story_fn(l)['id']])
+                #pt.add_row([dt,cid,cmsg['message'],l,parse_fn(l)['id']])
         commits[cid]['changes']=ulines
     pt = PrettyTable(['date','commit','message','file','story'])
     notifyover={}
@@ -906,7 +907,7 @@ def get_changes(show=False,add_notifications=False):
         #print 'going over commit %s which has %s changes'%(cid,len(cdata['changes']))
         for cfn in cdata['changes']:
             if os.path.exists(cfn):
-                pfn = parse_story_fn(cfn,read=True)
+                pfn = parse_fn(cfn,read=True)
                 sid = pfn['id']
             else:
                 pfn = None
@@ -1171,10 +1172,10 @@ def tasks_validate(tasks=None,catch=True,amend=False,checkhours=True,checkrepona
     if tasks:
         tfs = [get_task(taskid,read=False)['path'] for taskid in tasks]
     else:
-        tfs = get_task_files()
+        tfs = get_fns()
     for tf in tfs:
         try:
-            t = parse_story_fn(tf,read=True,gethours=True)
+            t = parse_fn(tf,read=True,gethours=True)
             if checkreponames and t.get('meta') and t['meta'].get('branchlastcommits'):
                 for blc in t['meta'].get('branchlastcommits'):
                     try:
@@ -1269,7 +1270,7 @@ def rewrite(tid,o_params={},safe=True):
 
 def make_demo(iteration,tree=False,orgmode=False):     
     from tree import Tree
-    tf = [parse_story_fn(tf,read=True) for tf in get_task_files(iteration=iteration,recurse=True)]
+    tf = [parse_fn(tf,read=True) for tf in get_fns(iteration=iteration,recurse=True)]
     def tf_srt(s1,s2):
         rt=cmp(len(s1['id'].split(cfg.STORY_SEPARATOR)),len(s2['id'].split(cfg.STORY_SEPARATOR)))
         if rt!=0: return rt
@@ -1316,7 +1317,7 @@ def index_assigned(tid=None,dirname='assigned',idxfield='assigned to'):
         st,op = gso('find %s -type l -iname %s -exec rm {} \;'%(asgndir,tid.replace('/','.'))) ; assert st==0
         tfs = [get_task(tid)['path']]
     else:
-        tfs = get_task_files()
+        tfs = get_fns()
         st,op = gso('rm -rf %s/*'%(asgndir)) ; assert st==0
 
 
@@ -1326,7 +1327,7 @@ def index_assigned(tid=None,dirname='assigned',idxfield='assigned to'):
     acnt=0
     for fn in tfs:
         #print 'parsing %s'%fn
-        pfn = parse_story_fn(fn,read=False,getmeta=False)
+        pfn = parse_fn(fn,read=False,getmeta=False)
         #print 'parsed %s ; getting task'%pfn['id']
         t = get_task(pfn['id'],read=True)
         #print t['id'],t['assigned to']
@@ -1559,7 +1560,7 @@ if __name__=='__main__':
     if args.command=='rewrite':
         atasks = [at for at in args.tasks if at]
         if not len(atasks):
-            tasks = [parse_story_fn(tf)['id'] for tf in get_task_files()]
+            tasks = [parse_fn(tf)['id'] for tf in get_fns()]
         else:
             tasks = atasks
         for tid in tasks:
@@ -1570,14 +1571,14 @@ if __name__=='__main__':
         else:from_date = (datetime.datetime.now()-datetime.timedelta(days=1)).date()
         if args.to_date:to_date = datetime.datetime.strptime(args.to_date,'%Y-%m-%d').date()
         else:to_date = (datetime.datetime.now()-datetime.timedelta(days=1)).date()
-        files = get_task_files()
+        files = get_fns()
         metafiles = [os.path.join(os.path.dirname(fn),'hours.json') for fn in files]
         agg={} ; tagg={} ; sagg={} ; pagg={} ; tcache={}
 
         maxparts=0
         for mf in metafiles:
             m = loadmeta(mf)
-            tf=  parse_story_fn(mf)
+            tf=  parse_fn(mf)
             sid = tf['story']
             sparts = sid.split(cfg.STORY_SEPARATOR)
             tlsid = sparts[0]
@@ -1664,3 +1665,117 @@ if __name__=='__main__':
             pt.add_row(['TOT']+['--' for i in xrange(maxparts+mpadd-2)]+["%4.2f"%hrs])
             print pt
                     
+
+def get_parent_descriptions(tid):
+    assert tid
+    #print 'getting parent descriptions of %s'%tid
+    #obtain parent descriptions
+    parents = tid.split('/')
+    opar=[]
+    for i in xrange(len(parents)-1): opar.append('/'.join(parents[:i+1]))
+    parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
+    return parents
+
+def pushcommit(pth,tid,adm):
+    pts = get_participants()
+    commiter = pts[adm]
+    def push():
+        print 'starting push'
+        st,op = gso('cd %s && git pull && git push'%(DATADIR))
+        if not st % 256==0:
+            print "git push returned %s\n%s"%(st,op)
+            raise Exception('greenlet exception') 
+        print op
+        print 'done push'
+    #push in the background!
+    if not cfg.NOCOMMIT:
+        cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
+        print cmd
+        st,op = gso(cmd) ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
+        msg='Updated task %s'%tid
+    if not cfg.NOPUSH:
+        p = Process(target=push)
+        p.start()
+
+def read_current_metastates(jfn,metainfo=False):
+    rt={}
+    items = read_journal(jfn)
+    for i in items:
+       for attr,attrv in i['attrs'].items():
+           if metainfo:
+               rt[attr]={'value':attrv,
+                         'updated':i['created at'],
+                         'updated by':i['creator']}
+           else:
+               rt[attr]=attrv
+    return rt
+
+def org_render(ins):
+    proc = subprocess.Popen([os.path.join(os.path.dirname(__file__),'orgmode-render.php')],stdout=subprocess.PIPE,stdin=subprocess.PIPE,stderr=subprocess.STDOUT)
+    inss = ins.encode('utf-8')
+    ops = proc.communicate(input=inss)[0]
+    return ops.decode('utf-8')
+
+def read_journal(jfn,date_limit=None):
+    if jfn:
+        tid = parse_fn(jfn,read=False,gethours=False,getmeta=False)['story']
+    else:
+        tid = None
+    if jfn and os.path.exists(jfn):
+        items=[]
+        root = orgparse.load(jfn)
+        heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {}
+        for node in root[1:]:
+            #print 'NODE',node
+            if node.level==2: 
+                if heading:
+                    #print 'encountered new heading; appending'
+                    #get rid of previous data item
+                    assert unstructured or len(attrs)
+                    apnd = {'tid':tid,
+                            'creator':creator,
+                            'attrs':attrs,
+                            'created at':created,
+                            'content':unstructured.decode('utf-8'),
+                            'rendered_content':org_render(unstructured.decode('utf-8'))}
+                    items.append(apnd)
+                heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {} ; unstructured = '\n'.join(str(node).split('\n')[1:])
+                heading = node.get_heading() 
+                assert heading.startswith('<'),"heading does not contain date: %s"%heading
+                creator = node.tags.pop()
+                created = datetime.datetime.strptime(heading.strip('<>'),date_formats[2])
+                #print 'gotten heading %s , %s'%(creator,created)
+            elif node.level==3 and node.get_heading().lower()=='attributes':
+                attrs = parse_attrs(str(node),jfn,no_tokagg=True)
+                gotattrs=True
+            elif node.level==3 and node.get_heading().lower()=='content':
+                #print 'adding unstructured'
+                unstructured+='\n'.join(str(node).split('\n')[1:])+'\n'
+        apnd = {'tid':tid,
+                'creator':creator,
+                'attrs':attrs,
+                'created at':created,
+                'content':unstructured.decode('utf-8'),
+                'rendered_content':org_render(unstructured.decode('utf-8'))}
+        items.append(apnd)
+        if date_limit: items = [i for i in items if i['created at'].date()==date_limit]
+        return items
+    else:
+        return []
+
+def get_all_journals():
+    cmd = 'find %s -name "journal.org" -type f'%cfg.DATADIR
+    st,op = gso(cmd) ; assert st==0
+    return [fn for fn in op.split('\n') if fn!='']
+
+def render_journal_content(user,content,metastates):
+    now = datetime.datetime.now()
+    cnt = """\n** <%s> :%s:\n"""%(now.strftime(date_formats[2]),user)
+    if len(metastates):
+        cnt+="*** Attributes\n"
+        for ms,msv in metastates.items():
+            cnt+="- %s :: %s\n"%(ms,msv)
+    if len(content):
+        cnt+="*** Content\n"
+        cnt+=content.replace('\r','')+'\n'
+    return cnt

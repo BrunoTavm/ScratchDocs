@@ -5,32 +5,29 @@ filedesc: default controller file
 from noodles.http import Response
 
 
-from tasks import parse_story_fn as parse_fn
-from tasks import get_task_files as get_fns
-from tasks import get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,initvars,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
-from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT
-from noodles.templates import render_to
-from noodles.http import Redirect
 from commands import getstatusoutput as gso
-from multiprocessing import Process
+from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT,METASTATES
+from config_local import WEBAPP_FORCE_IDENTITY
+from noodles.http import Redirect,BaseResponse,Response
+from noodles.templates import render_to
+from tasks import initvars
+import config as cfg
+initvars(cfg)
+from tasks import cre,date_formats,parse_attrs,get_all_journals,get_fns,get_parent_descriptions,get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
+from tasks import index_tasks,loadmeta,org_render,parse_fn,parsegitdate,pushcommit,read_current_metastates,read_journal,render_journal_content
+import codecs
+import copy
 import datetime
-from tasks import loadmeta
-from tasks import parsegitdate
-from tasks import index_tasks
+import orgparse
 import os
 import re
-from config_local import WEBAPP_FORCE_IDENTITY as force_identity
-from config import METASTATES
-import config as cfg
-from noodles.http import BaseResponse
-import copy
-import subprocess
 
-initvars(cfg)
+
+
 def get_admin(r,d):
 
-    if force_identity:
-        return force_identity
+    if WEBAPP_FORCE_IDENTITY:
+        return WEBAPP_FORCE_IDENTITY
     if not r.headers.get('Authorization'):
         return d
         #raise AuthErr('no authorization found')
@@ -47,15 +44,6 @@ def participants(request):
     pts = get_participants(sort=True)
     return {'pts':pts,'request':request}
 
-def get_parent_descriptions(tid):
-    assert tid
-    #print 'getting parent descriptions of %s'%tid
-    #obtain parent descriptions
-    parents = tid.split('/')
-    opar=[]
-    for i in xrange(len(parents)-1): opar.append('/'.join(parents[:i+1]))
-    parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
-    return parents
 
 @render_to('index.html')
 def iterations(request):
@@ -133,6 +121,7 @@ def assignments_mode(request,person,mode):
     rt = asgn(request,person=person,notdone=notdone)
     rt['headline']='Assignments for %s, %s'%(person,mode)
     return rt
+
 def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=None,tag=None):
     notdone=False
     headline=''
@@ -267,26 +256,6 @@ def iteration_commits(request,iteration,branch):
     return {'agg':agg,'it':it,'branch':branch,'repos':repos,'gwu':gwu,'task_data':task_data,'lastcommits':lastcommits,'request':request}
     #raise Exception(metas)
 
-def pushcommit(pth,tid,adm):
-    pts = get_participants()
-    commiter = pts[adm]
-    def push():
-        print 'starting push'
-        st,op = gso('cd %s && git pull && git push'%(DATADIR))
-        if not st % 256==0:
-            print "git push returned %s\n%s"%(st,op)
-            raise Exception('greenlet exception') 
-        print op
-        print 'done push'
-    #push in the background!
-    if not NOCOMMIT:
-        cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
-        print cmd
-        st,op = gso(cmd) ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
-        msg='Updated task %s'%tid
-    if not NOPUSH:
-        p = Process(target=push)
-        p.start()
 
 def rpr(request,task,journal=False,render_only=False):
     t= get_task(task)
@@ -437,81 +406,6 @@ def search(request):
                                 ,query=request.params.get('q'))
     return rt
 
-import codecs
-from tasks import cre
-import orgparse
-from tasks import date_formats,parse_attrs
-
-def read_current_metastates(jfn,metainfo=False):
-    rt={}
-    items = read_journal(jfn)
-    for i in items:
-       for attr,attrv in i['attrs'].items():
-           if metainfo:
-               rt[attr]={'value':attrv,
-                         'updated':i['created at'],
-                         'updated by':i['creator']}
-           else:
-               rt[attr]=attrv
-    return rt
-
-def org_render(ins):
-    proc = subprocess.Popen([os.path.join(os.path.dirname(__file__),'orgmode-render.php')],stdout=subprocess.PIPE,stdin=subprocess.PIPE,stderr=subprocess.STDOUT)
-    inss = ins.encode('utf-8')
-    ops = proc.communicate(input=inss)[0]
-    return ops.decode('utf-8')
-
-def read_journal(jfn,date_limit=None):
-    if jfn:
-        tid = parse_fn(jfn,read=False,gethours=False,getmeta=False)['story']
-    else:
-        tid = None
-    if jfn and os.path.exists(jfn):
-        items=[]
-        root = orgparse.load(jfn)
-        heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {}
-        for node in root[1:]:
-            #print 'NODE',node
-            if node.level==2: 
-                if heading:
-                    #print 'encountered new heading; appending'
-                    #get rid of previous data item
-                    assert unstructured or len(attrs)
-                    apnd = {'tid':tid,
-                            'creator':creator,
-                            'attrs':attrs,
-                            'created at':created,
-                            'content':unstructured.decode('utf-8'),
-                            'rendered_content':org_render(unstructured.decode('utf-8'))}
-                    items.append(apnd)
-                heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {} ; unstructured = '\n'.join(str(node).split('\n')[1:])
-                heading = node.get_heading() 
-                assert heading.startswith('<'),"heading does not contain date: %s"%heading
-                creator = node.tags.pop()
-                created = datetime.datetime.strptime(heading.strip('<>'),date_formats[2])
-                #print 'gotten heading %s , %s'%(creator,created)
-            elif node.level==3 and node.get_heading().lower()=='attributes':
-                attrs = parse_attrs(str(node),jfn,no_tokagg=True)
-                gotattrs=True
-            elif node.level==3 and node.get_heading().lower()=='content':
-                #print 'adding unstructured'
-                unstructured+='\n'.join(str(node).split('\n')[1:])+'\n'
-        apnd = {'tid':tid,
-                'creator':creator,
-                'attrs':attrs,
-                'created at':created,
-                'content':unstructured.decode('utf-8'),
-                'rendered_content':org_render(unstructured.decode('utf-8'))}
-        items.append(apnd)
-        if date_limit: items = [i for i in items if i['created at'].date()==date_limit]
-        return items
-    else:
-        return []
-
-def get_all_journals():
-    cmd = 'find %s -name "journal.org" -type f'%cfg.DATADIR
-    st,op = gso(cmd) ; assert st==0
-    return [fn for fn in op.split('\n') if fn!='']
 
 @render_to('journal.html')
 def global_journal(request,creator=None,day=None,groupby=None):
@@ -561,17 +455,6 @@ def queue(request):
 
     return {'queue':queue,'metastates':METASTATES,'colors':cfg.METASTATES_COLORS,'overrides':cfg.METASTATES_OVERRIDES}
 
-def render_journal_content(user,content,metastates):
-    now = datetime.datetime.now()
-    cnt = """\n** <%s> :%s:\n"""%(now.strftime(date_formats[2]),user)
-    if len(metastates):
-        cnt+="*** Attributes\n"
-        for ms,msv in metastates.items():
-            cnt+="- %s :: %s\n"%(ms,msv)
-    if len(content):
-        cnt+="*** Content\n"
-        cnt+=content.replace('\r','')+'\n'
-    return cnt
 
 @render_to('journal_edit.html')
 def journal_edit(request,task,jid):
