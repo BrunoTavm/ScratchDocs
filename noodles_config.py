@@ -5,8 +5,10 @@ import os
 
 DEBUG = True
 TESTING = True
-AUTO_RELOAD = True
+
 NO_GEVENT_MONKEYPATCH=True
+DONT_USE_GEVENT=True
+AUTO_RELOAD = DONT_USE_GEVENT #only supported by paster
 
 # Specify the server port
 PORT = 8090
