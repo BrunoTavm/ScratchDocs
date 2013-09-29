@@ -153,7 +153,7 @@ def parse_attrs(node,pth,no_tokagg=False):
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
 def parse_story_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     """parse a task filename and optionally read it."""
-    assert len(fn)
+    assert len(fn),"%s empty"%fn
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
     assert len(parts)>1,"%s"%"error parsing %s"%fn
     story = cfg.STORY_SEPARATOR.join(parts[0:-1])

@@ -17,9 +17,10 @@
 % for tid,upd in queue:
 <% cnt+=1 %>
 <tr ${cnt % 2 ==0 and "class='odd'" or ''|n}>
-  <td>${upd.get('last updated') and upd.get('last updated','') or '--'}</td>
+  <td>\
+<a href="${upr}/s/${tid}/j">${upd.get('last updated') and upd.get('last updated','') or '--'}</a></td>
   <td>${upd['assignee']}</td>
-  <td>(<a href="${upr}/s/${tid}/j">j</a>) <a href="${upr}/s/${tid}">${tid}</a></td>
+  <td><a href="${upr}/s/${tid}">${tid}</a></td>
   <td>${upd['summary']}</td>
   <td>${upd['status']}</td>
   % for ms in metastates:

@@ -15,9 +15,15 @@ def get_map():
     urlmap(map, [
 
         (URL_PREFIX+'/', 'controllers#index'),
-        (URL_PREFIX+'/journal', 'controllers#global_journal'),
         (URL_PREFIX+'/q', 'controllers#queue'),
-        (URL_PREFIX+'/journal/by/{creator}', 'controllers#global_journal'),
+
+        (URL_PREFIX+'/journal', 'controllers#global_journal'),
+        (URL_PREFIX+'/journal/filter/creator/{creator}', 'controllers#global_journal'),
+        (URL_PREFIX+'/journal/filter/day/{day}', 'controllers#global_journal'),
+        (URL_PREFIX+'/journal/groupby/{groupby}', 'controllers#global_journal'),
+        (URL_PREFIX+'/journal/filter/day/{day}/groupby/{groupby}', 'controllers#global_journal'),
+        (URL_PREFIX+'/journal/filter/creator/{creator}/groupby/{groupby}', 'controllers#global_journal'),
+
         (URL_PREFIX+'/tl', 'controllers#top_level'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
         (URL_PREFIX+'/participants', 'controllers#participants'),

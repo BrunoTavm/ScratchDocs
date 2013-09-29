@@ -17,6 +17,11 @@ ${ms} <select name='${ms}'>
 </form>
 </%def>
 <%def name="content()">
+<style type='text/css'>
+.journal p {
+display:inline;
+}
+</style>
 % if task:
 ${self.taskmenu()}
 <h2>Journal for ${task['id']}</h2> 
@@ -25,19 +30,30 @@ ${new_entry()}
 
 % else:
 <h2>Global journal</h2>
+[ <a href="${upr}/journal/filter/day/current">today's entries</a> ::
+  <a href="${upr}/journal/filter/creator/${user}">entries by  ${user}</a> ::
+  <a href="${upr}/journal/groupby/creator">grouped by creator</a> ::
+  <a href="${upr}/journal/groupby/tid">grouped by task</a> ::
+  <a href="${upr}/journal/filter/day/current/groupby/creator">today's grouped by creator</a> ]
+  
 % endif
-% for ji in reversed(j):
-<h4>\
-% if not task:
-<a href="${upr}/s/${ji['tid']}">${ji['tid']}</a> - 
+<div class='journal'>
+
+% for jk,jg in j.items():
+<h3>${jk}</h3>
+<ul>
+% for ji in reversed(jg):
+<li>&lt;${ji['created at']}&gt;
+% if not task and groupby!='tid':
+<a href="${upr}/s/${ji['tid']}">${ji['tid']}</a>
 % endif
-${ji['created at']} - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a></h4>
-<dl>
-% for a,v in ji['attrs'].items():
-<dt>${a}</dt>
-<dd>${v}</dd>
+% if groupby!='creator':
+- <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
+% endif
+${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}
+${ji['rendered_content']|n}</li>
 % endfor
-</dl>
-<pre>${ji['rendered_content']|n}</pre>
+</ul>
 % endfor
+</div>
 </%def>

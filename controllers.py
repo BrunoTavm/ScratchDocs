@@ -217,7 +217,7 @@ def iteration_commits(request,iteration,branch):
     it = [it for it in its if it[1]['name']==iteration][0]
     start_date = it[1]['start date']
     end_date = it[1]['end date']
-    print('commits on iteration %s to branch %s'%(iteration,branch))
+    #print('commits on iteration %s to branch %s'%(iteration,branch))
     tf = get_fns(recurse=True)
     metas = [os.path.join(os.path.dirname(t),'meta.json') for t in tf]
     agg={} ; repos=[] ; task_data={} ; lastcommits={}
@@ -231,12 +231,12 @@ def iteration_commits(request,iteration,branch):
 
         for br,stmp in blc.items():
             if  '/' not in br:
-                print "%s has no /"%(br)
+                #print "%s has no /"%(br)
                 continue
             try:
                 repo,br = br.split('/')
             except ValueError:
-                print '%s has too many /'%(br)
+                #print '%s has too many /'%(br)
                 continue
             stmp = parsegitdate(stmp)
             if not (stmp.date()>=start_date.date() and stmp.date()<=end_date.date()):
@@ -461,7 +461,7 @@ def org_render(ins):
     ops = proc.communicate(input=inss)[0]
     return ops.decode('utf-8')
 
-def read_journal(jfn):
+def read_journal(jfn,date_limit=None):
     if jfn:
         tid = parse_fn(jfn,read=False,gethours=False,getmeta=False)['story']
     else:
@@ -471,10 +471,10 @@ def read_journal(jfn):
         root = orgparse.load(jfn)
         heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {}
         for node in root[1:]:
-            print 'NODE',node
+            #print 'NODE',node
             if node.level==2: 
                 if heading:
-                    print 'encountered new heading; appending'
+                    #print 'encountered new heading; appending'
                     #get rid of previous data item
                     assert unstructured or len(attrs)
                     apnd = {'tid':tid,
@@ -489,12 +489,12 @@ def read_journal(jfn):
                 assert heading.startswith('<'),"heading does not contain date: %s"%heading
                 creator = node.tags.pop()
                 created = datetime.datetime.strptime(heading.strip('<>'),date_formats[2])
-                print 'gotten heading %s , %s'%(creator,created)
+                #print 'gotten heading %s , %s'%(creator,created)
             elif node.level==3 and node.get_heading().lower()=='attributes':
                 attrs = parse_attrs(str(node),jfn,no_tokagg=True)
                 gotattrs=True
             elif node.level==3 and node.get_heading().lower()=='content':
-                print 'adding unstructured'
+                #print 'adding unstructured'
                 unstructured+='\n'.join(str(node).split('\n')[1:])+'\n'
         apnd = {'tid':tid,
                 'creator':creator,
@@ -503,7 +503,7 @@ def read_journal(jfn):
                 'content':unstructured.decode('utf-8'),
                 'rendered_content':org_render(unstructured.decode('utf-8'))}
         items.append(apnd)
-        print items
+        if date_limit: items = [i for i in items if i['created at'].date()==date_limit]
         return items
     else:
         return []
@@ -511,26 +511,43 @@ def read_journal(jfn):
 def get_all_journals():
     cmd = 'find %s -name "journal.org" -type f'%cfg.DATADIR
     st,op = gso(cmd) ; assert st==0
-    return op.split('\n')
+    return [fn for fn in op.split('\n') if fn!='']
 
 @render_to('journal.html')
-def global_journal(request,creator=None):
+def global_journal(request,creator=None,day=None,groupby=None):
+    adm = get_admin(request,'unknown')
     ai = []
+    if day=='current': 
+        day=datetime.datetime.now().strftime('%Y-%m-%d')
+    if day:
+        day = datetime.datetime.strptime(day,'%Y-%m-%d').date()
     for jfn in get_all_journals():
-        ji = read_journal(jfn)
+        ji = read_journal(jfn,date_limit=day)
         if creator: ji = [i for i in ji if i['creator']==creator]
         ai+=ji
     ai.sort(lambda x1,x2: cmp(x1['created at'],x2['created at']))
-    return {'j':ai,'task':None}
+    if groupby:
+        rt={}
+        for i in ai:
+            assert groupby in i
+            k = 'entries by %s'%i[groupby]
+            if k not in rt: 
+                rt[k]=[]
+            rt[k].append(i)
+        return {'j':rt,'task':None,'groupby':groupby,'user':adm}
+    else:
+        return {'j':{'all':ai},'task':None,'grouby':None,'user':adm}
 
 @render_to('queue.html')
 def queue(request):
     queue={}
     for jfn in get_all_journals():
+        #print 'working journal %s'%jfn
         tfn = jfn.replace('journal.org','task.org')
+        #print 'getting %s'%tfn
         t = parse_fn(tfn,read=True,gethours=False,getmeta=False)
         tid = t['story']
-        print t
+        #print t
         assert t.get('status'),"could not get status for %s"%tid
         cm = read_current_metastates(jfn,True)
         lupd = sorted(cm.values(),lambda x1,x2: cmp(x1['updated'],x2['updated']),reverse=True)
@@ -591,7 +608,7 @@ def journal(request,task):
     t = get_task(task)
     jfn = t['jpath']
     jitems = read_journal(jfn)
-    return {'task':t,'j':jitems,'metastates':METASTATES}
+    return {'task':t,'j':{'%s entries'%t['id']:jitems},'metastates':METASTATES}
 
 @render_to('task_history.html')
 def history(request,task):
