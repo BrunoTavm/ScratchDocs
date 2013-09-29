@@ -32,7 +32,23 @@ METASTATES={
     'functional review':('needed','doing','failed','passed'),
     'code review':('needed','doing','failed','passed'),
     'tests passage':('no','random fails','100%'),
+    'merge to staging':('pending','merged'),
     }
+METASTATES_COLORS={
+    'needed':'orange',
+    'doing':'yellow',
+    'failed':'red',
+    'passed':'green',
+    'no':'grey',
+    'random fails':'orange',
+    '100%':'green',
+    'pending':'red',
+    'merged':'green',
+    '':'white'
+    }
+METASTATES_OVERRIDES={
+    'merged':"""upd['fullstates'].get(ms,'')['updated']"""
+}
 from noodles_config import *
 from config_local import *
 import os

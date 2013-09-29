@@ -5,7 +5,8 @@ import os
 
 DEBUG = True
 TESTING = True
-AUTO_RELOAD = False
+AUTO_RELOAD = True
+NO_GEVENT_MONKEYPATCH=True
 
 # Specify the server port
 PORT = 8090

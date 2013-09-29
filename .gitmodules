@@ -4,3 +4,6 @@
 [submodule "noodles"]
 	path = noodles
 	url = git.ezscratch.com:/NoodlesFramework.git
+[submodule "orgile"]
+	path = orgile
+	url = https://github.com/mashdot/orgile

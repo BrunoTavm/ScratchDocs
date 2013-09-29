@@ -24,7 +24,7 @@ from config import METASTATES
 import config as cfg
 from noodles.http import BaseResponse
 import copy
-
+import subprocess
 
 initvars(cfg)
 def get_admin(r,d):
@@ -455,6 +455,12 @@ def read_current_metastates(jfn,metainfo=False):
                rt[attr]=attrv
     return rt
 
+def org_render(ins):
+    proc = subprocess.Popen([os.path.join(os.path.dirname(__file__),'orgmode-render.php')],stdout=subprocess.PIPE,stdin=subprocess.PIPE,stderr=subprocess.STDOUT)
+    inss = ins.encode('utf-8')
+    ops = proc.communicate(input=inss)[0]
+    return ops.decode('utf-8')
+
 def read_journal(jfn):
     if jfn:
         tid = parse_fn(jfn,read=False,gethours=False,getmeta=False)['story']
@@ -475,7 +481,8 @@ def read_journal(jfn):
                             'creator':creator,
                             'attrs':attrs,
                             'created at':created,
-                            'content':unstructured.decode('utf-8')}
+                            'content':unstructured.decode('utf-8'),
+                            'rendered_content':org_render(unstructured.decode('utf-8'))}
                     items.append(apnd)
                 heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {} ; unstructured = '\n'.join(str(node).split('\n')[1:])
                 heading = node.get_heading() 
@@ -493,7 +500,8 @@ def read_journal(jfn):
                 'creator':creator,
                 'attrs':attrs,
                 'created at':created,
-                'content':unstructured.decode('utf-8')}
+                'content':unstructured.decode('utf-8'),
+                'rendered_content':org_render(unstructured.decode('utf-8'))}
         items.append(apnd)
         print items
         return items
@@ -528,11 +536,13 @@ def queue(request):
         lupd = sorted(cm.values(),lambda x1,x2: cmp(x1['updated'],x2['updated']),reverse=True)
         if len(lupd): lupd=lupd[0]['updated']
         else: lupd=None
-        queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),'last updated':lupd,'status':t['status']}
+        queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),'fullstates':cm,'last updated':lupd,'status':t['status'],'summary':t['summary'],'assignee':t['assigned to']}
         
     queue = queue.items()
     queue.sort(lambda x1,x2: cmp((x1[1]['last updated'] and x1[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1)),(x2[1]['last updated'] and x2[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1))),reverse=True)
-    return {'queue':queue,'metastates':METASTATES}
+
+
+    return {'queue':queue,'metastates':METASTATES,'colors':cfg.METASTATES_COLORS,'overrides':cfg.METASTATES_OVERRIDES}
 
 def render_journal_content(user,content,metastates):
     now = datetime.datetime.now()
@@ -548,6 +558,7 @@ def render_journal_content(user,content,metastates):
 
 @render_to('journal_edit.html')
 def journal_edit(request,task,jid):
+    adm = get_admin(request,'unknown')
     t = get_task(task)
     jfn = t['jpath']
     if request.method=='POST':
@@ -566,6 +577,7 @@ def journal_edit(request,task,jid):
         fp = codecs.open(jfn,'a',encoding='utf-8')
         fp.write(apnd)
         fp.close()
+        pushcommit(jfn,t['id'],adm)
         redir = '/'+URL_PREFIX+'s/'+task+'/j'
         rd = Redirect(redir)
         return rd

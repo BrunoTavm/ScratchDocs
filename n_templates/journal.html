@@ -13,7 +13,7 @@ ${ms} <select name='${ms}'>
 % endfor
 <h3>content</h3>
 <textarea class='content' name='content'></textarea>
-<input type='submit' />
+<input accesskey='a' type='submit' />
 </form>
 </%def>
 <%def name="content()">
@@ -38,6 +38,6 @@ ${ji['created at']} - <a href="${upr}/assignments/${ji['creator']}">${ji['creato
 <dd>${v}</dd>
 % endfor
 </dl>
-<pre>${ji['content']|n}</pre>
+<pre>${ji['rendered_content']|n}</pre>
 % endfor
 </%def>
