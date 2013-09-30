@@ -440,14 +440,30 @@ def queue(request):
         tfn = jfn.replace('journal.org','task.org')
         #print 'getting %s'%tfn
         t = parse_fn(tfn,read=True,gethours=False,getmeta=False)
+        if t['status'] in ['DONE','CANCELLED']: continue
         tid = t['story']
         #print t
         assert t.get('status'),"could not get status for %s"%tid
         cm = read_current_metastates(jfn,True)
+        jitems = read_journal(jfn)
         lupd = sorted(cm.values(),lambda x1,x2: cmp(x1['updated'],x2['updated']),reverse=True)
         if len(lupd): lupd=lupd[0]['updated']
         else: lupd=None
-        queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),'fullstates':cm,'last updated':lupd,'status':t['status'],'summary':t['summary'],'assignee':t['assigned to']}
+        #any journal update takes precedence
+        if len(jitems):
+            jlupd = jitems[-1]['created at']
+            if not lupd or jlupd >=lupd:
+                lupd = jlupd
+
+        queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),
+                    'fullstates':cm,
+                    'last updated':lupd,
+                    'status':t['status'],
+                    'summary':t['summary'],
+                    'assignee':t['assigned to'],
+                    'merge':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc'],
+                    'job':[l['url'] for l in t.get('links',[]) if l['anchor']=='job'],
+                    'specs':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc']}
         
     queue = queue.items()
     queue.sort(lambda x1,x2: cmp((x1[1]['last updated'] and x1[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1)),(x2[1]['last updated'] and x2[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1))),reverse=True)
@@ -491,7 +507,7 @@ def journal(request,task):
     t = get_task(task)
     jfn = t['jpath']
     jitems = read_journal(jfn)
-    return {'task':t,'j':{'%s entries'%t['id']:jitems},'metastates':METASTATES}
+    return {'task':t,'j':{'%s existing entries'%t['id']:jitems},'metastates':METASTATES}
 
 @render_to('task_history.html')
 def history(request,task):
