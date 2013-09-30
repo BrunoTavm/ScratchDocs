@@ -380,7 +380,7 @@ def task(request,task):
     prt = [r[0] for r in get_participants(sort=True)]
     if task!='new': index_tasks(t['id'])
     metastates = read_current_metastates(t['jpath'])
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents,'request':request,'metastates':metastates}
+    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents,'request':request,'metastates':metastates,'colors':cfg.METASTATES_COLORS,'overrides':cfg.METASTATES_OVERRIDES}
 
 @render_to('tags.html')
 def tags(request):

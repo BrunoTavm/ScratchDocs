@@ -1681,7 +1681,7 @@ def pushcommit(pth,tid,adm):
     commiter = pts[adm]
     def push():
         print 'starting push'
-        st,op = gso('cd %s && git pull && git push'%(DATADIR))
+        st,op = gso('cd %s && git pull && git push'%(cfg.DATADIR))
         if not st % 256==0:
             print "git push returned %s\n%s"%(st,op)
             raise Exception('greenlet exception') 
@@ -1689,7 +1689,7 @@ def pushcommit(pth,tid,adm):
         print 'done push'
     #push in the background!
     if not cfg.NOCOMMIT:
-        cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
+        cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(cfg.DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
         print cmd
         st,op = gso(cmd) ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
         msg='Updated task %s'%tid
