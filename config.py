@@ -31,7 +31,7 @@ def COMMITERMAP(em,nm):
 METASTATES={
     'functional review':('needed','doing','failed','passed'),
     'code review':('needed','doing','failed','passed'),
-    'tests passage':('no','random fails','100%'),
+    'tests passage':('no','building','random fails','100%'),
     'merge to staging':('pending','merged'),
     }
 METASTATES_COLORS={

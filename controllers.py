@@ -440,7 +440,7 @@ def queue(request):
         tfn = jfn.replace('journal.org','task.org')
         #print 'getting %s'%tfn
         t = parse_fn(tfn,read=True,gethours=False,getmeta=False)
-        if t['status'] in ['DONE','CANCELLED']: continue
+        if t['status'] in ['DONE','CANCELLED','POSTPONED']: continue
         tid = t['story']
         #print t
         assert t.get('status'),"could not get status for %s"%tid
