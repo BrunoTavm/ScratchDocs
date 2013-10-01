@@ -41,13 +41,14 @@ METASTATES_COLORS={
     'passed':'green',
     'no':'grey',
     'random fails':'orange',
+    'building':'orange',
     '100%':'green',
     'pending':'red',
     'merged':'green',
     '':'white'
     }
 METASTATES_OVERRIDES={
-    'merged':"""upd['fullstates'].get(ms,'')['updated']"""
+    'merged':"""fullstates.get(k) and fullstates.get(k).get('updated') or ''"""
 }
 from noodles_config import *
 from config_local import *

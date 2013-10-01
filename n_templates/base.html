@@ -43,6 +43,19 @@ color:black;
 text-decoration:none;
 }
 </style>
+<script type='text/javascript' src='${upr}/zepto.min.js'></script>
+<script type='text/javascript'>
+$(function() {
+$('.metastate-sel').on('change',function(ev) {
+var k = ev.target.name;
+var v = ev.target.value;
+if (!v) { alert('setting empty value is forbidden.');ev.preventDefault(); return; } 
+$.post("${upr}/metastate-set",{k:k,v:v},function (resp) {
+if (!resp.status || resp.status!='ok') alert('error updating!\n'+resp);
+},'json');
+});
+});
+</script>
 </head>
 <body>
   <a accesskey="h" href="${upr}/"><b>h</b>ome</a> :: \
@@ -59,6 +72,22 @@ text-decoration:none;
   ${self.content()}
 </body>
 </html>
+<%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False)">
+<select \
+        class='metastate-sel' \
+        name='metastate-${tid}-${k}' \
+        style='background-color:${colors.get(v)}' \
+        onchange="this.style.backgroundColor=this.options[this.selectedIndex].style.backgroundColor"
+>
+<% empties = ['',None] %>
+% for pm in (allow_empty and (possible_metastates[k]+('',)) or possible_metastates[k]):
+<option style='background-color:${colors.get(pm)}' value="${pm}"
+        ${(pm==v or (pm in empties and v in empties))  and 'selected' or ''}>\
+<% print pm,overrides.get(pm) %>
+  ${(pm in overrides and eval(overrides[pm]) or pm)}</option>
+% endfor
+</select>
+</%def>
 <%def name="list_tasks(tasks,header=True,body=True,footer=True,cnt={'cnt':0})">
 % if header:
 <table class='taskslist'>

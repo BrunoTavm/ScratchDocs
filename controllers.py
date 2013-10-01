@@ -8,13 +8,13 @@ from noodles.http import Response
 from commands import getstatusoutput as gso
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT,METASTATES
 from config_local import WEBAPP_FORCE_IDENTITY
-from noodles.http import Redirect,BaseResponse,Response
+from noodles.http import Redirect,BaseResponse,Response,ajax_response
 from noodles.templates import render_to
 from tasks import initvars
 import config as cfg
 initvars(cfg)
 from tasks import cre,date_formats,parse_attrs,get_all_journals,get_fns,get_parent_descriptions,get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
-from tasks import index_tasks,loadmeta,org_render,parse_fn,parsegitdate,pushcommit,read_current_metastates,read_journal,render_journal_content
+from tasks import index_tasks,loadmeta,org_render,parse_fn,parsegitdate,pushcommit,read_current_metastates,read_journal,render_journal_content,append_journal_entry
 import codecs
 import copy
 import datetime
@@ -379,8 +379,21 @@ def task(request,task):
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
     if task!='new': index_tasks(t['id'])
-    metastates = read_current_metastates(t['jpath'])
-    return {'task':t,'gwu':gwu,'url':RENDER_URL,'statuses':STATUSES,'participants':prt,'msg':msg,'children':ch,'repos':repos,'parents':parents,'request':request,'metastates':metastates,'colors':cfg.METASTATES_COLORS,'overrides':cfg.METASTATES_OVERRIDES}
+    metastates = read_current_metastates(t['jpath'],True)
+    return {'task':t,
+            'gwu':gwu,
+            'url':RENDER_URL,
+            'statuses':STATUSES,
+            'participants':prt,
+            'msg':msg,
+            'children':ch,
+            'repos':repos,
+            'parents':parents,
+            'request':request,
+            'metastates':metastates,
+            'possible_metastates':cfg.METASTATES,
+            'colors':cfg.METASTATES_COLORS,
+            'overrides':cfg.METASTATES_OVERRIDES}
 
 @render_to('tags.html')
 def tags(request):
@@ -463,37 +476,32 @@ def queue(request):
                     'assignee':t['assigned to'],
                     'merge':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc'],
                     'job':[l['url'] for l in t.get('links',[]) if l['anchor']=='job'],
-                    'specs':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc']}
+                    'specs':[l['url'] for l in t.get('links',[]) if l['anchor']=='specs']}
         
     queue = queue.items()
     queue.sort(lambda x1,x2: cmp((x1[1]['last updated'] and x1[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1)),(x2[1]['last updated'] and x2[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1))),reverse=True)
 
 
-    return {'queue':queue,'metastates':METASTATES,'colors':cfg.METASTATES_COLORS,'overrides':cfg.METASTATES_OVERRIDES}
+    return {'queue':queue,
+            'metastates':METASTATES,
+            'colors':cfg.METASTATES_COLORS,
+            'overrides':cfg.METASTATES_OVERRIDES}
+
 
 
 @render_to('journal_edit.html')
 def journal_edit(request,task,jid):
     adm = get_admin(request,'unknown')
     t = get_task(task)
-    jfn = t['jpath']
     if request.method=='POST':
         metastates={}
         for ms,msvals in METASTATES.items():
             msv = request.params.get(ms)
             if msv and msv in msvals:
                 metastates[ms]=msv
-        
-        assert len(metastates) or len(request.params.get('content'))
+       
+        append_journal_entry(t,adm,request.params.get('content'),metastates)
 
-        if not os.path.exists(jfn): #put a header in it
-            open(jfn,'a').write('#+OPTIONS: toc:nil        (no default TOC at all)\n#+STARTUP:showeverything')
-
-        apnd = render_journal_content(get_admin(request,'unknown'),request.params.get('content'),metastates)
-        fp = codecs.open(jfn,'a',encoding='utf-8')
-        fp.write(apnd)
-        fp.close()
-        pushcommit(jfn,t['id'],adm)
         redir = '/'+URL_PREFIX+'s/'+task+'/j'
         rd = Redirect(redir)
         return rd
@@ -522,10 +530,27 @@ def history(request,task):
     rt = {'op':op,'task':t,'request':request}
     return rt
 
+@ajax_response
+def metastate_set(request):
+    k = request.params.get('k')
+    v = request.params.get('v')
+    _,tid,msk = k.split('-')
+    t = get_task(tid)
+    adm = get_admin(request,'unknown')
+    print 'setting %s.%s = %s'%(tid,msk,v)
+    append_journal_entry(t,adm,'',{msk:v})
+    return {'status':'ok'}
 
 def favicon(request):
     response = BaseResponse()
     response.headerlist=[('Content-Type', 'image/x-icon')]
     f = open('sd/favicon.ico').read()
+    response.body = f
+    return response
+
+def zepto(request):
+    response = BaseResponse()
+    response.headerlist=[('Content-Type', 'application/javascript')]
+    f = open('sd/zepto.min.js').read()
     response.body = f
     return response

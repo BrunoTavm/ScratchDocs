@@ -23,6 +23,7 @@ def get_map():
         (URL_PREFIX+'/journal/groupby/{groupby}', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/filter/day/{day}/groupby/{groupby}', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/filter/creator/{creator}/groupby/{groupby}', 'controllers#global_journal'),
+        (URL_PREFIX+'/metastate-set','controllers#metastate_set'),
 
         (URL_PREFIX+'/tl', 'controllers#top_level'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
@@ -45,7 +46,8 @@ def get_map():
 
         (URL_PREFIX+'/repr/{task:.*}','controllers#rpr'),
         (URL_PREFIX+'/search','controllers#search'),
-        ('/favicon.ico', 'controllers#favicon')
+        ('/favicon.ico', 'controllers#favicon'),
+        ('/zepto.min.js', 'controllers#zepto')
     ])
 
     return map

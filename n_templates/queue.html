@@ -32,11 +32,9 @@
   <td>${upd['summary']}</td>
   <td>${upd['status']}</td>
   % for ms in metastates:
-  <td \
-% if upd['states'].get(ms) in colors:
-style='background-color:${colors[upd['states'].get(ms,'')]}'\
-% endif
->${upd['states'].get(ms) in overrides and eval(overrides[upd['states'].get(ms)]) or upd['states'].get(ms,'')}</td>
+  <td>
+    ${self.metastate_sel(tid,ms,upd['states'].get(ms),colors,metastates,overrides,upd['fullstates'],allow_empty=True)}
+  </td>
   % endfor
 </tr>
 % endfor

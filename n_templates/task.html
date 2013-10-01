@@ -56,7 +56,12 @@ ${taskmenu()}
 ${self.sel('status',statuses,task['status'],attr='accesskey="t"')}
 </dd>
 <dt>metastates</dt>
-<dd>${'; '.join([k+": "+v for k,v in metastates.items()])}</dd>
+<dd>
+% for k,v in metastates.items():
+${k}: 
+${self.metastate_sel(task['story'],k,v.get('value'),colors,possible_metastates,overrides,metastates)}
+<br />
+% endfor
 <dt>assignee</dt>
 <dd><a href="${upr}/assignments/${task['assigned to']}">${task['assigned to']}</a> ;
 change to ${self.sel('assignee',participants,task['assigned to'])}

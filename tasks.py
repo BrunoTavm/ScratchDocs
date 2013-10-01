@@ -1779,3 +1779,19 @@ def render_journal_content(user,content,metastates):
         cnt+="*** Content\n"
         cnt+=content.replace('\r','')+'\n'
     return cnt
+
+def append_journal_entry(task,adm,content,metastates={}):
+    assert len(metastates) or len(content)
+    for k,v in metastates.items():
+        assert k in cfg.METASTATES,"%s not in metastates"%k
+        assert v in cfg.METASTATES[k]
+    tid = task['id']
+    jfn = task['jpath']
+    if not os.path.exists(jfn): #put a header in it
+        open(jfn,'a').write('#+OPTIONS: toc:nil        (no default TOC at all)\n#+STARTUP:showeverything')
+
+    apnd = render_journal_content(adm,content,metastates)
+    fp = codecs.open(jfn,'a',encoding='utf-8')
+    fp.write(apnd)
+    fp.close()
+    pushcommit(jfn,tid,adm)
