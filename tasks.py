@@ -927,7 +927,7 @@ def get_changes(show=False,add_notifications=False):
                         tag_inter = pfn['tags'].intersection(ttags)
                         if len(tag_inter):
                             if twhom not in whoms: 
-                                print 'notifying %s over tag subscription %s'%(twhom,tag_inter)
+                                #print 'notifying %s over tag subscription %s'%(twhom,tag_inter)
                                 whoms.append(twhom)
 
                     for whom in whoms:
