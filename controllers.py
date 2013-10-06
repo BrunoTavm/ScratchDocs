@@ -10,11 +10,12 @@ from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT,METAST
 from config_local import WEBAPP_FORCE_IDENTITY
 from noodles.http import Redirect,BaseResponse,Response,ajax_response
 from noodles.templates import render_to
-from tasks import initvars
+from docs import initvars
 import config as cfg
 initvars(cfg)
-from tasks import cre,date_formats,parse_attrs,get_all_journals,get_fns,get_parent_descriptions,get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
-from tasks import index_tasks,loadmeta,org_render,parse_fn,parsegitdate,pushcommit,read_current_metastates,read_journal,render_journal_content,append_journal_entry
+from docs import cre,date_formats,parse_attrs,get_all_journals,get_fns,get_parent_descriptions,get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
+from docs import index_tasks,loadmeta,org_render,parse_fn,parsegitdate,read_current_metastates,read_journal,render_journal_content,append_journal_entry
+from tasks import pushcommit
 import codecs
 import copy
 import datetime
@@ -283,7 +284,7 @@ def task(request,task):
     msg=None
     adm = get_admin(request,'unknown')
     
-    repos = [r['Name'] for r in get_table_contents('repos.org')]
+    repos = [r['Name'] for r in get_table_contents(os.path.join(cfg.DATADIR,'repos.org'))]
 
     tags=[] ; links=[] ; informed=[] ; repobranch=[]
     for k,v in request.params.items():
@@ -342,7 +343,7 @@ def task(request,task):
         rewrite(tid,o_params,safe=False)
         t = get_task(tid,flush=True)
         t = get_task(tid,flush=True) #for the flush
-        pushcommit(t['path'],request.params.get('id'),adm)
+        pushcommit.delay(t['path'],request.params.get('id'),adm)
 
     if request.params.get('create'):
         o_params = {'summary':request.params.get('summary'),

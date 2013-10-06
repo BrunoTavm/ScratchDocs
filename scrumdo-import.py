@@ -5,7 +5,7 @@ import config as cfg
 import codecs
 import os
 from mako.template import Template
-from tasks import get_task,render
+from docs import get_task,render
 import sys
 
 usermap = {'andysnagovsky':'andrey_s',

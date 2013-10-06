@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from tasks import *
+from docs import *
 
 
 def upgrade_meta():

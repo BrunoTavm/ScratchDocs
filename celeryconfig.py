@@ -1,0 +1,2 @@
+BROKER_URL='redis://localhost'
+CELERYD_CONCURRENCY=1

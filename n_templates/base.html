@@ -83,7 +83,6 @@ if (!resp.status || resp.status!='ok') alert('error updating!\n'+resp);
 % for pm in (allow_empty and (possible_metastates[k]+('',)) or possible_metastates[k]):
 <option style='background-color:${colors.get(pm)}' value="${pm}"
         ${(pm==v or (pm in empties and v in empties))  and 'selected' or ''}>\
-<% print pm,overrides.get(pm) %>
   ${(pm in overrides and eval(overrides[pm]) or pm)}</option>
 % endfor
 </select>
