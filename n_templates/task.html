@@ -12,7 +12,7 @@ selected=1 \
 </%def>
 <%def name="taskmenu()">
 <h2>Task ${task['story']}</h2>
-[ <a href="${upr}/s/${task['story']}">summary</a> ::
+[ <a href="${upr}/s/${task['story']}" accesskey="m">su<b>m</b>mary</a> ::
 <a href="${upr}/s/${task['story']}/log"
    accesskey='i'>h<b>i</b>story</a> :: 
 <a href="${upr}/s/${task['story']}/j"
@@ -96,12 +96,41 @@ change to ${self.sel('assignee',participants,task['assigned to'])}
 % if task.get('repobranch'):
 <dt>repo/branch</dt>
 <dd>
-<ul>
+<table>
+<thead><tr>
+  <th>del</th>
+  <th>repo/branch</th>
+  % for db in diff_branches:
+  <th>${db}</th>
+  % endfor
+</tr></thead>
 % for br in task.get('repobranch'):
+<tr>
 <% r,b = br.split('/') %>
-<li><input type='checkbox' name="repobranch-${br|h}" value="1" checked=1 /><a href="${gwu}?p=${r}.git;a=shortlog;h=refs/heads/${b}">${r}/${b}</a></li>
+<td><input type='checkbox' \
+           name="repobranch-${br|h}" \
+           value="1" \
+           checked=1 /></td>
+<td><a href="${gwu}?p=${r}.git;a=shortlog;h=refs/heads/${b}">\
+    ${r}/${b}</a></td>
+% for db in diff_branches:
+<td><a href="${gwu}?p=${r}.git;a=commitdiff;h=refs/heads/${b};hp=${db}">${db}</a></td>
 % endfor
-</ul>
+</tr>
+% endfor
+</table>
+</dd>
+
+<dt>automerge</dt>
+<dd>
+<pre>
+<% defr = task.get('repobranch')[0].split('/')[1] %>\
+./automerge.py \
+--from=${defr} \
+--purge --linters \
+--message='#${task['id']}: automerge.' \
+${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.get('repobranch')])} \
+</pre>
 </dd>
 % endif
 

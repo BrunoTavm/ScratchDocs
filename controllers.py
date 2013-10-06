@@ -393,7 +393,8 @@ def task(request,task):
             'metastates':metastates,
             'possible_metastates':cfg.METASTATES,
             'colors':cfg.METASTATES_COLORS,
-            'overrides':cfg.METASTATES_OVERRIDES}
+            'overrides':cfg.METASTATES_OVERRIDES,
+            'diff_branches':cfg.DIFF_BRANCHES}
 
 @render_to('tags.html')
 def tags(request):
