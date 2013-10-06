@@ -19,9 +19,9 @@
 <tr ${col % 2 == 0 and 'class="odd"' or ''}>
   <td>
 % if onstaging:
-<b><a href="/s/${t}">${t}</a></b>
+<b><a href="/${t}">${t}</a></b>
 % else:
-<a href="/s/${t}">${t}</a>
+<a href="/${t}">${t}</a>
 % endif
 </td>
   <td style='min-width:85px'>

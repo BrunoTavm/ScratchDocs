@@ -12,15 +12,15 @@ selected=1 \
 </%def>
 <%def name="taskmenu()">
 <h2>Task ${task['story']}</h2>
-[ <a href="${upr}/s/${task['story']}" accesskey="m">su<b>m</b>mary</a> ::
-<a href="${upr}/s/${task['story']}/log"
+[ <a href="${upr}/${task['story']}" accesskey="m">su<b>m</b>mary</a> ::
+<a href="${upr}/${task['story']}/log"
    accesskey='i'>h<b>i</b>story</a> :: 
-<a href="${upr}/s/${task['story']}/j"
+<a href="${upr}/${task['story']}/j"
    accesskey='j'><b>j</b>ournal</a> ]
 
 :: <a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a> :: \
 % if '/' in task['story']:
-<a href="${upr}/s/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
+<a href="${upr}/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a> :: \
 % endif
 <hr />
 </%def>
@@ -38,7 +38,7 @@ ${taskmenu()}
 <input type='hidden' name='id' value="${task['story']}" />
 <dl>
 % for pid,psum in parents:
-<a title="${pid}" href="${upr}/s/${pid}">${psum}</a> &#8250;
+<a title="${pid}" href="${upr}/${pid}">${psum}</a> &#8250;
 % endfor
 <dt>Summary</dt>
 <dd><input id='summary' class='summary' type='text' name="summary" value="${task['summary']|h}" /></dd>
@@ -200,7 +200,7 @@ document.getElementById('showtog').onclick = function(ev) {
 		contel.style.display='none';
             }
 	}
-	x.open("GET",location.href.replace('/s/','/repr/'),true);
+	x.open("GET",location.href.replace(location.pathname,'/repr'+location.pathname),true);
 	x.send(null);
 
 	togel.innerHTML='edit';

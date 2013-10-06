@@ -44,7 +44,7 @@ ${new_entry()}
 % for ji in reversed(jg):
 <li>&lt;${ji['created at']}&gt;
 % if not task and groupby!='tid':
-<a href="${upr}/s/${ji['tid']}">${ji['tid']}</a>
+<a href="${upr}/${ji['tid']}">${ji['tid']}</a>
 % endif
 % if groupby!='creator':
 - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 

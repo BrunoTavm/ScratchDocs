@@ -356,7 +356,7 @@ def task(request,task):
         else:
             parent=None
         rt = add_task(parent=parent,params=o_params,tags=tags)
-        redir = '/'+URL_PREFIX+'s/'+rt['id']
+        redir = '/'+URL_PREFIX+rt['id']
         pushcommit(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)
@@ -503,7 +503,7 @@ def journal_edit(request,task,jid):
        
         append_journal_entry(t,adm,request.params.get('content'),metastates)
 
-        redir = '/'+URL_PREFIX+'s/'+task+'/j'
+        redir = '/'+URL_PREFIX+task+'/j'
         rd = Redirect(redir)
         return rd
 

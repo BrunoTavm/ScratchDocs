@@ -2,7 +2,7 @@
 ** Task change ${t['story']} notification
 *** Details
 Dear ${recipient['Name']},
-A task which you relate to, [[${url+'s/'+t['story']}][${t['story']}]], has been modified in commit [[${gitweb}?p=${docsrepo};a=commitdiff;h=${commit}][${commit}]] by ${body.get('author')}.
+A task which you relate to, [[${url+t['story']}][${t['story']}]], has been modified in commit [[${gitweb}?p=${docsrepo};a=commitdiff;h=${commit}][${commit}]] by ${body.get('author')}.
 - status :: ${t['status']}
 - summary :: ${t['summary']}
 *** Change

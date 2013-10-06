@@ -19,7 +19,7 @@
 <% cnt+=1 %>
 <tr ${cnt % 2 ==0 and "class='odd'" or ''|n}>
   <td>\
-<a href="${upr}/s/${tid}/j">${upd.get('last updated') and  upd.get('last updated','') or '--'}</a></td>
+<a href="${upr}/${tid}/j">${upd.get('last updated') and  upd.get('last updated','') or '--'}</a></td>
   <td>
     % for item in ['specs','merge','job']:
     % if item in upd and len(upd[item]):
@@ -28,7 +28,7 @@
     % endfor
   </td>
   <td>${upd['assignee']}</td>
-  <td><a href="${upr}/s/${tid}">${tid}</a></td>
+  <td><a href="${upr}/${tid}">${tid}</a></td>
   <td>${upd['summary']}</td>
   <td>${upd['status']}</td>
   % for ms in metastates:

@@ -1,6 +1,6 @@
 <%inherit file="/task.html" />
 <%def name="content()">
 ${self.taskmenu()}
-<h2>History for <a href="${upr}/s/${task['id']}">${task['id']}</a></h2> 
+<h2>History for <a href="${upr}/${task['id']}">${task['id']}</a></h2> 
 <pre>${op|n}</pre>
 </%def>
