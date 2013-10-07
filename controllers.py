@@ -400,7 +400,7 @@ def task(request,task):
 @render_to('tags.html')
 def tags(request):
     st,op = gso('find %s -type l -exec dirname {} \; | sort | uniq -c | sort -n -r'%os.path.join(cfg.DATADIR,'tagged')) ; assert st==0
-    tags = [[e.strip().replace('tagged/','') for e in t.split(' ./')] for t in op.split('\n')]
+    tags = [[os.path.basename(e.strip()) for e in t.strip().split(' ')] for t in op.split('\n')]
     rt = {'tags':tags}
     return rt
 @render_to('iteration.html')
