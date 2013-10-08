@@ -2,7 +2,6 @@
 # coding=utf-8
 import argparse
 
-from commands import getstatusoutput as gso
 from prettytable import PrettyTable
 import os
 from mako.template import Template
@@ -16,6 +15,30 @@ import json
 import tempfile
 import time
 import subprocess
+import shlex
+
+def org_render(ins):
+    proc = subprocess.Popen([os.path.join(os.path.dirname(__file__),'orgmode-render.php')],
+                            stdout=subprocess.PIPE,
+                            stdin=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            close_fds=True)
+    inss = ins.encode('utf-8')
+    ops = proc.communicate(input=inss)[0]
+    return ops.decode('utf-8')
+
+def gso(cmd,close_fds=True,shell=False,executable=None):
+    if type(cmd)==list:
+        spl = cmd
+    else:
+        spl = shlex.split(cmd) #; spl[0]+='sadf'
+    p = subprocess.Popen(spl,
+                         stdout=subprocess.PIPE,
+                         close_fds=close_fds,
+                         shell=shell,
+                         executable=executable)
+    out, err = p.communicate()
+    return p.returncode,out
 
 
 def load_templates():
@@ -1689,11 +1712,6 @@ def read_current_metastates(jfn,metainfo=False):
                rt[attr]=attrv
     return rt
 
-def org_render(ins):
-    proc = subprocess.Popen([os.path.join(os.path.dirname(__file__),'orgmode-render.php')],stdout=subprocess.PIPE,stdin=subprocess.PIPE,stderr=subprocess.STDOUT)
-    inss = ins.encode('utf-8')
-    ops = proc.communicate(input=inss)[0]
-    return ops.decode('utf-8')
 
 def read_journal(jfn,date_limit=None):
     if jfn:

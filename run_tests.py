@@ -3,7 +3,7 @@ import unittest
 import config_test as cfg
 import docs
 import os
-from commands import getstatusoutput as gso 
+from docs import gso 
 class TestTask(unittest.TestCase):
     def __init__(self,tc):
         docs.initvars(cfg)

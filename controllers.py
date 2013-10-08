@@ -5,7 +5,7 @@ filedesc: default controller file
 from noodles.http import Response
 
 
-from commands import getstatusoutput as gso
+from tasks import gso
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT,METASTATES
 from config_local import WEBAPP_FORCE_IDENTITY
 from noodles.http import Redirect,BaseResponse,Response,ajax_response
@@ -358,7 +358,7 @@ def task(request,task):
             parent=None
         rt = add_task(parent=parent,params=o_params,tags=tags)
         redir = '/'+URL_PREFIX+rt['id']
-        pushcommit(rt['path'],rt['story_id'],adm)
+        pushcommit.delay(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)
         return rd
@@ -399,8 +399,18 @@ def task(request,task):
 
 @render_to('tags.html')
 def tags(request):
-    st,op = gso('find %s -type l -exec dirname {} \; | sort | uniq -c | sort -n -r'%os.path.join(cfg.DATADIR,'tagged')) ; assert st==0
-    tags = [[os.path.basename(e.strip()) for e in t.strip().split(' ')] for t in op.split('\n')]
+    import os
+    tagdir = os.path.join(cfg.DATADIR,'tagged')
+    w = os.walk(tagdir,followlinks=False)
+    tcnt={}
+    for fn in w:
+        for tag in fn[1]:
+            tw = os.walk(os.path.join(tagdir,tag))
+            for twi in tw:
+                for tid in twi[2]:
+                    tcnt[tag]=tcnt.get(tag,0)+1
+    tags = tcnt.items()
+    tags.sort(lambda x1,x2: cmp(x1[1],x2[1]),reverse=True)
     rt = {'tags':tags}
     return rt
 @render_to('iteration.html')

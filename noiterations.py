@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from commands import getstatusoutput as gso
+from docs import gso
 import re
 import sys
 if 'phase1' in sys.argv:
