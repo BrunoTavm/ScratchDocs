@@ -184,6 +184,7 @@ def parse_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     #raise Exception('id for %s is %s from %s'%(fn,rt['id'],parts))
     if read:
         filecont = open(fn,'r').read()
+        assert fn.endswith('.org'),"bad file for orgparse %s"%fn
         root = orgparse.load(fn)
         heading=None
         gotattrs=False ; unstructured=''
@@ -279,7 +280,8 @@ def get_fns(assignee=None,created=None,status=None,tag=None,recurse=True,recent=
     for cmd in cmds:
         #print cmd
         s = cmd.encode('utf-8')
-        st,op = gso(s) ;
+        ss = [s]
+        st,op = gso(ss,shell=True) ;
         if not query:
             assert st==0,"%s => %s\n%s"%(cmd,st,op)
         else:

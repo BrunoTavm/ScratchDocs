@@ -7,7 +7,7 @@ from docs import initvars
 import config as cfg
 import subprocess
 initvars(cfg)
-from docs import gso
+from commands import getstatusoutput as gso
     
 celery = Celery('tasks',broker='redis://localhost')
 
@@ -21,14 +21,12 @@ def pushcommit(pth,tid,adm):
     if not cfg.NOCOMMIT:
         
         cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(cfg.DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
-        cmd = 'cd %s'%cfg.DATADIR
-        print cmd
-        st,op = gso(cmd,shell=True,executable='/bin/bash')  ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
+        st,op = gso(cmd)  ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
         msg='Updated task %s'%tid
 
     def push():
         print 'starting push'
-        st,op = gso('cd %s && git pull && git push'%(cfg.DATADIR),shell=True)
+        st,op = gso('cd %s && git pull && git push'%(cfg.DATADIR))
         if not st % 256==0:
             print "git push returned %s\n%s"%(st,op)
             raise Exception('greenlet exception') 
