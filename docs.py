@@ -1705,13 +1705,18 @@ def read_current_metastates(jfn,metainfo=False):
     rt={}
     items = read_journal(jfn)
     for i in items:
-       for attr,attrv in i['attrs'].items():
-           if metainfo:
-               rt[attr]={'value':attrv,
-                         'updated':i['created at'],
-                         'updated by':i['creator']}
-           else:
-               rt[attr]=attrv
+        if i.get('content'):
+            rt['content']={'value':i['rendered_content'],
+                           'raw':i['content'],
+                           'updated':i['created at'],
+                           'updated by':i['creator']}
+        for attr,attrv in i['attrs'].items():
+            if metainfo:
+                rt[attr]={'value':attrv,
+                          'updated':i['created at'],
+                          'updated by':i['creator']}
+            else:
+                rt[attr]=attrv
     return rt
 
 

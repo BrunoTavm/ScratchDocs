@@ -38,6 +38,9 @@ background-color:#ddd;
 .search {
 float:right;
 }
+.lupd p {
+display:inline;
+}
 .textlike {
 color:black;
 text-decoration:none;
@@ -77,8 +80,7 @@ if (!resp.status || resp.status!='ok') alert('error updating!\n'+resp);
         class='metastate-sel' \
         name='metastate-${tid}-${k}' \
         style='background-color:${colors.get(v)}' \
-        onchange="this.style.backgroundColor=this.options[this.selectedIndex].style.backgroundColor"
->
+        onchange="this.style.backgroundColor=this.options[this.selectedIndex].style.backgroundColor">
 <% empties = ['',None] %>
 % for pm in (allow_empty and (possible_metastates[k]+('',)) or possible_metastates[k]):
 <option style='background-color:${colors.get(pm)}' value="${pm}"

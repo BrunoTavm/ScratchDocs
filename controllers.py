@@ -458,13 +458,18 @@ def global_journal(request,creator=None,day=None,groupby=None):
         return {'j':{'all':ai},'task':None,'grouby':None,'user':adm}
 
 @render_to('queue.html')
-def queue(request):
+def queue(request,assignee=None):
+    if assignee=='me':
+        assignee=get_admin(request,'unknown')
     queue={}
     for jfn in get_all_journals():
         #print 'working journal %s'%jfn
         tfn = jfn.replace('journal.org','task.org')
         #print 'getting %s'%tfn
         t = parse_fn(tfn,read=True,gethours=False,getmeta=False)
+
+        if assignee and t['assigned to']!=assignee: continue
+
         if t['status'] in ['DONE','CANCELLED','POSTPONED']: continue
         tid = t['story']
         #print t
@@ -485,6 +490,7 @@ def queue(request):
                     'last updated':lupd,
                     'status':t['status'],
                     'summary':t['summary'],
+                    'last entry':cm.get('content'),
                     'assignee':t['assigned to'],
                     'merge':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc'],
                     'job':[l['url'] for l in t.get('links',[]) if l['anchor']=='job'],

@@ -15,7 +15,9 @@ def get_map():
     urlmap(map, [
 
         (URL_PREFIX+'/', 'controllers#index'),
-        (URL_PREFIX+'/q', 'controllers#queue'),
+        (URL_PREFIX+'/q', 'controllers#queue',{'assignee':'me'}),
+        (URL_PREFIX+'/q/assignee/{assignee}', 'controllers#queue'),
+        (URL_PREFIX+'/q/all', 'controllers#queue'),
 
         (URL_PREFIX+'/journal', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/filter/creator/{creator}', 'controllers#global_journal'),

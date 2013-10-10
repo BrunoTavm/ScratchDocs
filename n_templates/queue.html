@@ -1,5 +1,9 @@
 <%inherit file="/base.html" />
 <%def name="content()">
+<p>
+<a href="${upr}/q">personal queue</a> :: 
+<a href="${upr}/q/all" accesskey="t">en<b>t</b>ire queue</a></p>
+<hr /> 
 <table>
 <thead>
   <tr>
@@ -12,6 +16,7 @@
     % for ms in metastates:
     <th>${ms}</th>
     % endfor
+    <th>last entry</th>
   </tr>
 </thead>
 <% cnt=0 %>
@@ -36,6 +41,9 @@
     ${self.metastate_sel(tid,ms,upd['states'].get(ms),colors,metastates,overrides,upd['fullstates'],allow_empty=True)}
   </td>
   % endfor
+  <td class='lupd'>\
+    ${upd.get('last entry') and upd['last entry'].get('value')+' -  '+upd['last entry']['updated by'] or ''|n}\
+  </td>
 </tr>
 % endfor
 </table>

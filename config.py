@@ -48,7 +48,8 @@ METASTATES_COLORS={
     '':'white'
     }
 METASTATES_OVERRIDES={
-    'merged':"""fullstates.get(k) and fullstates.get(k).get('updated') or ''"""
+    'merged':"""fullstates.get(k) and fullstates.get(k).get('updated') or ''""",
+    'passed':"""(fullstates.get(k) and 'passed by '+fullstates.get(k).get('updated by','')) or ''""",
 }
 DIFF_BRANCHES=['staging','master'] #display diff links to gitweb for those baseline branches
 from noodles_config import *
