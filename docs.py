@@ -1702,14 +1702,14 @@ def get_parent_descriptions(tid):
 
 
 def read_current_metastates(jfn,metainfo=False):
-    rt={}
+    rt={} ; content=None
     items = read_journal(jfn)
     for i in items:
         if i.get('content'):
-            rt['content']={'value':i['rendered_content'],
-                           'raw':i['content'],
-                           'updated':i['created at'],
-                           'updated by':i['creator']}
+            content={'value':i['rendered_content'],
+                     'raw':i['content'],
+                     'updated':i['created at'],
+                     'updated by':i['creator']}
         for attr,attrv in i['attrs'].items():
             if metainfo:
                 rt[attr]={'value':attrv,
@@ -1717,7 +1717,7 @@ def read_current_metastates(jfn,metainfo=False):
                           'updated by':i['creator']}
             else:
                 rt[attr]=attrv
-    return rt
+    return rt,content
 
 
 def read_journal(jfn,date_limit=None):

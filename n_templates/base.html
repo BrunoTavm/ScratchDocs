@@ -76,6 +76,7 @@ if (!resp.status || resp.status!='ok') alert('error updating!\n'+resp);
 </body>
 </html>
 <%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False)">
+<% assert k!='content' %>
 <select \
         class='metastate-sel' \
         name='metastate-${tid}-${k}' \

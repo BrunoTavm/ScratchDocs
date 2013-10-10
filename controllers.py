@@ -380,7 +380,7 @@ def task(request,task):
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
     if task!='new': index_tasks(t['id'])
-    metastates = read_current_metastates(t['jpath'],True)
+    metastates,content = read_current_metastates(t['jpath'],True)
     return {'task':t,
             'gwu':gwu,
             'url':RENDER_URL,
@@ -474,7 +474,7 @@ def queue(request,assignee=None):
         tid = t['story']
         #print t
         assert t.get('status'),"could not get status for %s"%tid
-        cm = read_current_metastates(jfn,True)
+        cm,content = read_current_metastates(jfn,True)
         jitems = read_journal(jfn)
         lupd = sorted(cm.values(),lambda x1,x2: cmp(x1['updated'],x2['updated']),reverse=True)
         if len(lupd): lupd=lupd[0]['updated']
@@ -490,7 +490,7 @@ def queue(request,assignee=None):
                     'last updated':lupd,
                     'status':t['status'],
                     'summary':t['summary'],
-                    'last entry':cm.get('content'),
+                    'last entry':content,
                     'assignee':t['assigned to'],
                     'merge':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc'],
                     'job':[l['url'] for l in t.get('links',[]) if l['anchor']=='job'],
