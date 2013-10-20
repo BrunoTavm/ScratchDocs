@@ -485,7 +485,7 @@ def get_meta_files():
     return files
     
 
-def process_notifications(args=None):
+def process_notifications(args=None,adm='CLI'):
     if not args:
         class Args(object):
             renotify=False
@@ -522,9 +522,11 @@ def process_notifications(args=None):
                 files_touched.append(meta)
     if len(files_touched) and not args.nocommit:
         print 'commiting %s touched files.'%(len(files_touched))
-        cmd = 'git add '+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles."'
-        if not cfg.NOPUSH: cmd+=' && git push'
-        st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
+        from tasks import pushcommit
+        pushcommit.delay(files_touched,None,adm)
+        cmd = ['cd %s && git add '%cfg.DATADIR+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles."']
+        if not cfg.NOPUSH: cmd[0]+=' && git push'
+        st,op = gso(cmd,shell=True) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
 
 def send_notification(whom,about,what,how=None,justverify=False,body={},nonotify=False):
     import sendgrid # we import here because we don't want to force everyone installing this.
@@ -907,19 +909,24 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False)
     print pt
     print '%s stories.'%cnt
 
-def get_changes(show=False,add_notifications=False):
+def tokenize(n):
+    return '%s-%s'%(n['whom'],n.get('how'))
+def get_changes(show=False,add_notifications=False,changes_limit=30):
     R = DRepo(cfg.DATADIR)
-    op = [opo.sha().hexdigest() for opo in R.revision_history(R.head())[0:30]]
-    commits = dict([(c,{'message':' '.join(c)}) for c in op])
+    op = [opo for opo in R.revision_history(R.head())[0:changes_limit]]
+    commits={}
+    for opo in op:
+        commits[opo.sha().hexdigest()]={'message':opo.message}
+    assert len(op)==len(commits),commits
     
     ps = get_participants()
     pinf={}
     for p,pv in ps.items():
         if pv.get('Informed'): 
             pinf[p]= set(pv['Informed'].strip().split(','))
-
-    for cid,cmsg in commits.items():
-        #print 'working commit %s'%cid
+    commitsi = commits.items()
+    for cid,cmsg in commitsi:
+        #print 'working commit %s / %s'%(cid,len(commitsi))
         o = R.get_object(cid)
         commits[cid]['date']=datetime.datetime.fromtimestamp(o.commit_time)
         cmd = ["cd %s && git show %s"%(cfg.DATADIR,cid)] # | egrep '^(\-\-\-|\+\+\+)' | egrep
@@ -932,19 +939,19 @@ def get_changes(show=False,add_notifications=False):
             if l not in ulines: 
                 ulines.append(l)
         commits[cid]['changes']=ulines
+
     pt = PrettyTable(['date','commit','message','file','story'])
     notifyover={}
     for cid,cdata in commits.items():
         #print 'going over commit %s which has %s changes'%(cid,len(cdata['changes']))
         for cfn in cdata['changes']:
-            if os.path.exists(cfn):
-                pfn = parse_fn(cfn,read=True)
+            if os.path.exists(os.path.join(cfg.DATADIR,cfn)):
+                pfn = parse_fn(os.path.join(cfg.DATADIR,cfn),read=True)
                 sid = pfn['id']
             else:
                 pfn = None
                 sid = None
             pt.add_row([cdata['date'],cid,cdata['message'],cfn,sid])
-
             if '@DONTNOTIFY' not in cdata['message'] and add_notifications and pfn:
                 for fn in ['created by','assigned to','informed']:
                     if not pfn.get(fn) or pfn.get('fn')=='None':
@@ -953,6 +960,7 @@ def get_changes(show=False,add_notifications=False):
                         whoms = pfn.get(fn)
                     else:
                         whoms = [pfn.get(fn)]
+
                     #NOTIFY ANYONE WITH A TAG ALERT
                     for twhom,ttags in pinf.items():
                         tag_inter = pfn['tags'].intersection(ttags)
@@ -962,6 +970,7 @@ def get_changes(show=False,add_notifications=False):
                                 whoms.append(twhom)
 
                     for whom in whoms:
+
                         if not whom or whom=="None": continue
                         if sid not in notifyover:
                             notifyover[sid]={}
@@ -971,9 +980,11 @@ def get_changes(show=False,add_notifications=False):
                             notifyover[sid][whom].append(cid)
 
     metas={}
+    print '%s notifyover'%len(notifyover)
     for sid,people in notifyover.items():
         for person,commits in people.items():
             for cid in commits:
+                #print('in commit %s, story %s, person %s'%(cid,sid,person))
                 if not sid: continue
                 s = get_task(sid)
                 if s['metadata'] in metas:
@@ -981,19 +992,23 @@ def get_changes(show=False,add_notifications=False):
                 else:
                     m = loadmeta(s['metadata'])
                 if 'notifications' not in m: m['notifications']=[]
-                toks = ['%s-%s'%(n['whom'],n.get('how')) for n in m['notifications']]
+                toks = [tokenize(n) for n in m['notifications']]
                 mytok = '%s-%s'%(person,cid)
-                if mytok in toks: continue
-                #{u'notified': u'2012-11-13T13:11:37.283310', u'whom': u'maxim_d', u'about': u'602', u'added': u'2012-11-13T11:21:36.368063', u'what': u'new_story'}
-                st,op = gso('git show %s -- %s'%(cid,s['path'])) ; assert st==0
+                if mytok in toks: 
+                    #print '%s in %s : %s'%(mytok,len(toks),[noti for noti in m['notifications'] if tokenize(noti)==mytok])
+                    continue
+                cmd = ['cd %s && git show %s -- %s'%(cfg.DATADIR,cid,s['path'])]
+                st,op = gso(cmd,shell=True) ; assert st==0,"%s returned %s - at %s\n%s"%(cmd,st,os.getcwd(),op)
                 fnd=False
                 for cmd in ['diff --git','diff --cc']:
                     if cmd in op:
                         head,fdiff = op.split(cmd)
                         fnd=True
+
                 if not fnd:
                     print 'could not split diff "%s"'%op
                     continue
+
                 author = re.compile('Author: (.*)').search(head).group(1) ; authormail = re.compile('<(.*)>').search(author).group(1) ; authorname = re.compile('^([^<]+) <').search(author).group(1)
                 apnd = {'whom':person,'about':sid,'added':datetime.datetime.now().isoformat(),'what':'change','how':cid,'change':fdiff.split('\n'),'author':author,'author_email':authormail,'author_name':authorname}
                 #print json.dumps(apnd,indent=True,sort_keys=True)

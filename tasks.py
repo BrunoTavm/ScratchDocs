@@ -16,11 +16,20 @@ celery = Celery('tasks',broker='redis://localhost')
 def pushcommit(pth,tid,adm):
 
     pts = get_participants()
-    commiter = pts[adm]
-
+    commiter = pts.get(adm)
+    if not commiter:
+        name = 'Unknown'
+        email = 'Uknown'
+    else:
+        name = commiter['Name']
+        email = commiter['E-Mail']
+    if type(pth)==list:
+        pths = ' '.join(pth)
+    else:
+        pths = pth
     if not cfg.NOCOMMIT:
         
-        cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(cfg.DATADIR,pth,"%s <%s>"%(commiter['Name'],commiter['E-Mail']),tid)
+        cmd = 'cd %s && git add %s && git add -u && git commit --author="%s" -m "webapp update of %s"'%(cfg.DATADIR,pths,"%s <%s>"%(name,email),tid)
         st,op = gso(cmd)  ; assert st% 256==0,"%s returned %s\n%s"%(cmd,st,op)
         msg='Updated task %s'%tid
 
@@ -33,9 +42,10 @@ def pushcommit(pth,tid,adm):
         print op
         print 'done push'
 
+    if not cfg.NONOTIFY:
+        get_changes(show=False,add_notifications=True,changes_limit=1)
+        process_notifications(adm=adm)
+
     if not cfg.NOPUSH:
         push()
 
-    if not cfg.NONOTIFY:
-        get_changes(show=False,add_notifications=True)
-        process_notifications()
