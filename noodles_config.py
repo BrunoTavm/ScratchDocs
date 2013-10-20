@@ -56,5 +56,5 @@ MAIL_LOGIN = 'your smtp mail login'
 MAIL_PASSWORD = 'your smtp mail password'
 URL_PREFIX=''
 WEBAPP_FORCE_IDENTITY=False
-NOPUSH=False
+NOPUSH=True
 NOCOMMIT=False

@@ -1,7 +1,7 @@
 from celery import Celery
 from time import sleep
 import logging
-from docs import get_participants
+from docs import get_participants,get_changes,process_notifications
 import config as cfg
 from docs import initvars
 import config as cfg
@@ -35,3 +35,7 @@ def pushcommit(pth,tid,adm):
 
     if not cfg.NOPUSH:
         push()
+
+    if not cfg.NONOTIFY:
+        get_changes(show=False,add_notifications=True)
+        process_notifications()

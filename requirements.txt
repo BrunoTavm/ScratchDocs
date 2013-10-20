@@ -6,3 +6,4 @@ sendgrid
 paste
 celery
 redis
+dulwich

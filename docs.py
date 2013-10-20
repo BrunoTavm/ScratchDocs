@@ -16,6 +16,7 @@ import tempfile
 import time
 import subprocess
 import shlex
+from dulwich.repo import Repo as DRepo
 
 def org_render(ins):
     proc = subprocess.Popen([os.path.join(os.path.dirname(__file__),'orgmode-render.php')],
@@ -484,7 +485,13 @@ def get_meta_files():
     return files
     
 
-def process_notifications(args):
+def process_notifications(args=None):
+    if not args:
+        class Args(object):
+            renotify=False
+            nonotify=cfg.NONOTIFY
+            nocommit=cfg.NOCOMMIT
+        args = Args()
     tfs = get_meta_files()
     files_touched=[]
     participants = get_participants(disabled=True)
@@ -506,7 +513,7 @@ def process_notifications(args):
                 #print 'notification processing %s'%s
                 whom = participants[n['whom']]
                 if whom['E-Mail']!=n.get('author_email') and whom['Active']=='Y':
-                    send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n,nosend=args.nosend)
+                    send_notification(n['whom'],n['about'],n['what'],n.get('how'),body=n,nonotify=args.nonotify)
                 else:
                     #print 'silencing notify about a commit by %s to %s'%(n['author'],n['whom'])
                     pass
@@ -519,7 +526,7 @@ def process_notifications(args):
         if not cfg.NOPUSH: cmd+=' && git push'
         st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
 
-def send_notification(whom,about,what,how=None,justverify=False,body={},nosend=False):
+def send_notification(whom,about,what,how=None,justverify=False,body={},nonotify=False):
     import sendgrid # we import here because we don't want to force everyone installing this.
     assert cfg.RENDER_URL,"no RENDER_URL specified in config."
     assert cfg.SENDER,"no sender specified in config."
@@ -606,7 +613,7 @@ def send_notification(whom,about,what,how=None,justverify=False,body={},nosend=F
     subject_utf8 = subject.encode('utf-8')
     message = sendgrid.Message(sender,subject_utf8,open(tf.name).read(),open(expname).read())
     message.add_to(email,p[whom]['Name'])
-    if not cfg.NOSEND and not nosend: 
+    if not cfg.NONOTIFY and not nonotify: 
         s.web.send(message)
     return True
 def add_iteration(name,start_date=None,end_date=None):
@@ -901,9 +908,10 @@ def list_stories(iteration=None,assignee=None,status=None,tag=None,recent=False)
     print '%s stories.'%cnt
 
 def get_changes(show=False,add_notifications=False):
-    st,op = gso('git log --pretty=oneline -30') ; assert st==0
-    commits = dict([(c.split(' ')[0],{'message':' '.join(c.split(' ')[1:])}) for c in op.split('\n') if c!=''])
-
+    R = DRepo(cfg.DATADIR)
+    op = [opo.sha().hexdigest() for opo in R.revision_history(R.head())[0:30]]
+    commits = dict([(c,{'message':' '.join(c)}) for c in op])
+    
     ps = get_participants()
     pinf={}
     for p,pv in ps.items():
@@ -911,19 +919,18 @@ def get_changes(show=False,add_notifications=False):
             pinf[p]= set(pv['Informed'].strip().split(','))
 
     for cid,cmsg in commits.items():
-        cmd = "git show %s | egrep '^Date:'"%cid
-        st,op = gso(cmd)
-        dt = op.replace('Date:','').strip('\n \t')
-        commits[cid]['date']=dt
-        cmd = "git show %s | egrep '^(\-\-\-|\+\+\+)' | egrep -v 'dev/null' | egrep  'task.org$'"%(cid)
-        st,op = gso(cmd) ; assert st in [0,256],"%s => %s\n%s"%(cmd,st,op)
-        lines = [l for l in op.split('\n') if l!='']
+        #print 'working commit %s'%cid
+        o = R.get_object(cid)
+        commits[cid]['date']=datetime.datetime.fromtimestamp(o.commit_time)
+        cmd = ["cd %s && git show %s"%(cfg.DATADIR,cid)] # | egrep '^(\-\-\-|\+\+\+)' | egrep
+        st,op = gso(cmd,shell=True) ; assert st==0,"%s returned %s"%(cmd,st)
+        ops = op.split('\n')
+        lines = filter(lambda s: ((s.startswith('---') or s.startswith('+++')) and '/dev/null' not in s and s.endswith('.org')),ops)
         ulines=[]
         for l in lines:
             for r in ['--- a/','+++ a/','--- b/','+++ b/']: l=l.replace(r,'')
             if l not in ulines: 
                 ulines.append(l)
-                #pt.add_row([dt,cid,cmsg['message'],l,parse_fn(l)['id']])
         commits[cid]['changes']=ulines
     pt = PrettyTable(['date','commit','message','file','story'])
     notifyover={}
@@ -1436,7 +1443,7 @@ if __name__=='__main__':
     
     pr = subparsers.add_parser('process_notifications')
     pr.add_argument('--nocommit',dest='nocommit',action='store_true')
-    pr.add_argument('--nosend',dest='nosend',action='store_true')
+    pr.add_argument('--nonotify',dest='nonotify',action='store_true')
     pr.add_argument('--renotify',dest='renotify')
 
 
