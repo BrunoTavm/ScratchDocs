@@ -48,8 +48,8 @@ def get_map():
 
         (URL_PREFIX+'/repr/{task:.*}','controllers#rpr'),
         (URL_PREFIX+'/search','controllers#search'),
-        ('/favicon.ico', 'controllers#favicon'),
-        ('/zepto.min.js', 'controllers#zepto')
+        (URL_PREFIX+'/favicon.ico', 'controllers#favicon'),
+        (URL_PREFIX+'/assets/{r_type}/{r_file}', 'controllers#assets'),
     ])
 
     return map

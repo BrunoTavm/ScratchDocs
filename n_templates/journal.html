@@ -1,58 +1,65 @@
 <%inherit file="/task.html" />
+
 <%def name="new_entry()">
-<h4>New entry</h4> 
-<form method='post' action="${upr}/s/${task['id']}/j/new">
-<h3>metastates</h3>
-% for ms,vals in metastates.items():
-${ms} <select name='${ms}'>
-<option value="">..</option>
-% for v in vals:
-<option value="${v}">${v}</option>
-% endfor
-</select><br />
-% endfor
-<h3>content</h3>
-<textarea class='content' name='content'></textarea>
-<input accesskey='a' type='submit' />
-</form>
+    <h4>New entry</h4> 
+    <form class="form-horizontal" method='post' action="${upr}/s/${task['id']}/j/new">
+        <h3>metastates</h3>
+        % for ms,vals in metastates.items():
+        <div class="control-group">
+            <label class="control-label">${ms}</label>
+            <div class="controls">
+                <select name='${ms}'>
+                    <option value="">..</option>
+                    % for v in vals:
+                    <option value="${v}">${v}</option>
+                    % endfor
+                </select>
+            </div>
+        </div>
+        % endfor
+        <h3>content</h3>
+        <textarea class='content' name='content'></textarea>
+        <input accesskey='a' type='submit' class="btn btn-primary pull-right" />
+    </form>
 </%def>
+
 <%def name="content()">
 <style type='text/css'>
 .journal p {
-display:inline;
+    display:inline;
 }
 </style>
 % if task:
-${self.taskmenu()}
-<h2>Journal for ${task['id']}</h2> 
-${new_entry()}
-
+    ${self.taskmenu()}
+    <h2>Journal for ${task['id']}</h2> 
+    ${new_entry()}
 % else:
-<h2>Global journal</h2>
-[ <a href="${upr}/journal/filter/day/current">today's entries</a> ::
-  <a href="${upr}/journal/filter/creator/${user}">entries by  ${user}</a> ::
-  <a href="${upr}/journal/groupby/creator">grouped by creator</a> ::
-  <a href="${upr}/journal/groupby/tid">grouped by task</a> ::
-  <a href="${upr}/journal/filter/day/current/groupby/creator">today's grouped by creator</a> ]
-  
+    <h2>Global journal</h2>
+    <ul class="nav nav-pills">
+        <li><a href="${upr}/journal/filter/day/current">today's entries</a></li>
+        <li><a href="${upr}/journal/filter/creator/${user}">entries by  ${user}</a></li>
+        <li><a href="${upr}/journal/groupby/creator">grouped by creator</a></li>
+        <li><a href="${upr}/journal/groupby/tid">grouped by task</a></li>
+        <li><a href="${upr}/journal/filter/day/current/groupby/creator">today's grouped by creator</a></li>
+    </ul>
 % endif
-<div class='journal'>
-
-% for jk,jg in j.items():
-<h3>${jk}</h3>
-<ul>
-% for ji in reversed(jg):
-<li>&lt;${ji['created at']}&gt;
-% if not task and groupby!='tid':
-<a href="${upr}/${ji['tid']}">${ji['tid']}</a>
-% endif
-% if groupby!='creator':
-- <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
-% endif
-${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}
-${ji['rendered_content']|n}</li>
-% endfor
-</ul>
-% endfor
-</div>
+    <div class='journal'>
+        % for jk,jg in j.items():
+        <h3>${jk}</h3>
+        <ul class="unstyled">
+            % for ji in reversed(jg):
+            <li>&lt;${ji['created at']}&gt;
+            % if not task and groupby!='tid':
+                <a href="${upr}/${ji['tid']}">${ji['tid']}</a>
+            % endif
+            % if groupby!='creator':
+                - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
+            % endif
+            ${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}
+            ${ji['rendered_content']|n}
+            </li>
+            % endfor
+        </ul>
+    % endfor
+    </div>
 </%def>

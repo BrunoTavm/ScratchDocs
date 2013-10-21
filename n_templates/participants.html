@@ -1,7 +1,7 @@
 <%inherit file="/base.html" />
 <%def name="content()">
 <h2>Participants</h2>
-<table class='taskslist'>
+<table class="table table-striped table-bordered table-hover">
 <thead>
   <tr>
     <th>Name</th>
@@ -13,29 +13,26 @@
 <tbody>
 <% cnt =0 %>
 % for p,dt in pts:
-<tr \
-% if cnt % 2 ==0:
-class='odd'\
-% endif
->
-  <td>${p}</td>
-  <td>[ 
-    <a href="${upr}/assignments/${p}">assigned to</a>  :: 
-    <a href="${upr}/created/${p}">created by</a> ::
-    <a href="${upr}/journal/filter/creator/${p}">journal entries</a> ::
-    <a href="${upr}/q/assignee/${p}">merge queue</a> ::
-    ]
-  </td>
-  <td><a href="mailto:${dt['E-Mail']}">${dt['E-Mail']}</a></td>
-  <td>
-% if dt.get('Skype'):
-% if '[' in dt.get('Skype'):
-<a href="${dt['Skype'].split('][')[0].strip('[]')}">${dt['Skype'].split('][')[1].strip('[]')}</a>
-% else:
-<a href="skype:${dt['Skype']}">${dt['Skype']}</a>
-% endif
-% endif
-</td>
+<tr>
+    <td>${p}</td>
+    <td>
+        <ul class="nav nav-pills" style="margin-bottom: 0px;">
+            <li><a href="${upr}/assignments/${p}">assigned to</a></li>
+            <li><a href="${upr}/created/${p}">created by</a></li>
+            <li><a href="${upr}/journal/filter/creator/${p}">journal entries</a></li>
+            <li><a href="${upr}/q/assignee/${p}">merge queue</a></li>
+      </ul>
+    </td>
+    <td><a href="mailto:${dt['E-Mail']}">${dt['E-Mail']}</a></td>
+    <td>
+    % if dt.get('Skype'):
+        % if '[' in dt.get('Skype'):
+        <a href="${dt['Skype'].split('][')[0].strip('[]')}">${dt['Skype'].split('][')[1].strip('[]')}</a>
+        % else:
+        <a href="skype:${dt['Skype']}">${dt['Skype']}</a>
+        % endif
+    % endif
+    </td>
 </tr>
 <% cnt+=1 %>
 % endfor

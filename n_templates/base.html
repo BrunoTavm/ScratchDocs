@@ -1,79 +1,95 @@
+<!DOCTYPE HHTML>
 <html>
-<head>
-<style type='text/css'>
-textarea.content {
-width:100%;
-height:150px;
-}
-input.summary {
-width:100%;
-font-size:130%;
-}
-iframe.rndr {
-width:100%;
-height:300px;
-}
-.msg {
-font-weight:bold;
-color:red;
-}
-.ralign {
-text-align:right;
-}
-table.taskslist {
-width:100%;
-}
-.taskslist th {
-background-color:#abc;
-}
-.sumcln {
-width:30%;
-}
-.tagcln {
-width:10%;
-}
-.odd {
-background-color:#ddd;
-}
-.search {
-float:right;
-}
-.lupd p {
-display:inline;
-}
-.textlike {
-color:black;
-text-decoration:none;
-}
-</style>
-<script type='text/javascript' src='${upr}/zepto.min.js'></script>
-<script type='text/javascript'>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="${upr}/assets/css/bootstrap.css" type="text/css"/>
+        <style type='text/css'>
+            .table thead > tr > th, .table tbody > tr > th, .table tfoot > tr > th, .table thead > tr > td, .table tbody > tr > td, .table tfoot > tr > td {
+                padding: 3px;
+            }
+            .nav .divider-vertical {
+                border-left: 1px solid #bbb;
+                border-right: 1px solid #FFFFFF;
+                height: 34px;
+                margin: 0;
+            }
+            body {
+                width: 98%;
+                margin: 0 auto;
+            }
+            textarea.content {
+                width:100%;
+                height:150px;
+            }
+            input.summary {
+                width:100%;
+                font-size:130%;
+            }
+            iframe.rndr {
+                width:100%;
+                height:300px;
+            }
+            .msg {
+                font-weight:bold;
+                color:red;
+            }
+            .ralign {
+                text-align:right;
+            }
+            .sumcln {
+                width:30%;
+            }
+            .tagcln {
+                width:10%;
+            }
+            .lupd p {
+                display:inline;
+            }
+            .textlike {
+                color:black;
+                text-decoration:none;
+            }
+        </style>
+        <script type='text/javascript' src='${upr}/assets/js/zepto.min.js'></script>
+        <script type='text/javascript'>
 $(function() {
-$('.metastate-sel').on('change',function(ev) {
-var k = ev.target.name;
-var v = ev.target.value;
-if (!v) { alert('setting empty value is forbidden.');ev.preventDefault(); return; } 
-$.post("${upr}/metastate-set",{k:k,v:v},function (resp) {
-if (!resp.status || resp.status!='ok') alert('error updating!\n'+resp);
-},'json');
+    $('.metastate-sel').on('change',function(ev) {
+        var k = ev.target.name;
+        var v = ev.target.value;
+        if (!v) {
+            alert('setting empty value is forbidden.');ev.preventDefault(); return;
+        }
+        $.post("${upr}/metastate-set",{k:k,v:v},function (resp) {
+            if (!resp.status || resp.status!='ok') {
+                alert('error updating!\n'+resp);
+            }
+        },'json');
+    });
 });
-});
-</script>
-</head>
-<body>
-  <a accesskey="h" href="${upr}/"><b>h</b>ome</a> :: \
-  <a accesskey="o" href="${upr}/tl">t<b>o</b>p level</a> :: \
-  <a accesskey="g" href="${upr}/tags">ta<b>g</b>s</a> :: \
-  <a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a> :: \
-  <a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a> :: \
-  <a accesskey="l" href="${upr}/journal">journa<b>l</b></a> :: \
-  <a accesskey="q" href="${upr}/q"><b>q</b>ueue</a> :: \
-  <form class='search' method='get' action='${upr}/search'>
-    <input type='text' name='q' value="${request.params.get('q','')|x}" accesskey='/' />
-    <input type='submit' value='Search' />
-  </form>
-  ${self.content()}
-</body>
+jQuery = $;
+        </script>
+    </head>
+    <body>
+        <div class="navbar">
+            <div class="navbar-inner">
+                <ul class="nav">
+                    <li><a accesskey="h" href="${upr}/"><b>h</b>ome</a></li>
+                    <li><a accesskey="o" href="${upr}/tl">t<b>o</b>p level</a></li>
+                    <li><a accesskey="g" href="${upr}/tags">ta<b>g</b>s</a></li>
+                    <li><a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a></li>
+                    <li><a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a></li>
+                    <li><a accesskey="l" href="${upr}/journal">journa<b>l</b></a></li>
+                    <li><a accesskey="q" href="${upr}/q"><b>q</b>ueue</a></li>
+                </ul>
+                <form class="navbar-form pull-right" method="get" action="${upr}/search">
+                    <input class="span3" type='text' name='q' value="${request.params.get('q','')|x}" accesskey="/" placeholder="Search" />
+                    <input class="btn" type="submit" value="Search" />
+                </form>
+            </div>
+        </div>
+        ${self.content()}
+        <script type='text/javascript' src='${upr}/assets/js/bootstrap.min.js'></script>
+    </body>
 </html>
 <%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False)">
 <% assert k!='content' %>
@@ -92,7 +108,7 @@ if (!resp.status || resp.status!='ok') alert('error updating!\n'+resp);
 </%def>
 <%def name="list_tasks(tasks,header=True,body=True,footer=True,cnt={'cnt':0})">
 % if header:
-<table class='taskslist'>
+<table class="table table-striped table-bordered table-hover">
 <thead>
   <tr>
     <th>created</th>
@@ -116,17 +132,13 @@ else:
   pritag=''
   prietag=''
 %>
-<tr \
-% if cnt['cnt'] %2 ==0:
-class='odd'
-% endif
->
+<tr>
   <td>${t['created at'].date()}</td>
   <td>
 ${pritag|n}<a href="${upr}/${t['story']}" title="${t['summary']|h}">${t['story']}</a>${prietag|n}</td>
   <td>${t['status']}</td>
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
-  <td class='tagcln'>${', '.join(t['tags'])}</td>
+  <td class='tagcln'>${', '.join(t['tags'])}&nbsp;</td>
   <td class='sumcln'
   title="${t['summary']|h}"><a class='textlike' href="${upr}/${t['story']}">${pritag|n}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag|n}</a></td>
   <td style='text-align:right'>
@@ -136,6 +148,7 @@ ${pritag|n}<a href="${upr}/${t['story']}" title="${t['summary']|h}">${t['story']
 <a title="${psum}" href="${upr}/${pid}">${(len(psum)<=mlen and psum or (psum[0:mlen]+'..'))}</a> &#8250;
 % endfor
 % endif
+&nbsp;
 </td>
 
 </tr>
