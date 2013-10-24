@@ -40,13 +40,13 @@ METASTATES_COLORS={
     'needed':'orange',
     'doing':'yellow',
     'failed':'red',
-    'passed':'green',
-    'no':'grey',
+    'passed':'#0f0',
+    'no':'#ddd',
     'random fails':'orange',
     'building':'orange',
-    '100%':'green',
+    '100%':'#0f0',
     'pending':'red',
-    'merged':'green',
+    'merged':'#0f0',
     '':'white'
     }
 METASTATES_OVERRIDES={
