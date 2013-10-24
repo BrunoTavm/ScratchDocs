@@ -9,6 +9,7 @@ from tasks import gso
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT,METASTATES
 from config_local import WEBAPP_FORCE_IDENTITY
 from noodles.http import Redirect,BaseResponse,Response,ajax_response
+from webob import exc
 from noodles.templates import render_to
 from docs import initvars
 import config as cfg
@@ -566,9 +567,25 @@ def favicon(request):
     response.body = f
     return response
 
-def zepto(request):
-    response = BaseResponse()
-    response.headerlist=[('Content-Type', 'application/javascript')]
-    f = open('sd/zepto.min.js').read()
-    response.body = f
-    return response
+def assets(request, r_type=None, r_file=None):
+    map = {
+        'css': 'text/css',
+        'js': 'application/javascript',
+        'fonts': 'application/octet-stream',
+        'img': 'image/*',
+    }
+    fname = '/'.join(['sd/assets', r_type, r_file])
+
+    if r_type not in map:
+        return HTTPNotFound(fname)
+    if r_file is None:
+        return HTTPNotFound(fname)
+
+    try:
+        response = BaseResponse()
+        f = open(fname).read()
+        response.headerlist=[('Content-Type', map[r_type])]
+        response.body = f
+        return response
+    except:
+        return exc.HTTPNotFound(fname)

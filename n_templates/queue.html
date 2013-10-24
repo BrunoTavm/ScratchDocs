@@ -4,7 +4,7 @@
 <a href="${upr}/q">personal queue</a> :: 
 <a href="${upr}/q/all" accesskey="t">en<b>t</b>ire queue</a></p>
 <hr /> 
-<table>
+<table class="table table-striped table-bordered table-hover">
 <thead>
   <tr>
     <th>last upd</th>
@@ -19,18 +19,16 @@
     <th>last entry</th>
   </tr>
 </thead>
-<% cnt=0 %>
 % for tid,upd in queue:
-<% cnt+=1 %>
-<tr ${cnt % 2 ==0 and "class='odd'" or ''|n}>
-  <td>\
-<a href="${upr}/${tid}/j">${upd.get('last updated') and  upd.get('last updated','') or '--'}</a></td>
+<tr>
+  <td><a href="${upr}/${tid}/j">${upd.get('last updated') and  upd.get('last updated','') or '--'}</a></td>
   <td>
     % for item in ['specs','merge','job']:
     % if item in upd and len(upd[item]):
     <a href="${upd[item][0]}">${item}</a>
     % endif
     % endfor
+    &nbsp;
   </td>
   <td>${upd['assignee']}</td>
   <td><a href="${upr}/${tid}">${tid}</a></td>
@@ -42,7 +40,8 @@
   </td>
   % endfor
   <td class='lupd'>\
-    ${upd.get('last entry') and upd['last entry'].get('value')+' -  '+upd['last entry']['updated by'] or ''|n}\
+    ${upd.get('last entry') and upd['last entry'].get('value')+' -  '+upd['last entry']['updated by'] or ''|n}
+    &nbsp;
   </td>
 </tr>
 % endfor
