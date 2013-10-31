@@ -320,7 +320,8 @@ def task(request,task):
     if inn and inn not in informed:
         informed.append(inn)
 
-    nrb = request.params.get('repobranch-new-branch')
+    nrb = request.params.get('repobranch-new-branch','')
+    assert '/' not in nrb,"branch name may not contain '/'"
     if nrb: repobranch.append(request.params.get('repobranch-new-repo')+'/'+nrb)
 
 
