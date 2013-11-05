@@ -493,6 +493,7 @@ def queue(request,assignee=None):
                     'status':t['status'],
                     'summary':t['summary'],
                     'last entry':content,
+                    'tags':t['tags'],
                     'assignee':t['assigned to'],
                     'merge':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc'],
                     'job':[l['url'] for l in t.get('links',[]) if l['anchor']=='job'],

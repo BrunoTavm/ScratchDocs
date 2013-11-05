@@ -20,7 +20,14 @@
   </tr>
 </thead>
 % for tid,upd in queue:
-<tr>
+<%
+classname=''
+if 'critical' in upd['tags']:
+   classname+=' red'
+if 'priority' in upd['tags']:
+   classname+=' bold'
+%>
+<tr class="${classname}">
   <td><a href="${upr}/${tid}/j">${upd.get('last updated') and  upd.get('last updated','') or '--'}</a></td>
   <td>
     % for item in ['specs','merge','job']:
