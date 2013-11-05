@@ -49,6 +49,12 @@
                 color:black;
                 text-decoration:none;
             }
+            .red {
+            background-color:red;
+            }
+            .bold {
+            font-weight:bold;
+            }
         </style>
         <script type='text/javascript' src='${upr}/assets/js/zepto.min.js'></script>
         <script type='text/javascript'>
@@ -125,6 +131,10 @@ jQuery = $;
 % if body:
 % for t in tasks:
 <%
+if 'critical' in t['tags']:
+   classname='red'
+else:
+   classname=''
 if 'priority' in t['tags']:
   pritag='<b>'
   prietag='</b>'
@@ -132,7 +142,7 @@ else:
   pritag=''
   prietag=''
 %>
-<tr>
+<tr class='${classname}'>
   <td>${t['created at'].date()}</td>
   <td>
 ${pritag|n}<a href="${upr}/${t['story']}" title="${t['summary']|h}">${t['story']}</a>${prietag|n}</td>
