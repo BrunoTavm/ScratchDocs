@@ -472,7 +472,7 @@ def queue(request,assignee=None):
 
         if assignee and t['assigned to']!=assignee: continue
 
-        if t['status'] in ['DONE','CANCELLED','POSTPONED']: continue
+        if t['status'] in ['DONE','CANCELLED','POSTPONED','DUPE']: continue
         tid = t['story']
         #print t
         assert t.get('status'),"could not get status for %s"%tid

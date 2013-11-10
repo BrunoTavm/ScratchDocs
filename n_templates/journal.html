@@ -56,7 +56,7 @@
                 - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
             % endif
             ${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}
-            ${ji['rendered_content']|n}
+            <b>${ji['rendered_content']|n}</b>
             </li>
             % endfor
         </ul>
