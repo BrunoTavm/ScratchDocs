@@ -81,6 +81,7 @@ jQuery = $;
                 <ul class="nav">
                     <li><a accesskey="h" href="${upr}/"><b>h</b>ome</a></li>
                     <li><a accesskey="o" href="${upr}/tl">t<b>o</b>p level</a></li>
+                    <li><a accesskey="o" href="${upr}/latest">latest</a></li>
                     <li><a accesskey="g" href="${upr}/tags">ta<b>g</b>s</a></li>
                     <li><a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a></li>
                     <li><a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a></li>
@@ -97,12 +98,12 @@ jQuery = $;
         <script type='text/javascript' src='${upr}/assets/js/bootstrap.min.js'></script>
     </body>
 </html>
-<%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False)">
+<%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False,style='')">
 <% assert k!='content' %>
 <select \
         class='metastate-sel' \
         name='metastate-${tid}-${k}' \
-        style='background-color:${colors.get(v)}' \
+        style='background-color:${colors.get(v)};${style}' \
         onchange="this.style.backgroundColor=this.options[this.selectedIndex].style.backgroundColor">
 <% empties = ['',None] %>
 % for pm in (allow_empty and (possible_metastates[k]+('',)) or possible_metastates[k]):

@@ -13,11 +13,13 @@ selected=1 \
 <%def name="taskmenu()">
 <h2>Task ${task['story']}</h2>
 <ul class="nav nav-pills">
+% if task['story']:
     <li><a href="${upr}/${task['story']}" accesskey="m">su<b>m</b>mary</a></li>
     <li><a href="${upr}/${task['story']}/log" accesskey='i'>h<b>i</b>story</a></li>
     <li><a href="${upr}/${task['story']}/j" accesskey='j'><b>j</b>ournal</a></li>
     <li class="divider-vertical"></li>
     <li><a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a></li>
+% endif
     % if '/' in task['story']:
     <li><a href="${upr}/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a></li>
     % endif

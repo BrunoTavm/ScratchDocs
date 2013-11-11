@@ -2,14 +2,15 @@
 <%def name="content()">
 <p>
 <a href="${upr}/q">personal queue</a> :: 
+<a href="${upr}/q/archive">archive</a> :: 
 <a href="${upr}/q/all" accesskey="t">en<b>t</b>ire queue</a></p>
 <hr /> 
-<table class="table table-striped table-bordered table-hover">
+<table class="table table-striped table-bordered table-hover" style='font-size:90%'>
 <thead>
   <tr>
     <th>last upd</th>
     <th>misc</th>
-    <th>assignee</th>
+    <th>asgn.</th>
     <th>task</th>
     <th>summary</th>
     <th>status</th>
@@ -28,7 +29,7 @@ if 'priority' in upd['tags']:
    classname+=' bold'
 %>
 <tr class="${classname}">
-  <td><a href="${upr}/${tid}/j">${upd.get('last updated') and  upd.get('last updated','') or '--'}</a></td>
+  <td><a href="${upr}/${tid}/j">${upd.get('last updated') and  upd.get('last updated').strftime('%Y-%m-%d %H:%M') or '--'}</a></td>
   <td>
     % for item in ['specs','merge','job']:
     % if item in upd and len(upd[item]):
@@ -42,12 +43,22 @@ if 'priority' in upd['tags']:
   <td>${upd['summary']}</td>
   <td>${upd['status']}</td>
   % for ms in metastates:
-  <td>
-    ${self.metastate_sel(tid,ms,upd['states'].get(ms),colors,metastates,overrides,upd['fullstates'],allow_empty=True)}
+  <td style='font-size:80%'>
+    ${self.metastate_sel(tid,ms,upd['states'].get(ms),colors,metastates,overrides,upd['fullstates'],allow_empty=True,style='font-size:90%;width:99%;font-weight:bold;')}
   </td>
   % endfor
-  <td class='lupd'>\
-    ${upd.get('last entry') and upd['last entry'].get('value')+' -  '+upd['last entry']['updated by'] or ''|n}
+<% 
+if upd.get('last entry'):
+  lentry = upd.get('last entry').get('raw')
+  lentry_digest = lentry[0:20]+(len(lentry)>20 and '..' or '')+ ' - '+upd.get('last entry')['updated by']
+  if len(lentry)<=20:
+    lentry=''
+else:
+  lentry = ''
+  lentry_digest= ''
+%>
+  <td class='lupd' title="${lentry}">\
+    <a href="${upr}/${tid}/j">l</a>${lentry_digest|n}
     &nbsp;
   </td>
 </tr>

@@ -260,7 +260,7 @@ def filterby(fieldname,value,rtl):
         rtl = list(rf)
     return rtl
 
-def get_fns(assignee=None,created=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None):
+def get_fns(assignee=None,created=None,status=None,tag=None,recurse=True,recent=False,flush=False,query=None,newer_than=None):
     """return task filenames according to provided criteria"""
     global taskfiles_cache
     if flush: flush_taskfiles_cache()
@@ -302,7 +302,6 @@ def get_fns(assignee=None,created=None,status=None,tag=None,recurse=True,recent=
 
     #filter by assignee. heavy.
     if status or recent:
-        raise Exception('not in here')
         rt = []
         for fn in files:
             s = parse_fn(fn,read=True)
@@ -313,7 +312,7 @@ def get_fns(assignee=None,created=None,status=None,tag=None,recurse=True,recent=
                 incl=True
             if status and status.startswith('not ') and status.replace('not ','')!=s['status']:
                 incl=True
-            if recent and 'created at' in s and s['created at']>=(datetime.datetime.now()-datetime.timedelta(days=cfg.RECENT_DAYS)):
+            if recent and 'created at' in s and s['created at']>=(datetime.datetime.now()-datetime.timedelta(days=(newer_than and newer_than or cfg.RECENT_DAYS))):
                 incl=True
             if incl:
                 rt.append(fn)
@@ -405,26 +404,16 @@ def get_new_idx(parent=None):
     if parent:
         t = get_task(parent)
         tpath = os.path.dirname(t['path'])
-        md = 2
-        add = ' ! -wholename "%s"'%t['path']
+        pfx=str(parent)+'/'
     else:
         tpath = cfg.DATADIR
-        md = 3
-        add = ''
-    findcmd = 'find %s -maxdepth %s ! -wholename "*templates*" ! -wholename "*.git*" -type f -iname "%s" %s'%(tpath,md,cfg.TASKFN,add)
-    st,op = gso(findcmd) ; assert st==0
-    files = [fn for fn in op.split('\n') if fn!='']
+        pfx=''
+    sids = [int(sid) for sid in (os.walk(tpath).next()[1]) if re.compile('^([\d]+)$').search(sid)]
     
-    tf = [parse_fn(fn) for fn in files]
-    exstrs = [t['story'] for t in tf if not re.compile('^([\d'+re.escape(cfg.STORY_SEPARATOR)+']+)$').search(t['story'])]
-    assert len(exstrs)==0,"%s is not empty"%(exstrs)
-    finalnames = [int(t['story'].split(cfg.STORY_SEPARATOR)[-1]) for t in tf]
-    if len(finalnames):
-        maxid = max(finalnames)
+    if len(sids):
+        return str(max(sids)+1)
     else:
-        maxid=0
-    newid = maxid+1
-    return str(newid)
+        return '1'
 
 def get_table_contents(fn):
     ffn = os.path.join(cfg.DATADIR,fn)
@@ -547,10 +536,9 @@ def send_notification(whom,about,what,how=None,justverify=False,body={},nonotify
     ch = body.get('change',[])
     if u'--- /dev/null' in ch:
         verb='created'
-        app = u' - %s'%t['summary']
     else:
         verb='changed'
-        app=''
+    app = u' - %s'%t['summary']
     stchangere=re.compile('^(\-|\+)\* (%s)'%'|'.join(cfg.STATUSES))
     stch = filter(lambda r: stchangere.search(r),ch)
     canlines=0
@@ -627,9 +615,10 @@ def add_iteration(name,start_date=None,end_date=None):
     render('iteration',{'start_date':start_date,'end_date':end_date},itfn)
 
 def add_task(parent=None,params={},force_id=None,tags=[]):
-
+    print 'in add_task'
     if parent:
-        tf = [parse_fn(fn) for fn in get_fns(flush=True)]
+        print 'is a child task'
+        tf = [parse_fn(fn,getmeta=False) for fn in get_fns(flush=True)]
         iterationtasks = dict([(tpfn['story'],tpfn) for tpfn in tf])
         assert parent in iterationtasks,"%s not in %s"%(parent,iterationtasks)
         basedir = os.path.dirname(iterationtasks[parent]['path'])
@@ -641,6 +630,7 @@ def add_task(parent=None,params={},force_id=None,tags=[]):
         fullid = cfg.STORY_SEPARATOR.join([parent,newidx])
         newtaskfn = os.path.join(newdir,'task.org')
     else:
+        print 'is a top level task'
         basedir = os.path.join(cfg.DATADIR)
         if force_id:
             #make sure we don't have it already
@@ -648,10 +638,13 @@ def add_task(parent=None,params={},force_id=None,tags=[]):
             assert str(force_id) not in tf,"task %s already exists - %s."%(force_id,get_task(force_id))
             newidx = str(force_id)
         else:
+            print 'getting a new index'
             newidx = get_new_idx()
+            print 'done getting a new index'
         newdir = os.path.join(basedir,newidx)
         fullid = cfg.STORY_SEPARATOR.join([newidx])
         newtaskfn = os.path.join(newdir,'task.org')
+    print 'parsing new task fn'
     newtaskdt = parse_fn(newtaskfn)
     assert newtaskdt
     print 'creating new task %s : %s'%(newtaskdt['story'],pfn(newtaskfn))
@@ -678,26 +671,19 @@ def add_task(parent=None,params={},force_id=None,tags=[]):
     assert not os.path.exists(newdir),"%s exists"%newdir
     dn = os.path.dirname(newdir)
     assert os.path.exists(dn),"%s does not exist."%dn
-    st,op = gso('mkdir -p %s'%newdir) ; assert st==0,"could not mkdir %s"%newdir
+    os.mkdir(newdir)
 
     assert not os.path.exists(newtaskfn)
     pars['tags']=tags
+    print 'rendering'
     render('task',pars,newtaskfn)
     pars['path']=newtaskfn
-    #clear the cache for tasks
+    print 'clearing the cache for tasks'
     global task_cache,taskfiles_cache
     task_cache={}
     taskfiles_cache={}
-
-    # change notifications will suffice for now
-    # if pars['assignee']:
-    #     if parent:
-    #         jn = [parent,newidx]
-    #     else:
-    #         jn = [newidx]
-    #     taskid = cfg.STORY_SEPARATOR.join(jn)
-    #     add_notification(whom=pars['assignee'],about=taskid,what='new_story')
     pars['id']=fullid
+    print 'done creating'
     return pars
 
 def makehtml(notasks=False,files=[]):

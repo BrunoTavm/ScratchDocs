@@ -16,8 +16,11 @@ def get_map():
 
         (URL_PREFIX+'/', 'controllers#index'),
         (URL_PREFIX+'/q', 'controllers#queue',{'assignee':'me'}),
+        (URL_PREFIX+'/q/archive', 'controllers#queue',{'assignee':'me','archive':True}),
         (URL_PREFIX+'/q/assignee/{assignee}', 'controllers#queue'),
+        (URL_PREFIX+'/q/assignee/{assignee}/archive', 'controllers#queue',{'archive':True}),
         (URL_PREFIX+'/q/all', 'controllers#queue'),
+        (URL_PREFIX+'/q/all/archive', 'controllers#queue',{'archive':True}),
 
         (URL_PREFIX+'/journal', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/filter/creator/{creator}', 'controllers#global_journal'),
@@ -28,6 +31,8 @@ def get_map():
         (URL_PREFIX+'/metastate-set','controllers#metastate_set'),
 
         (URL_PREFIX+'/tl', 'controllers#top_level'),
+        (URL_PREFIX+'/latest', 'controllers#latest'),
+        (URL_PREFIX+'/latest/{max_days}', 'controllers#latest'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
         (URL_PREFIX+'/participants', 'controllers#participants'),
         (URL_PREFIX+'/assignments/{person}', 'controllers#assignments'),

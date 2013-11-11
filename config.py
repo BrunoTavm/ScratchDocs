@@ -5,6 +5,7 @@ TASKFN='task.org'
 BACKLOG='Backlog'
 STORY_SEPARATOR='/'
 STATUSES=['REVIEW','DOING','TODO','DONE','DUPE','POSTPONED','CANCELLED'] 
+DONESTATES=['DONE','DUPE','CANCELLED','POSTPONED']
 DEFAULT_STATUS='TODO'
 CONSOLE_FRIENDLY_FILES=True
 RECENT_DAYS=14
@@ -51,8 +52,8 @@ METASTATES_COLORS={
     '':'white'
     }
 METASTATES_OVERRIDES={
-    'merged':"""fullstates.get(k) and fullstates.get(k).get('updated') or ''""",
-    'passed':"""(fullstates.get(k) and 'passed by '+fullstates.get(k).get('updated by','')) or ''""",
+    'merged':"""fullstates.get(k) and fullstates.get(k).get('updated').strftime('%Y-%m-%d %H:%M') or ''""",
+    'passed':"""(fullstates.get(k) and 'by '+fullstates.get(k).get('updated by','')) or ''""",
 }
 DIFF_BRANCHES=['staging','master','production'] #display diff links to gitweb for those baseline branches
 from noodles_config import *

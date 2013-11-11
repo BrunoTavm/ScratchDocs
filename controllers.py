@@ -52,8 +52,8 @@ def iterations(request):
     its = get_iterations()
     return {'its':its,'request':request}
 
-def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None):
-    fns_list = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag)
+def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None,newer_than=None,recent=False):
+    fns_list = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag,newer_than=newer_than,recent=recent)
     in_tasks = [parse_fn(fn,read=True,gethours=False,hoursonlyfor=person) for fn in fns_list]
     tasks={}
     for t in in_tasks:
@@ -67,18 +67,7 @@ def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=Fa
 
         showtask=False
         if not notdone: showtask=True
-        if t['status']!='DONE': showtask=True
-        if not showtask:
-            chstates = set([chst['status'] for chst in get_children(t['id'])])
-            if len(chstates)>1:
-                showtask=True
-            elif len(chstates)==1 and list(chstates)[0]!='DONE':
-                showtask=True
-            elif not len(chstates):
-                pass
-            else:
-                pass
-                #raise Exception(chstates,len(chstates))
+        if str(t['status']) not in cfg.DONESTATES: showtask=True
         if showtask:
             tasks[st].append(t)
     def srt(t1,t2):
@@ -144,7 +133,7 @@ def assignments_itn(request,person,iteration,mode='normal',tag=None):
 def index(request):
     rt= assignments_itn_func(request
                                 ,get_admin(request,'unknown')
-                                ,mode='normal')
+                                ,mode='notdone')
     return rt
 
 @render_to('iteration.html')
@@ -164,6 +153,13 @@ def top_level(request):
     rt = asgn(request,recurse=False)
     rt['headline']='Top level.'
     return rt
+
+@render_to('iteration.html')
+def latest(request,max_days=14):
+    rt = asgn(request,recurse=True,recent=True,newer_than=int(max_days))
+    rt['headline']='Latest created'
+    return rt
+
 @render_to('iteration.html')
 def iteration_notdone(request,iteration):
     rt = asgn(request,iteration=iteration,recurse=True,notdone=True)
@@ -460,7 +456,7 @@ def global_journal(request,creator=None,day=None,groupby=None):
         return {'j':{'all':ai},'task':None,'grouby':None,'user':adm}
 
 @render_to('queue.html')
-def queue(request,assignee=None):
+def queue(request,assignee=None,archive=False):
     if assignee=='me':
         assignee=get_admin(request,'unknown')
     queue={}
@@ -472,7 +468,9 @@ def queue(request,assignee=None):
 
         if assignee and t['assigned to']!=assignee: continue
 
-        if t['status'] in ['DONE','CANCELLED','POSTPONED','DUPE']: continue
+        if not archive and t['status'] in cfg.DONESTATES: continue
+        elif archive and t['status'] not in cfg.DONESTATES: continue
+
         tid = t['story']
         #print t
         assert t.get('status'),"could not get status for %s"%tid
