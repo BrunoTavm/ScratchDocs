@@ -900,12 +900,26 @@ def tokenize(n):
 def get_changes(show=False,add_notifications=False,changes_limit=30):
     R = DRepo(cfg.DATADIR)
     op = [opo for opo in R.revision_history(R.head())[0:changes_limit]]
+    ps = get_participants()
+
     commits={}
     for opo in op:
-        commits[opo.sha().hexdigest()]={'message':opo.message}
+        author = opo.author
+        authormail = re.compile('<(.*)>').search(author).group(1)
+        authorname = re.compile('^([^<]+) <').search(author).group(1)
+        authorun = [pse[0] for pse in ps.items() if pse[1]['E-Mail']==authormail]
+        if len(authorun): 
+            authorun=authorun[0]
+        else: authorun=None
+        commits[opo.sha().hexdigest()]={'message':opo.message,
+                                        'author':opo.author,
+                                        'author_username':authorun,
+                                        'author_email':authormail,
+                                        'author_name':authorname}
+
     assert len(op)==len(commits),commits
     
-    ps = get_participants()
+
     pinf={}
     for p,pv in ps.items():
         if pv.get('Informed'): 
@@ -926,48 +940,66 @@ def get_changes(show=False,add_notifications=False,changes_limit=30):
                 ulines.append(l)
         commits[cid]['changes']=ulines
 
-    pt = PrettyTable(['date','commit','message','file','story'])
+    pt = PrettyTable(['date','commit','author','message','file','story'])
     notifyover={}
+    
     for cid,cdata in commits.items():
-        #print 'going over commit %s which has %s changes'%(cid,len(cdata['changes']))
+        #print 'going over commit %s which has %s
+        #changes'%(cid,len(cdata['changes']))
         for cfn in cdata['changes']:
-            if os.path.exists(os.path.join(cfg.DATADIR,cfn)):
-                pfn = parse_fn(os.path.join(cfg.DATADIR,cfn),read=True)
+            if os.path.exists(os.path.join(cfg.DATADIR,cfn)) and os.path.basename(cfn) not in ['participants.org']:
+                if os.path.basename(cfn)=='journal.org':
+                    toreadfn = cfn.replace('journal.org','task.org')
+                    overwhat='journal'
+                else:
+                    toreadfn = cfn
+                    overwhat='task'
+
+                pfn = parse_fn(os.path.join(cfg.DATADIR,toreadfn),read=True)
                 sid = pfn['id']
             else:
                 pfn = None
                 sid = None
-            pt.add_row([cdata['date'],cid,cdata['message'],cfn,sid])
-            if '@DONTNOTIFY' not in cdata['message'] and add_notifications and pfn:
-                for fn in ['created by','assigned to','informed']:
-                    if not pfn.get(fn) or pfn.get('fn')=='None':
-                        continue
-                    if fn=='informed':
-                        whoms = pfn.get(fn)
-                    else:
-                        whoms = [pfn.get(fn)]
+            pt.add_row([cdata['date'],cid[0:4],cdata['author_username'] and cdata['author_username'] or cdata['author'],cdata['message'],cfn,sid])
 
-                    #NOTIFY ANYONE WITH A TAG ALERT
-                    for twhom,ttags in pinf.items():
-                        tag_inter = pfn['tags'].intersection(ttags)
-                        if len(tag_inter):
-                            if twhom not in whoms: 
-                                #print 'notifying %s over tag subscription %s'%(twhom,tag_inter)
-                                whoms.append(twhom)
+            if '@DONTNOTIFY' in cdata['message'] or not add_notifications or not pfn:
+                skp=True
+            else:
+                skp = False
+            #print 'skip = %s ; %s %s notify %s %s %s'%(skp,cid,cfn,'@DONTNOTIFY' in cdata['message'],add_notifications,pfn==None)
+            if skp: continue
+            for fn in ['created by','assigned to','informed']:
+                if not pfn.get(fn) or pfn.get('fn')=='None':
+                    continue
+                if fn=='informed':
+                    whoms = pfn.get(fn)
+                else:
+                    whoms = [pfn.get(fn)]
 
-                    for whom in whoms:
+                #notify anyone with a tag alert
+                for twhom,ttags in pinf.items():
+                    tag_inter = pfn['tags'].intersection(ttags)
+                    if len(tag_inter):
+                        if twhom not in whoms: 
+                            #print 'notifying %s over tag subscription %s'%(twhom,tag_inter)
+                            whoms.append(twhom)
 
-                        if not whom or whom=="None": continue
-                        if sid not in notifyover:
-                            notifyover[sid]={}
-                        if whom not in notifyover[sid]:
-                            notifyover[sid][whom]=[]
-                        if cid not in  notifyover[sid][whom]:
-                            notifyover[sid][whom].append(cid)
+                #notify people related to the task
+                for whom in whoms:
+                    tok = sid+'::'+overwhat
+                    if not whom or whom=="None": continue
+                    if sid not in notifyover:
+                        notifyover[tok]={}
+                    if whom not in notifyover[tok]:
+                        notifyover[tok][whom]=[]
+                    if cid not in  notifyover[tok][whom]:
+                        notifyover[tok][whom].append(cid)
+
 
     metas={}
     print '%s notifyover'%len(notifyover)
-    for sid,people in notifyover.items():
+    for rsid,people in notifyover.items():
+        sid,overwhat = rsid.split('::')
         for person,commits in people.items():
             for cid in commits:
                 #print('in commit %s, story %s, person %s'%(cid,sid,person))
@@ -980,22 +1012,32 @@ def get_changes(show=False,add_notifications=False,changes_limit=30):
                 if 'notifications' not in m: m['notifications']=[]
                 toks = [tokenize(n) for n in m['notifications']]
                 mytok = '%s-%s'%(person,cid)
+
                 if mytok in toks: 
                     #print '%s in %s : %s'%(mytok,len(toks),[noti for noti in m['notifications'] if tokenize(noti)==mytok])
                     continue
-                cmd = ['cd %s && git show %s -- %s'%(cfg.DATADIR,cid,s['path'])]
+
+                if overwhat=='task':
+                    pth = s['path']
+                elif overwhat=='journal':
+                    pth = s['jpath']
+                else: raise Exception('unknown notify topic %s'%overwhat)
+                cmd = ['cd %s && git show %s -- %s'%(cfg.DATADIR,cid,pth)]
                 st,op = gso(cmd,shell=True) ; assert st==0,"%s returned %s - at %s\n%s"%(cmd,st,os.getcwd(),op)
                 fnd=False
-                for cmd in ['diff --git','diff --cc']:
-                    if cmd in op:
-                        head,fdiff = op.split(cmd)
+                for gcmd in ['diff --git','diff --cc']:
+                    if gcmd in op:
+                        head,fdiff = op.split(gcmd)
                         fnd=True
 
                 if not fnd:
-                    print 'could not split diff "%s"'%op
+                    print 'could not split diff "%s for %s: %s"'%(op,s['path'],cmd)
                     continue
 
-                author = re.compile('Author: (.*)').search(head).group(1) ; authormail = re.compile('<(.*)>').search(author).group(1) ; authorname = re.compile('^([^<]+) <').search(author).group(1)
+
+                author = commits[cid]['author']
+                authorname = commits[cid]['author_name']
+                authormail = commits[cid]['author_email']
                 apnd = {'whom':person,'about':sid,'added':datetime.datetime.now().isoformat(),'what':'change','how':cid,'change':fdiff.split('\n'),'author':author,'author_email':authormail,'author_name':authorname}
                 #print json.dumps(apnd,indent=True,sort_keys=True)
                 m['notifications'].append(apnd)
