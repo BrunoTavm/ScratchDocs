@@ -572,7 +572,7 @@ def send_notification(whom,about,what,how=None,justverify=False,body={},nonotify
 
     #construct the rendered mail template informing of the change
     if what=='change':
-        subject = '%s %s by %s'%(t['story'],verb,body.get('author_name','Uknown'))+app
+        subject = '%s ch. by %s'%(t['story'],body.get('author_name','Uknown'))+app
         #debug code:
         if bork:
             print '\n'.join(ch)
@@ -1728,7 +1728,7 @@ def read_current_metastates(jfn,metainfo=False):
     return rt,content
 
 
-def read_journal(jfn,date_limit=None):
+def read_journal(jfn,date_limit=None,state_limit=None):
     if jfn:
         tid = parse_fn(jfn,read=False,gethours=False,getmeta=False)['story']
     else:
@@ -1770,7 +1770,17 @@ def read_journal(jfn,date_limit=None):
                 'content':unstructured.decode('utf-8'),
                 'rendered_content':org_render(unstructured.decode('utf-8'))}
         items.append(apnd)
-        if date_limit: items = [i for i in items if i['created at'].date()==date_limit]
+        if date_limit: 
+            if type(date_limit)==list:
+                items = [i for i in items if i['created at'].date()>=date_limit[0] and i['created at'].date()<=date_limit[1]]
+            else:
+                items = [i for i in items if i['created at'].date()==date_limit]
+        if state_limit:
+            if '=' in state_limit:
+                stlk,stlv = state_limit.split('=')
+                items = [i for i in items if i['attrs'].get(stlk)==stlv]
+            else:
+                items = [i for i in items if i['attrs'].get(state_limit)]
         return items
     else:
         return []

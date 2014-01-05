@@ -3,7 +3,7 @@
 <%def name="new_entry()">
     <h4>New entry</h4> 
     <form class="form-horizontal" method='post' action="${upr}/s/${task['id']}/j/new">
-        <h3>metastates</h3>
+        <h5>metastates</h3>
         % for ms,vals in metastates.items():
         <div class="control-group">
             <label class="control-label">${ms}</label>
@@ -17,7 +17,7 @@
             </div>
         </div>
         % endfor
-        <h3>content</h3>
+        <h5>content</h3>
         <textarea class='content' name='content'></textarea>
         <input accesskey='a' type='submit' class="btn btn-primary pull-right" />
     </form>
@@ -26,18 +26,17 @@
 <%def name="content()">
 <style type='text/css'>
 .journal p {
-    display:inline;
+/*    display:inline;*/
 }
 </style>
 % if task:
     ${self.taskmenu()}
-    <h2>Journal for ${task['id']}</h2> 
     ${new_entry()}
 % else:
     <h2>Global journal</h2>
     <ul class="nav nav-pills">
         <li><a href="${upr}/journal/filter/day/current">today's entries</a></li>
-        <li><a href="${upr}/journal/filter/creator/${user}">entries by  ${user}</a></li>
+        <li><a href="${upr}/journal/filter/creator/${user}">entries for ${user}</a></li>
         <li><a href="${upr}/journal/groupby/creator">grouped by creator</a></li>
         <li><a href="${upr}/journal/groupby/tid">grouped by task</a></li>
         <li><a href="${upr}/journal/filter/day/current/groupby/creator">today's grouped by creator</a></li>
@@ -45,7 +44,13 @@
 % endif
     <div class='journal'>
         % for jk,jg in j.items():
-        <h3>${jk}</h3>
+        <h3>\
+% if groupby=='tid':
+<a href="${upr}/${jg[0]['tid']}">${jk}</a>\
+% else:
+${jk}\
+% endif
+</h3>
         <ul class="unstyled">
             % for ji in reversed(jg):
             <li>&lt;${ji['created at']}&gt;
@@ -55,8 +60,8 @@
             % if groupby!='creator':
                 - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
             % endif
-            ${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}
-            <b>${ji['rendered_content']|n}</b>
+            ${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}<br />
+            ${ji['rendered_content']|n}
             </li>
             % endfor
         </ul>

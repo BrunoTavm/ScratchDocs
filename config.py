@@ -33,9 +33,9 @@ def COMMITERMAP(em,nm):
     return em
 METASTATES={
     'functional review':('needed','doing','failed','passed'),
-    'code review':('needed','doing','failed','passed'),
+    'code review':('needed','doing','failed','passed','client review'),
     'tests passage':('no','building','random fails','integrator','100%'),
-    'merge to staging':('pending','merged'),
+    'merge to staging':('pending','merged','on production'),
     }
 METASTATES_COLORS={
     'needed':'orange',
@@ -49,7 +49,9 @@ METASTATES_COLORS={
     'pending':'red',
     'merged':'#0f0',
     'integrator':'yellow',
-    '':'white'
+    '':'white',
+    'client review':'cyan',
+    'on production':'cyan',
     }
 METASTATES_OVERRIDES={
     'merged':"""fullstates.get(k) and fullstates.get(k).get('updated').strftime('%Y-%m-%d %H:%M') or ''""",

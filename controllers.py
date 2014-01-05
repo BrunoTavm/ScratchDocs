@@ -378,6 +378,7 @@ def task(request,task):
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
     if task!='new': index_tasks(t['id'])
+    metastate_keys = METASTATES
     metastates,content = read_current_metastates(t['jpath'],True)
     return {'task':t,
             'gwu':gwu,
@@ -390,6 +391,7 @@ def task(request,task):
             'parents':parents,
             'request':request,
             'metastates':metastates,
+            'metastate_keys':metastate_keys,
             'possible_metastates':cfg.METASTATES,
             'colors':cfg.METASTATES_COLORS,
             'overrides':cfg.METASTATES_OVERRIDES,
@@ -431,15 +433,24 @@ def search(request):
 
 
 @render_to('journal.html')
-def global_journal(request,creator=None,day=None,groupby=None):
+def global_journal(request,creator=None,day=None,groupby=None,state=None):
     adm = get_admin(request,'unknown')
     ai = []
     if day=='current': 
-        day=datetime.datetime.now().strftime('%Y-%m-%d')
-    if day:
-        day = datetime.datetime.strptime(day,'%Y-%m-%d').date()
+        daya=datetime.datetime.now().date() #strftime('%Y-%m-%d')
+        day = [daya,daya]
+    elif day:
+        if ':' in day:
+            days = day.split(':')
+            daya = datetime.datetime.strptime(days[0],'%Y-%m-%d').date()
+            dayb = datetime.datetime.strptime(days[1],'%Y-%m-%d').date()
+            day = [daya,dayb]
+        else:
+            daya = datetime.datetime.strptime(day,'%Y-%m-%d').date()
+            day = [daya,daya]
+
     for jfn in get_all_journals():
-        ji = read_journal(jfn,date_limit=day)
+        ji = read_journal(jfn,date_limit=day,state_limit=state)
         if creator: ji = [i for i in ji if i['creator']==creator]
         ai+=ji
     ai.sort(lambda x1,x2: cmp(x1['created at'],x2['created at']))
@@ -447,7 +458,7 @@ def global_journal(request,creator=None,day=None,groupby=None):
         rt={}
         for i in ai:
             assert groupby in i
-            k = 'entries by %s'%i[groupby]
+            k = 'entries for %s'%i[groupby]
             if k not in rt: 
                 rt[k]=[]
             rt[k].append(i)

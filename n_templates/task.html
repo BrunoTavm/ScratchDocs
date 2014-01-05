@@ -76,17 +76,19 @@ ${taskmenu()}
         </div>
     </div>
 
+% if task['id']:
     <div class="control-group">
         <label class="control-label">Metastates</label>
         <div class="controls">
-        % for k,v in metastates.items():
+        % for k in metastate_keys:
+<% v = metastates.get(k) %>
         ${k}: 
-        ${self.metastate_sel(task['story'],k,v.get('value'),colors,possible_metastates,overrides,metastates)}
+        ${self.metastate_sel(task['story'],k,(v and v.get('value') or ''),colors,possible_metastates,overrides,metastates,allow_empty=True)}
         <br />
         % endfor
         </div>
     </div>
-
+% endif
     <div class="control-group">
         <label class="control-label">Assignee</label>
         <div class="controls">
@@ -247,3 +249,4 @@ document.getElementById('showtog').onclick = function(ev) {
 }}
 </script>
 </%def>
+<%def name="title()">${task and task['story'] or ''}${task and task.get('summary') and ' - '+task.get('summary') or ''}</%def>

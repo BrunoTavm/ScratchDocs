@@ -10,9 +10,10 @@ import os
 
 def get_map():
     " This function returns mapper object for dispatcher "
-    map = Mapper()
+    mp = Mapper()
     # Add routes here
-    urlmap(map, [
+
+    urlmap(mp, [
 
         (URL_PREFIX+'/', 'controllers#index'),
         (URL_PREFIX+'/q', 'controllers#queue',{'assignee':'me'}),
@@ -23,11 +24,8 @@ def get_map():
         (URL_PREFIX+'/q/all/archive', 'controllers#queue',{'archive':True}),
 
         (URL_PREFIX+'/journal', 'controllers#global_journal'),
-        (URL_PREFIX+'/journal/filter/creator/{creator}', 'controllers#global_journal'),
-        (URL_PREFIX+'/journal/filter/day/{day}', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/groupby/{groupby}', 'controllers#global_journal'),
-        (URL_PREFIX+'/journal/filter/day/{day}/groupby/{groupby}', 'controllers#global_journal'),
-        (URL_PREFIX+'/journal/filter/creator/{creator}/groupby/{groupby}', 'controllers#global_journal'),
+
         (URL_PREFIX+'/metastate-set','controllers#metastate_set'),
 
         (URL_PREFIX+'/tl', 'controllers#top_level'),
@@ -57,4 +55,21 @@ def get_map():
         (URL_PREFIX+'/assets/{r_type}/{r_file}', 'controllers#assets'),
     ])
 
-    return map
+    filters = ['day','creator','state']
+    for flt in filters:
+        url = URL_PREFIX+'/journal/filter'
+        def mcnt(url,flt,mp,chain=[]):
+            url+='/%s/{%s}'%(flt,flt)
+            print 'connecting',url
+            mp.connect(None,url,controller='controllers',action='global_journal')
+            mp.connect(None,url+'/groupby/{groupby}',controller='controllers',action='global_journal')
+            chain.append(flt)
+            for flt2 in filters:
+                if flt2 not in chain:
+                    mcnt(url,flt2,mp,chain)
+            return mp
+        mp = mcnt(url,flt,mp)
+
+
+        
+    return mp

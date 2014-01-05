@@ -50,7 +50,7 @@ if 'priority' in upd['tags']:
 <% 
 if upd.get('last entry'):
   lentry = upd.get('last entry').get('raw')
-  lentry_digest = lentry[0:20]+(len(lentry)>20 and '..' or '')+ ' - '+upd.get('last entry')['updated by']
+  lentry_digest = lentry[0:20]+ ' - '+upd.get('last entry')['updated by']
   if len(lentry)<=20:
     lentry=''
 else:
@@ -58,7 +58,10 @@ else:
   lentry_digest= ''
 %>
   <td class='lupd' title="${lentry}">\
-    <a href="${upr}/${tid}/j">l</a>${lentry_digest|n}
+    ${lentry_digest|n}\
+    % if len(lentry_digest):
+    <a href="${upr}/${tid}/j">..</a>\
+    % endif
     &nbsp;
   </td>
 </tr>
