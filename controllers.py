@@ -23,6 +23,8 @@ import datetime
 import orgparse
 import os
 import re
+import redis
+import json
 
 
 
@@ -399,7 +401,6 @@ def task(request,task):
 
 @render_to('tags.html')
 def tags(request):
-    import os
     tagdir = os.path.join(cfg.DATADIR,'tagged')
     w = os.walk(tagdir,followlinks=False)
     tcnt={}
@@ -559,6 +560,15 @@ def history(request,task):
         
     rt = {'op':op,'task':t,'request':request}
     return rt
+
+@render_to('feed_ajax.html')
+def feed(request,user=None):
+    if not user:
+        user = get_admin(request,'unknown')
+    r = redis.Redis('localhost')
+    f = r.get('feed_'+user)
+    if not f: f='[]'
+    return {'feed':json.loads(f),'gwu':cfg.GITWEB_URL,'docs_repo':cfg.DOCS_REPONAME}
 
 @ajax_response
 def metastate_set(request):

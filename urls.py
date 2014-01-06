@@ -16,6 +16,8 @@ def get_map():
     urlmap(mp, [
 
         (URL_PREFIX+'/', 'controllers#index'),
+        (URL_PREFIX+'/feed', 'controllers#feed'),
+        (URL_PREFIX+'/feed/{user}', 'controllers#feed'),
         (URL_PREFIX+'/q', 'controllers#queue',{'assignee':'me'}),
         (URL_PREFIX+'/q/archive', 'controllers#queue',{'assignee':'me','archive':True}),
         (URL_PREFIX+'/q/assignee/{assignee}', 'controllers#queue'),

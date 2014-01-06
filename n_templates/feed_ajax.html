@@ -1,0 +1,9 @@
+% for f in feed:
+<span>
+* <a href="${upr}/${f['sid']}${f['what']=='journal' and '/j' or ''}">\
+${f['what']}</a> \
+${f['subj']} in \
+<a href="${gwu}/?p=${docs_repo};a=commitdiff;h=${f['cid']}">\
+${f['cid'][0:4]}</a>\
+</span>
+% endfor

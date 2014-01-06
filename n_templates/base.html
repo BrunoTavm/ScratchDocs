@@ -5,6 +5,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="${upr}/assets/css/bootstrap.css" type="text/css"/>
         <style type='text/css'>
+    #marquee {
+        display:inline;
+        }
             .table thead > tr > th, .table tbody > tr > th, .table tfoot > tr > th, .table thead > tr > td, .table tbody > tr > td, .table tfoot > tr > td {
                 padding: 3px;
             }
@@ -59,6 +62,7 @@
         </style>
         <script type='text/javascript' src='${upr}/assets/js/zepto.min.js'></script>
         <script type='text/javascript'>
+jQuery = $;
 $(function() {
     $('.metastate-sel').on('change',function(ev) {
         var k = ev.target.name;
@@ -72,8 +76,16 @@ $(function() {
             }
         },'json');
     });
+   function getfeed() {
+     $.get('/feed',function(c) {
+         $('#feed').html(c);
+
 });
-jQuery = $;
+   window.setTimeout(getfeed,10000);
+}
+    getfeed();
+});
+
         </script>
     </head>
     <body>
@@ -94,6 +106,9 @@ jQuery = $;
                     <input class="btn" type="submit" value="Search" />
                 </form>
             </div>
+            <marquee id='feed'>
+              loading feed..
+            </marquee>
         </div>
         ${self.content()}
         <script type='text/javascript' src='${upr}/assets/js/bootstrap.min.js'></script>

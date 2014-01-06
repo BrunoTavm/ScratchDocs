@@ -6,29 +6,19 @@
 - ScrumDo importer provided.
 
 ** Structure and Usage
-*** The system includes 3 conceptual objects, which form a hierarchy:
-- Iteration :: <iteration_number>/iteration.org ; this is taken from Scrum. An iteration is a (cyclical) period of work, during which a team rushes to (at least partially) complete objectives. 
-- Story :: <iteration_number>/<story_id>/task.org ; A top level assignment which is from the end-user perspective. It has a unique ID across all iterations. All stories belong to an iteration.
-- Task :: <iteration_number>/<story_id>/<task_id>/task.org ; An assignment that falls under a story. All tasks belong to a story. ID uniqueness matter aside, Stories & Tasks are identical.
-*** Here is the common expected use case:
-1. Project manager defines assignments & iterations via CLI, using [[file:tasks.py][tasks.py]].
-2. He then pushes changes to a central repostiry.
-   1. Every push results in static HTML representation of the project [[file:post-receive-hook.example][to be regenerated]]. 
-   2. The cache generation process is twostage.
-      1. index.org files are generated in each directory
-      2. emacs is invoked to export these .org files to HTML.
-3. Participants access the static pages via the web. If someone wants to add tasks, edit or otherwise manipulate the board, he needs access & write rights to the repository.
+A hierarchial tasks tree.
 *** Benefits:
 - Complete revision history is stored in Git.
 - Editing documents is natural, being able to stay in Emacs, employ org-mode and work with a file-based structure.
-
 ** Installation
 
 1. sudo apt-get install emacs23-nox           # optional: the task docs are in org-mode. also, if you want to render your .org pages as html for the web, you need this.
-2. pip -r requirements.txt                    # install dependencies
-3. mkdir data && cd data && git init && cd .. # initialize your scrumboard
-4. touch config_local.py                      # create a instance local config override
-5. python scrumdo-import.py                   # optional: import your ScrumDo data
-6. ./tasks.py --help                          # start working!
-7. [[file:post-receive-hook.example][post receive hook example]]                  # if you want to configure html rendering to static files on a remote server.
+2. virtualenv env                             # create a virtual environment
+3. pip -r requirements.txt                    # install dependencies
+4. mkdir data && cd data && git init && cd .. # initialize your scrumboard
+5. touch config_local.py                      # create a local config override
+6. . venv/bin/activate
+7. cd sd/ && celery worker -A tasks -B --config=celeryconfig #start celery w/ beat:
+6. sd/runserver.py                            # run your server
+
 
