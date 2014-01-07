@@ -909,14 +909,17 @@ def notifications_feed_populate(notify,commits):
                 t=  get_task(sid,read=True)
                 commits[cid]['change']=get_commit_task_diff(cid,overwhat,t,commits)[1]
                 subj = parse_change(t,commits[cid],descr=False)
-                if person!='guy': print '%s : change of %s %s => %s : %s'%(cid[0:4],overwhat,sid,person,subj)
+                print '<%s> %s : change of %s %s => %s : %s'%(commits[cid]['commit_time'],cid[0:4],overwhat,sid,person,subj)
                 if person not in feeds: feeds[person]=[]
                 feeds[person].append({'sid':sid,
+                                      'when':commits[cid]['commit_time'],
                                       'what':overwhat,
                                       'cid':cid,
                                       'subj':subj})
     for p,f in feeds.items():
-        r.set('feed_'+p,json.dumps(f,indent=True))
+        f.sort(lambda x,y: cmp(x['when'],y['when']),reverse=True)
+        dthandler = lambda obj: obj.isoformat() if isinstance(obj, datetime.datetime)  or isinstance(obj, datetime.date) else None
+        r.set('feed_'+p,json.dumps(f,indent=True,default=dthandler))
 
                 
 def get_commit_task_diff(cid,overwhat,s,commits):
@@ -1011,7 +1014,7 @@ def notifications_metas_populate(notifyover,commits,participants):
                 metas[s['metadata']] = m
     return metas
 
-def get_changes(show=False,add_notifications=False,feed=False,changes_limit=400):
+def get_changes(show=False,add_notifications=False,feed=False,changes_limit=200):
 
     R = DRepo(cfg.DATADIR)
     op = [opo for opo in R.revision_history(R.head())[0:changes_limit]]
@@ -1026,17 +1029,20 @@ def get_changes(show=False,add_notifications=False,feed=False,changes_limit=400)
         if len(authorun): 
             authorun=authorun[0]
         else: authorun=None
+
         commits[opo.sha().hexdigest()]={'message':opo.message,
+                                        'commit_time':datetime.datetime.fromtimestamp(opo.commit_time),
                                         'author':opo.author,
                                         'author_username':authorun,
                                         'author_email':authormail,
                                         'author_name':authorname}
 
     assert len(op)==len(commits),commits
-    
+    print len(commits),'commits'
 
     commitsi = commits.items()
     for cid,cmsg in commitsi:
+
         #print 'working commit %s / %s'%(cid,len(commitsi))
         o = R.get_object(cid)
         commits[cid]['date']=datetime.datetime.fromtimestamp(o.commit_time)
@@ -1051,9 +1057,10 @@ def get_changes(show=False,add_notifications=False,feed=False,changes_limit=400)
                 ulines.append(l)
         commits[cid]['changes']=ulines
 
+
+
     pt = PrettyTable(['date','commit','author','message','file','story'])
     notifyover={}
-    
     for cid,cdata in commits.items():
         #print 'going over commit %s which has %s
         #changes'%(cid,len(cdata['changes']))
@@ -1083,9 +1090,11 @@ def get_changes(show=False,add_notifications=False,feed=False,changes_limit=400)
 
             #notify people related to the task
             for whom in whoms:
+                if cdata['author_username']==whom: 
+                    continue
                 tok = sid+'::'+overwhat
                 if not whom or whom=="None": continue
-                if sid not in notifyover:
+                if tok not in notifyover:
                     notifyover[tok]={}
                 if whom not in notifyover[tok]:
                     notifyover[tok][whom]=[]
