@@ -22,11 +22,11 @@ selected=1 \
     %if task['summary'] != '':
         <input class="btn btn-primary " type='submit' value='Update' accesskey='a' />
         <span class="divider-vertical"></span>
-        <input class="btn btn-primary custom-link" type='button' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='a' />    
+        <input class="btn btn-default custom-link" type='button' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='a' />    
         <span class="divider-vertical"></span>
-        <input class="btn btn-primary custom-link" type='button' value='History' data-link="${upr}/${task['story']}/log" accesskey='a' />       
+        <input class="btn btn-default custom-link" type='button' value='History' data-link="${upr}/${task['story']}/log" accesskey='a' />       
     %else:
-        <input class="btn btn-primary custom-link" type='submit' value='Summary' data-link="${upr}/${task['story']}" accesskey='a' />
+        <input class="btn btn-default custom-link" type='submit' value='Summary' data-link="${upr}/${task['story']}" accesskey='a' />
     %endif
 </div>
 % endif
