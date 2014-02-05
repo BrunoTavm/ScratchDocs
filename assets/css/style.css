@@ -1,0 +1,49 @@
+table.tasks-queue th{
+	text-align: center !important;
+}
+
+select{
+	font-size: 15px;
+	width: 135px;
+}
+
+table.tasks-queue td.td-center-align{
+	text-align: center !important;
+}
+
+.task-title{
+	text-align: center;
+}
+
+.form-horizontal .controls {
+	margin-left: 115px;
+}
+
+.form-horizontal .control-label {
+width: 90px;
+text-align: left;
+}
+
+.mini-table label{
+	float: left;
+	position: absolute;
+}
+
+.mini-table select, .mini-table input{
+	margin-left: 135px;
+	margin-bottom: 5px;
+}
+
+.message{
+	font-size: 16px;
+	border-bottom: 1px rgb(226, 226, 226) solid;
+	margin-bottom: 20px;
+	padding-right: 130px;
+	position: relative;
+}
+.message-time{
+	position: absolute;
+	bottom:0px;
+	right:0px;
+	font-size: 10px;
+}

@@ -280,8 +280,7 @@ def task(request,task):
         under=None
     msg=None
     adm = get_admin(request,'unknown')
-    
-    repos = [r['Name'] for r in get_table_contents(os.path.join(cfg.DATADIR,'repos.org'))]
+    repos = [r['Name'] for r in get_table_contents(os.path.join(cfg.DATADIR,'repos.org')) if r.get('Name')]
 
     tags=[] ; links=[] ; informed=[] ; repobranch=[]
     for k,v in request.params.items():
@@ -380,7 +379,14 @@ def task(request,task):
     if task!='new': index_tasks(t['id'])
     metastate_keys = METASTATES
     metastates,content = read_current_metastates(t['jpath'],True)
+
+
+    #Journal
+    tj = get_task(task)
+    jfn = tj['jpath']
+    jitems = read_journal(jfn)
     return {'task':t,
+            'j':{'%s existing entries'%t['id']:jitems},
             'gwu':gwu,
             'url':RENDER_URL,
             'statuses':STATUSES,

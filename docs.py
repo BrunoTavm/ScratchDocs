@@ -419,7 +419,7 @@ def get_table_contents(fn):
     ffn = os.path.join(cfg.DATADIR,fn)
     fp = open(ffn,'r') ; gothead=False
     def parseline(ln):
-        return [f.strip() for f in ln.split('|')] # if f.strip()!='']
+        return [f.strip() for f in ln.split('|') if f.strip()!='']
     rt=[]
     while True:
         ln = fp.readline()

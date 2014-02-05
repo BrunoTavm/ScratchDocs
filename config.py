@@ -32,26 +32,28 @@ def COMMITERMAP(em,nm):
     assert '.' not in em
     return em
 METASTATES={
-    'functional review':('needed','doing','failed','passed'),
-    'code review':('needed','doing','failed','passed','client review'),
+    'functional review':('needed','doing','failed','passed', 'not availible'),
+    'art review':('needed','doing','failed','passed', 'not availible'),
+    'code review':('needed','doing','failed','passed','client review', 'not availible'),
     'tests passage':('no','building','random fails','integrator','100%'),
     'merge to staging':('pending','merged','on production'),
     }
 METASTATES_COLORS={
-    'needed':'orange',
-    'doing':'yellow',
-    'failed':'red',
-    'passed':'#0f0',
-    'no':'#ddd',
-    'random fails':'orange',
-    'building':'orange',
-    '100%':'#0f0',
-    'pending':'red',
-    'merged':'#0f0',
-    'integrator':'yellow',
+    'needed':'rgb(255, 192, 77)',
+    'doing':'rgb(255, 255, 68)',
+    'failed':'rgb(253, 75, 75)',
+    'passed':'#47FF47',
+    'no':'lightgrey',
+    'random fails':'rgb(255, 192, 77)',
+    'building':'rgb(255, 192, 77)',
+    '100%':'#47FF47',
+    'pending':'rgb(253, 75, 75)',
+    'merged':'#47FF47',
+    'integrator':'rgb(163, 196, 255)',
     '':'white',
-    'client review':'cyan',
-    'on production':'cyan',
+    'client review':'rgb(94, 217, 248)',
+    'on production':'rgb(94, 217, 248)',
+    'not availible':'lightgrey'
     }
 METASTATES_OVERRIDES={
     'merged':"""fullstates.get(k) and fullstates.get(k).get('updated').strftime('%Y-%m-%d %H:%M') or ''""",
