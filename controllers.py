@@ -118,7 +118,7 @@ def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=
     headline=''
     if mode=='notdone':
         notdone=True
-        headline+='; Not Done.'
+        headline+='Current Tasks'
     else:
         headline+=''
     rt=asgn(request,person=person,notdone=notdone,query=query,tag=tag)
@@ -151,7 +151,7 @@ def iteration_all(request,iteration):
 @render_to('iteration.html')
 def top_level(request):
     rt = asgn(request,recurse=False)
-    rt['headline']='Top level.'
+    rt['headline']='Top Level'
     rt['status'] = 'PARENT'
     return rt
 
