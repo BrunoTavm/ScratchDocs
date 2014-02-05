@@ -18,6 +18,17 @@ selected=1 \
 %endif
 % if task['id']:
 <h2 class="task-title">Task ${task['story']} - ${task['summary']}</h2>
+<div style="text-align:center">
+    %if task['summary'] != '':
+        <input class="btn btn-primary " type='submit' value='Update' accesskey='a' />
+        <span class="divider-vertical"></span>
+        <input class="btn btn-primary custom-link" type='button' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='a' />    
+        <span class="divider-vertical"></span>
+        <input class="btn btn-primary custom-link" type='button' value='History' data-link="${upr}/${task['story']}/log" accesskey='a' />       
+    %else:
+        <input class="btn btn-primary custom-link" type='submit' value='Summary' data-link="${upr}/${task['story']}" accesskey='a' />
+    %endif
+</div>
 % endif
 <ul class="nav nav-pills">
 % if task['story']:
@@ -25,8 +36,8 @@ selected=1 \
     <li><a href="${upr}/${task['story']}/log" accesskey='i'>h<b>i</b>story</a></li>
     <li><a href="${upr}/${task['story']}/j" accesskey='j'><b>j</b>ournal</a></li>
     <li class="divider-vertical"></li>
-    -->
     <li><a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a></li>
+    -->
 % endif
     % if '///' in task['story']:
         <li><a href="${upr}/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a></li>
@@ -45,16 +56,12 @@ ${taskmenu()}
 <div class='wrap' style="display:table;width:100%;">
     <div style="display:table-row;">
         <div style="display:table-cell;width:50%;">
-            <div style="text-align:center">
-                <h2 class="task-title" style="display: inline-block;vertical-align: middle;margin-right: 10px;">Info</h2>
-                <input class="btn btn-primary " type='submit' value='Update' accesskey='a' />
-            </div>
+            <h2 class="task-title">Info</h2>
                 % if task.get('under'):
                 <h4>under ${task.get('under')}</h4>
                 <input type='hidden' name='under' value="${task.get('under')}" />
                 % endif
                 <input type='hidden' name='id' value="${task['story']}" />
-                <input type='hidden' name='type' value="info" />
 
 
                 <div class="control-group">
@@ -225,33 +232,34 @@ ${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.g
 
         </div>
         <div style="display:table-cell;border-left:1px solid silver;padding-left: 20px;">
-            <h2 class="task-title">Journal</h2>
-            <div class='journal'>
-                <form class="form-horizontal" method='post' action="${upr}/s/${task['id']}/j/new">
-                    <input type='hidden' name='type' value="journal" />
-                    <h4 >Add comment</h4>
-                    <textarea class='content' name='content' style="width:100%;"></textarea>
-                    <input accesskey='a' type='submit' class="btn btn-primary pull-right" />
-                </form>
-                <h4>Log</h4>
-                % for jk,jg in j.items():
-                    % for ji in reversed(jg):
-                    <div class="message">
-                        <span class="message-time">${ji['created at']};</span>
-                        <span class="message-author"><a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a></span>
-                        % if ji['attrs'].items():
-                            <span class="message-status">
-                                <b>changed status: </b>
-                                ${'; '.join([u'%s  to "%s"'%(k,v) for k,v in ji['attrs'].items()])}
+            % if task['id']:
+                <h2 class="task-title">Journal</h2>
+                <div class='journal'>
+                    <!-- <form class="form-horizontal" method='post'>  action="${upr}/s/${task['id']}/j/new" -->
+                        <h4>Add comment</h4>
+                        <textarea class='content' name='content-journal' style="width:100%;"></textarea>
+                        <input accesskey='a' type='submit' class="btn btn-primary pull-right" />
+                    <!-- </form> -->
+                    <h4>Log</h4>
+                    % for jk,jg in j.items():
+                        % for ji in reversed(jg):
+                        <div class="message">
+                            <span class="message-time">${ji['created at']};</span>
+                            <span class="message-author"><a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a></span>
+                            % if ji['attrs'].items():
+                                <span class="message-status">
+                                    <b>changed status: </b>
+                                    ${'; '.join([u'%s  to "%s"'%(k,v) for k,v in ji['attrs'].items()])}
+                                </span>
+                            % endif
+                            <span class="message-text">
+                                ${ji['rendered_content']|n}
                             </span>
-                        % endif
-                        <span class="message-text">
-                            ${ji['rendered_content']|n}
-                        </span>
-                    </div>
+                        </div>
+                        % endfor
                     % endfor
-                % endfor
-            </div>
+                </div>
+            % endif
         </div>
     </div>
 </div>
@@ -289,6 +297,9 @@ ${self.list_tasks(children)}
 
 <script type='text/javascript'>
 window.onload = function() {
+    $('.custom-link').on('click', function  () {
+        location.href = $(this).attr('data-link');
+    })
 document.getElementById('summary').focus();
 document.getElementById('showtog').onclick = function(ev) {
     var togel = document.getElementById('showtog');

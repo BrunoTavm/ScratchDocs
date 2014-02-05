@@ -152,6 +152,7 @@ def iteration_all(request,iteration):
 def top_level(request):
     rt = asgn(request,recurse=False)
     rt['headline']='Top level.'
+    rt['status'] = 'PARENT'
     return rt
 
 @render_to('iteration.html')
@@ -340,7 +341,15 @@ def task(request,task):
         rewrite(tid,o_params,safe=False)
         t = get_task(tid,flush=True)
         t = get_task(tid,flush=True) #for the flush
+        if request.params.get('content-journal'):
+            tj = get_task(task)
+            metastates={}
+            append_journal_entry(tj,adm,request.params.get('content-journal'),metastates)
+            j = rpr(request,task,journal=True,render_only=True)
+
         pushcommit.delay(t['path'],request.params.get('id'),adm)
+
+
 
     if request.params.get('create'):
         o_params = {'summary':request.params.get('summary'),
@@ -562,7 +571,8 @@ def history(request,task):
         cid = c.group(1)
         url = '%(gitweb_url)s/?p=%(docs_reponame)s;a=commitdiff;h=%(cid)s'%{'cid':cid,'gitweb_url':cfg.GITWEB_URL,'docs_reponame':cfg.DOCS_REPONAME}
         op = op.replace(cid,"<a href='%(url)s'>%(cid)s</a>"%{'cid':cid,'url':url})
-        
+    
+    t['summary'] = ''
     rt = {'op':op,'task':t,'request':request}
     return rt
 
