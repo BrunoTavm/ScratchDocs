@@ -49,3 +49,11 @@ def pushcommit(pth,tid,adm):
     if not cfg.NOPUSH:
         push()
 
+from tasks import get_changes
+
+@celery.task
+def changes_to_feed():
+    get_changes(show=False,feed=True)
+
+
+

@@ -7,6 +7,7 @@
         <link rel="stylesheet" href="${upr}/assets/css/style.css" type="text/css"/>
         <script type='text/javascript' src='${upr}/assets/js/zepto.min.js'></script>
         <script type='text/javascript'>
+jQuery = $;
 $(function() {
     $('.metastate-sel').on('change',function(ev) {
         var k = ev.target.name;
@@ -20,8 +21,16 @@ $(function() {
             }
         },'json');
     });
+   function getfeed() {
+     $.get('/feed',function(c) {
+         $('#feed').html(c);
+
 });
-jQuery = $;
+   window.setTimeout(getfeed,10000);
+}
+    getfeed();
+});
+
         </script>
     </head>
     <body>
@@ -42,6 +51,9 @@ jQuery = $;
                     <input class="btn" type="submit" value="Search" />
                 </form>
             </div>
+            <marquee id='feed'>
+              loading feed..
+            </marquee>
         </div>
         ${self.content()}
         <script type='text/javascript' src='${upr}/assets/js/bootstrap.min.js'></script>
