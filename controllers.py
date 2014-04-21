@@ -159,7 +159,7 @@ def top_level(request):
 
 @render_to('iteration.html')
 def storage(request):
-    rt = asgn(request,recurse=False)
+    rt = asgn(request,recurse=True)
     rt['headline']='Storage'
     rt['status'] = 'STORAGE'
     return rt
