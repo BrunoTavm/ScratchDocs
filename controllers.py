@@ -136,7 +136,6 @@ def index(request):
     rt= assignments_itn_func(request
                                 ,get_admin(request,'unknown')
                                 ,mode='notdone')
-    rt['STORAGE'] = ''
     return rt
 
 @render_to('iteration.html')
