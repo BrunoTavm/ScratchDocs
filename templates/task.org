@@ -1,7 +1,7 @@
 #+STARTUP: showeverything
 #+OPTIONS: toc:nil        (no TOC at all)
 #+STYLE:    <link rel="stylesheet" type="text/css" href="/stylesheet.css" />
-#+TODO: TODO(t) | DOING(p) | REVIEW(r) | DONE(d) | DUPE(u) | POSTPONED(o) | CANCELLED(c) | PARENT(e)
+#+TODO: TODO(t) | DOING(p) | REVIEW(r) | DONE(d) | DUPE(u) | POSTPONED(o) | CANCELLED(c) | PARENT(e) | STORAGE(s)
 * ${status} ${summary+"\t\t"}\
 % if tags and len(tags):
 :\

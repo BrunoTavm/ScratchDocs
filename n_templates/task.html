@@ -12,21 +12,27 @@ selected=1 \
 </%def>
 <%def name="taskmenu()">
 %if parents:
+% if '/' in task['story']:
+    <a href="${upr}/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u"><b>U</b>p &#8593; </a>
+% endif	
+&nbsp;&nbsp;---&nbsp;&nbsp;
 % for pid,psum in parents:
 <a title="${pid}" href="${upr}/${pid}">${psum}</a> &#8250;
 % endfor    
 %endif
 % if task['id']:
-<h2 class="task-title">Task ${task['story']} - ${task['summary']}</h2>
+<h2 class="task-title">Task ${task['story']} - ${task['summary']}
+<input class="btn btn-primary " type='button' value='reload' accesskey='r' onclick="location.reload()" />
+</h2> 
 <div style="text-align:center">
     %if task['summary'] != '':
         <input class="btn btn-primary " type='submit' value='Update' accesskey='a' />
         <span class="divider-vertical"></span>
-        <input class="btn btn-default custom-link" type='button' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='a' />    
+        <input class="btn btn-default custom-link" type='button' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='n' />    
         <span class="divider-vertical"></span>
-        <input class="btn btn-default custom-link" type='button' value='History' data-link="${upr}/${task['story']}/log" accesskey='a' />       
+        <input class="btn btn-default custom-link" type='button' value='History' data-link="${upr}/${task['story']}/log" />       
     %else:
-        <input class="btn btn-default custom-link" type='submit' value='Summary' data-link="${upr}/${task['story']}" accesskey='a' />
+        <input class="btn btn-default custom-link" type='submit' value='Summary' data-link="${upr}/${task['story']}" />
     %endif
 </div>
 % endif
@@ -39,9 +45,6 @@ selected=1 \
     <li><a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a></li>
     -->
 % endif
-    % if '///' in task['story']:
-        <li><a href="${upr}/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u">one <b>u</b>p</a></li>
-    % endif
 </ul>
 
 <hr />

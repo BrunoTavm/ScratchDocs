@@ -136,6 +136,7 @@ def index(request):
     rt= assignments_itn_func(request
                                 ,get_admin(request,'unknown')
                                 ,mode='notdone')
+    rt['STORAGE'] = ''
     return rt
 
 @render_to('iteration.html')
@@ -155,6 +156,13 @@ def top_level(request):
     rt = asgn(request,recurse=False)
     rt['headline']='Top Level'
     rt['status'] = 'PARENT'
+    return rt
+
+@render_to('iteration.html')
+def storage(request):
+    rt = asgn(request,recurse=False)
+    rt['headline']='Storage'
+    rt['status'] = 'STORAGE'
     return rt
 
 @render_to('iteration.html')

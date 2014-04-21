@@ -31,6 +31,7 @@ def get_map():
         (URL_PREFIX+'/metastate-set','controllers#metastate_set'),
 
         (URL_PREFIX+'/tl', 'controllers#top_level'),
+        (URL_PREFIX+'/st', 'controllers#storage'),
         (URL_PREFIX+'/latest', 'controllers#latest'),
         (URL_PREFIX+'/latest/{max_days}', 'controllers#latest'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
