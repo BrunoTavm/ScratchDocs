@@ -139,7 +139,7 @@ else:
   we = 0
 print tr,we
 %>
-<td class="ralign ${tr>we and 'msg' or ''}">${"%4.1f"%(we-tr)}y</td>
+<td class="ralign ${tr>we and 'msg' or ''}">${"%4.1f"%(we-tr)}</td>
   <td class='tagcln'>${', '.join(t['tags'])}&nbsp;</td>
   <td class='sumcln'
   title="${t['summary']|h}"><a class='textlike' href="${upr}/${t['story']}">${pritag|n}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag|n}</a></td>
