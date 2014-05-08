@@ -1649,7 +1649,23 @@ if __name__=='__main__':
                     hours = json.loads(open(ofn).read())
                 ts = '%s'%(i.strftime('%Y-%m-%d'))
                 hours[ts]=nasgn
-                fp = open(ofn,'w') ; fp.write(json.dumps(hours,indent=True,sort_keys=True)) ; fp.close()
+                if not os.path.exists(t['path']):
+                    badfn = os.path.join(cfg.DATADIR,'tracked-bad.json')
+                    if os.path.exists(badfn):
+                        bad = json.loads(open(badfn,'r').read())
+                    else:
+                        bad = {}
+                    for date,tracking in hours.items():
+                        if date not in bad: bad[date]={}
+                        for person,p_hours in tracking.items():
+                            if person not in bad[date]: bad[date][person]={}
+                            bad[date][person][sid]=p_hours
+
+                    print 'NONEXISTENT TASK %s'%sid,hours
+                    fp = open(badfn,'w') ; fp.write(json.dumps(bad,indent=True,sort_keys=True)) ; fp.close()
+                else:
+                    fp = open(ofn,'w') ; fp.write(json.dumps(hours,indent=True,sort_keys=True)) ; fp.close()
+                    
                 print 'written %s in %s'%(ts,ofn)
             i+=datetime.timedelta(days=1)
     if args.command=='edit':
@@ -1914,8 +1930,8 @@ def append_journal_entry(task,adm,content,metastates={}):
 
     assert len(metastates) or len(content)
     for k,v in metastates.items():
-        assert k in cfg.METASTATES,"%s not in metastates"%k
-        assert v in cfg.METASTATES[k]
+        assert k in cfg.METASTATES_FLAT,"%s not in metastates"%k
+        assert v in cfg.METASTATES_FLAT[k]
     tid = task['id']
     jfn = task['jpath']
     if not os.path.exists(jfn): #put a header in it

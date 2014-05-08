@@ -3,7 +3,7 @@
 filedesc: default url mapping
 '''
 from routes import Mapper
-from config import DEBUG,URL_PREFIX
+from config import DEBUG,URL_PREFIX,METASTATE_URLS
 from noodles.utils.maputils import urlmap,include
 from routes.route import Route
 import os
@@ -18,12 +18,6 @@ def get_map():
         (URL_PREFIX+'/', 'controllers#index'),
         (URL_PREFIX+'/feed', 'controllers#feed'),
         (URL_PREFIX+'/feed/{user}', 'controllers#feed'),
-        (URL_PREFIX+'/q', 'controllers#queue',{'assignee':'me'}),
-        (URL_PREFIX+'/q/archive', 'controllers#queue',{'assignee':'me','archive':True}),
-        (URL_PREFIX+'/q/assignee/{assignee}', 'controllers#queue'),
-        (URL_PREFIX+'/q/assignee/{assignee}/archive', 'controllers#queue',{'archive':True}),
-        (URL_PREFIX+'/q/all', 'controllers#queue'),
-        (URL_PREFIX+'/q/all/archive', 'controllers#queue',{'archive':True}),
 
         (URL_PREFIX+'/journal', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/groupby/{groupby}', 'controllers#global_journal'),
@@ -57,6 +51,26 @@ def get_map():
         (URL_PREFIX+'/favicon.ico', 'controllers#favicon'),
         (URL_PREFIX+'/assets/{r_type}/{r_file}', 'controllers#assets'),
     ])
+
+    for msabbr,msgroup in METASTATE_URLS.items():
+
+        def mcnt(msabbr,mp):
+            url = URL_PREFIX+'/'+msabbr
+            # (URL_PREFIX+'/q', 'controllers#queue',{'assignee':'me'}),
+            mp.connect(None,url,controller='controllers',action='queue',metastate_group=msgroup,assignee='me')
+            # (URL_PREFIX+'/q/archive', 'controllers#queue',{'assignee':'me','archive':True}),
+            mp.connect(None,url+'/archive',controller='controllers',action='queue',assignee='me',archive=True,metastate_group=msgroup)
+            # (URL_PREFIX+'/q/assignee/{assignee}', 'controllers#queue'),
+            mp.connect(None,url+'/assignee/{assignee}',controller='controllers',action='queue',metastate_group=msgroup)
+            # (URL_PREFIX+'/q/assignee/{assignee}/archive', 'controllers#queue',{'archive':True}),
+            mp.connect(None,url+'/assignee/{assignee}/archive',controller='controllers',action='queue',metastate_group=msgroup,archive=True)
+            # (URL_PREFIX+'/q/all', 'controllers#queue'),
+            mp.connect(None,url+'/all',controller='controllers',action='queue',metastate_group=msgroup)
+            # (URL_PREFIX+'/q/all/archive', 'controllers#queue',{'archive':True}),
+            mp.connect(None,url+'/all/archive',controller='controllers',action='queue',metastate_group=msgroup,archive=True)
+            return mp
+
+        mp = mcnt(msabbr,mp)
 
     filters = ['day','creator','state']
     for flt in filters:

@@ -32,12 +32,25 @@ def COMMITERMAP(em,nm):
     assert '.' not in em
     return em
 METASTATES={
-    'functional review':('needed','doing','failed','passed', 'not availible'),
-    'art review':('needed','doing','failed','passed', 'not availible'),
-    'code review':('needed','doing','failed','passed','client review', 'not availible'),
-    'tests passage':('no','building','random fails','integrator','100%'),
-    'merge to staging':('pending','merged','on production'),
+    'merge':{
+        'functional review':('needed','doing','failed','passed', 'not availible'),
+        'art review':('needed','doing','failed','passed', 'not availible'),
+        'code review':('needed','doing','failed','passed','client review', 'not availible'),
+        'tests passage':('no','building','random fails','integrator','100%'),
+        'merge to staging':('pending','merged','on production'),
+        },
+
+    'planning':{
+        'specs':('needed','doing','done'),
+        'ui/flow':('needed','doing','done'),
+        'art':('needed','doing','done'),
+        },
     }
+METASTATES_FLAT={}
+for ms,dt in METASTATES.items():
+    for msk,mdt in dt.items():
+        METASTATES_FLAT[msk]=mdt
+
 METASTATES_COLORS={
     'needed':'rgb(255, 192, 77)',
     'doing':'rgb(255, 255, 68)',
@@ -53,8 +66,15 @@ METASTATES_COLORS={
     '':'white',
     'client review':'rgb(94, 217, 248)',
     'on production':'rgb(94, 217, 248)',
-    'not availible':'lightgrey'
+    'not availible':'lightgrey',
+
+    'done':'#47FF47',
+
     }
+
+METASTATE_URLS = {'q':'merge',
+                  'pl':'planning'}
+
 METASTATES_OVERRIDES={
     'merged':"""fullstates.get(k) and fullstates.get(k).get('updated').strftime('%Y-%m-%d %H:%M') or ''""",
     'passed':"""(fullstates.get(k) and 'by '+fullstates.get(k).get('updated by','')) or ''""",

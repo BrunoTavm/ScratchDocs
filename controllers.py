@@ -395,7 +395,6 @@ def task(request,task):
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
     if task!='new': index_tasks(t['id'])
-    metastate_keys = METASTATES
     metastates,content = read_current_metastates(t['jpath'],True)
 
 
@@ -415,7 +414,6 @@ def task(request,task):
             'parents':parents,
             'request':request,
             'metastates':metastates,
-            'metastate_keys':metastate_keys,
             'possible_metastates':cfg.METASTATES,
             'colors':cfg.METASTATES_COLORS,
             'overrides':cfg.METASTATES_OVERRIDES,
@@ -490,7 +488,7 @@ def global_journal(request,creator=None,day=None,groupby=None,state=None):
         return {'j':{'all':ai},'task':None,'grouby':None,'user':adm}
 
 @render_to('queue.html')
-def queue(request,assignee=None,archive=False):
+def queue(request,assignee=None,archive=False,metastate_group='merge'):
     if assignee=='me':
         assignee=get_admin(request,'unknown')
     queue={}
@@ -509,6 +507,15 @@ def queue(request,assignee=None,archive=False):
         #print t
         assert t.get('status'),"could not get status for %s"%tid
         cm,content = read_current_metastates(jfn,True)
+
+        #skip this task if has no metastates relevant to us
+        relevant_metastates=False
+        for cmk in cm:
+            if cmk in cfg.METASTATES[metastate_group]:
+                relevant_metastates=True
+                break
+        if not relevant_metastates: continue
+
         jitems = read_journal(jfn)
         lupd = sorted(cm.values(),lambda x1,x2: cmp(x1['updated'],x2['updated']),reverse=True)
         if len(lupd): lupd=lupd[0]['updated']
@@ -518,7 +525,7 @@ def queue(request,assignee=None,archive=False):
             jlupd = jitems[-1]['created at']
             if not lupd or jlupd >=lupd:
                 lupd = jlupd
-
+        
         queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),
                     'fullstates':cm,
                     'last updated':lupd,
@@ -535,7 +542,11 @@ def queue(request,assignee=None,archive=False):
     queue.sort(lambda x1,x2: cmp((x1[1]['last updated'] and x1[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1)),(x2[1]['last updated'] and x2[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1))),reverse=True)
 
 
+    metastate_url_prefix = dict (zip(cfg.METASTATE_URLS.values(),cfg.METASTATE_URLS.keys()))[metastate_group]
+
     return {'queue':queue,
+            'metastate_group':metastate_group,
+            'metastate_url_prefix':metastate_url_prefix,
             'metastates':METASTATES,
             'colors':cfg.METASTATES_COLORS,
             'overrides':cfg.METASTATES_OVERRIDES}

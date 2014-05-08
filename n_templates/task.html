@@ -28,7 +28,7 @@ selected=1 \
     %if task['summary'] != '':
         <input class="btn btn-primary " type='submit' value='Update' accesskey='a' />
         <span class="divider-vertical"></span>
-        <input class="btn btn-default custom-link" type='button' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='n' />    
+        <input class="btn btn-default custom-link" type='button' accesskey='s' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='n' />    
         <span class="divider-vertical"></span>
         <input class="btn btn-default custom-link" type='button' value='History' data-link="${upr}/${task['story']}/log" />       
     %else:
@@ -100,18 +100,20 @@ ${taskmenu()}
                         ${self.sel('status',statuses,task['status'],attr='accesskey="t" id="sel-status"')}
                     </div>
                 </div>
-
+		<hr />
             % if task['id']:
                 <div class="control-group">
-                    <label class="control-label">Metastates</label>
+                    % for mgroup,ms in possible_metastates.items():
+                    <label class="control-label">${mgroup}</label>
                     <div class="controls mini-table" >
-                    % for k in metastate_keys:
+		    % for k in ms:
                         <% v = metastates.get(k) %>
                         <label> ${k}: </label>
-                        ${self.metastate_sel(task['story'],k,(v and v.get('value') or ''),colors,possible_metastates,overrides,metastates,allow_empty=True)}
+                        ${self.metastate_sel(task['story'],k,(v and v.get('value') or ''),colors,possible_metastates[mgroup],overrides,metastates,allow_empty=True)}
                         <br />
+		    % endfor
+                    </div><hr />
                     % endfor
-                    </div>
                 </div>
             % endif
                 <div class="control-group">
@@ -267,11 +269,11 @@ ${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.g
     </div>
 </div>
 
-
 % if len(children):
 <h3>Sub tasks</h3>
 ${self.list_tasks(children)}
 % endif
+
 
 % if task.get('person_hours'):
 <h3>Time tracking</h3>

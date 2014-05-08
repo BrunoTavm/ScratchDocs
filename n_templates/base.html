@@ -38,14 +38,15 @@ $(function() {
             <div class="navbar-inner">
                 <ul class="nav">
                     <li><a accesskey="h" href="${upr}/"><b>h</b>ome</a></li>
-                    <li><a accesskey="s" href="${upr}/st"><b>s</b>torage</a></li>
+                    <li><a accesskey="t" href="${upr}/st">s<b>t</b>orage</a></li>
                     <li><a accesskey="e" href="${upr}/tl">par<b>e</b>nt tasks</a></li>
                     <li><a accesskey="o" href="${upr}/latest">latest</a></li>
                     <li><a accesskey="g" href="${upr}/tags">ta<b>g</b>s</a></li>
                     <li><a accesskey="p" href="${upr}/participants"><b>p</b>articipants</a></li>
                     <li><a accesskey="n" href="${upr}/s/new"><b>n</b>ew task</a></li>
                     <li><a accesskey="l" href="${upr}/journal/filter/day/current/groupby/creator">today's journa<b>l</b></a></li>
-                    <li><a accesskey="q" href="${upr}/q"><b>q</b>ueue</a></li>
+                    <li><a accesskey="q" href="${upr}/q">merge <b>q</b>ueue</a></li>
+                    <li><a href="${upr}/pl">planning queue</a></li>
                 </ul>
                 <form class="navbar-form pull-right" method="get" action="${upr}/search">
                     <input class="span3" type='text' name='q' value="${request.params.get('q','')|x}" accesskey="/" placeholder="Search" />
