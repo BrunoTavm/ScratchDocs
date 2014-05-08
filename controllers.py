@@ -56,7 +56,7 @@ def iterations(request):
 
 def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None,newer_than=None,recent=False):
     fns_list = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag,newer_than=newer_than,recent=recent)
-    in_tasks = [parse_fn(fn,read=True,gethours=False,hoursonlyfor=person) for fn in fns_list]
+    in_tasks = [parse_fn(fn,read=True,gethours=True,hoursonlyfor=None,getmeta=True,getmetastates=True) for fn in fns_list]
     tasks={}
     for t in in_tasks:
         tlp = get_parent(t['id'],tl=True)
@@ -397,12 +397,19 @@ def task(request,task):
     if task!='new': index_tasks(t['id'])
     metastates,content = read_current_metastates(t['jpath'],True)
 
+    if t.get('total_hours') and metastates.get('work estimate'):
+        remaining_hours = float(metastates.get('work estimate')['value']) - float(t.get('total_hours'))
+    elif t.get('total_hours'):
+        remaining_hours = -1 * float(t.get('total_hours'))
+    else:
+        remaining_hours = None
 
     #Journal
     tj = get_task(task)
     jfn = tj['jpath']
     jitems = read_journal(jfn)
     return {'task':t,
+            'remaining_hours':remaining_hours,
             'j':{'%s existing entries'%t['id']:jitems},
             'gwu':gwu,
             'url':RENDER_URL,
@@ -496,7 +503,7 @@ def queue(request,assignee=None,archive=False,metastate_group='merge'):
         #print 'working journal %s'%jfn
         tfn = jfn.replace('journal.org','task.org')
         #print 'getting %s'%tfn
-        t = parse_fn(tfn,read=True,gethours=False,getmeta=False)
+        t = parse_fn(tfn,read=True,gethours=True,getmeta=False)
 
         if assignee and t['assigned to']!=assignee: continue
 
@@ -525,8 +532,9 @@ def queue(request,assignee=None,archive=False,metastate_group='merge'):
             jlupd = jitems[-1]['created at']
             if not lupd or jlupd >=lupd:
                 lupd = jlupd
-        
+        assert t.get('total_hours')!='None'
         queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),
+                    'total_hours':t.get('total_hours',0),
                     'fullstates':cm,
                     'last updated':lupd,
                     'status':t['status'],

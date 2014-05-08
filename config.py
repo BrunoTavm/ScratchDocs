@@ -32,7 +32,16 @@ def COMMITERMAP(em,nm):
     assert '.' not in em
     return em
 METASTATES={
+
+    'planning':{
+        'specs':('needed','doing','done'),
+        'ui/flow':('needed','doing','done'),
+        'art':('needed','doing','done'),
+        'work estimate':'INPUT(number)',
+        },
+
     'merge':{
+        'work estimate':'INPUT(number)',
         'functional review':('needed','doing','failed','passed', 'not availible'),
         'art review':('needed','doing','failed','passed', 'not availible'),
         'code review':('needed','doing','failed','passed','client review', 'not availible'),
@@ -40,11 +49,6 @@ METASTATES={
         'merge to staging':('pending','merged','on production'),
         },
 
-    'planning':{
-        'specs':('needed','doing','done'),
-        'ui/flow':('needed','doing','done'),
-        'art':('needed','doing','done'),
-        },
     }
 METASTATES_FLAT={}
 for ms,dt in METASTATES.items():

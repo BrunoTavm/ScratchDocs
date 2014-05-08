@@ -25,6 +25,11 @@ selected=1 \
 <input class="btn btn-primary " type='button' value='reload' accesskey='r' onclick="location.reload()" />
 </h2> 
 <div style="text-align:center">
+% if remaining_hours:
+<span class="${remaining_hours<0 and 'msg' or 'bold'}">\
+${"%4.2f h remaining"%remaining_hours}\
+</span>
+% endif
     %if task['summary'] != '':
         <input class="btn btn-primary " type='submit' value='Update' accesskey='a' />
         <span class="divider-vertical"></span>
@@ -103,10 +108,13 @@ ${taskmenu()}
 		<hr />
             % if task['id']:
                 <div class="control-group">
+                  <% used = [] %>
                     % for mgroup,ms in possible_metastates.items():
                     <label class="control-label">${mgroup}</label>
                     <div class="controls mini-table" >
 		    % for k in ms:
+                    <% if k in used: continue %>
+                    <% used.append(k) %>
                         <% v = metastates.get(k) %>
                         <label> ${k}: </label>
                         ${self.metastate_sel(task['story'],k,(v and v.get('value') or ''),colors,possible_metastates[mgroup],overrides,metastates,allow_empty=True)}

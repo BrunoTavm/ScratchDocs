@@ -175,7 +175,7 @@ def parse_attrs(node,pth,no_tokagg=False):
     #Exception('here it is %s'%pth)
     return rt
 UNSSEP = '# UNSTRUCTURED BEYOND THIS POINT'
-def parse_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
+def parse_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True,getmetastates=False):
     """parse a task filename and optionally read it."""
     assert len(fn),"%s empty"%fn
     parts = [prt for prt in fn.replace(cfg.DATADIR,'').split(cfg.STORY_SEPARATOR) if prt!='']
@@ -227,6 +227,7 @@ def parse_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
                 tothrs+=uhrs
                 person_hours[un]['hours']+=uhrs
         rt['total_hours']=tothrs
+        assert tothrs!='None'
         rt['last_tracked']=last_tracked
         person_hours= person_hours.items()
         person_hours.sort(hours_srt_2)
@@ -234,6 +235,9 @@ def parse_fn(fn,read=False,gethours=False,hoursonlyfor=None,getmeta=True):
     mfn = os.path.join(os.path.dirname(fn),'meta.json')
     if getmeta:
         rt['meta']=loadmeta(mfn)
+    if getmetastates:
+        msfn = mfn.replace('meta.json','journal.org')
+        rt['metastates']=read_current_metastates(msfn,metainfo=False)[0]
     assert rt['id']
     return rt
 taskfiles_cache={}
@@ -1831,10 +1835,8 @@ def get_parent_descriptions(tid):
     parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
     return parents
 
-
-def read_current_metastates(jfn,metainfo=False):
-    rt={} ; content=None
-    items = read_journal(jfn)
+def read_current_metastates_worker(items,metainfo=False):
+    rt={} ; 
     for i in items:
         if i.get('content'):
             content={'value':i['rendered_content'],
@@ -1848,7 +1850,13 @@ def read_current_metastates(jfn,metainfo=False):
                           'updated by':i['creator']}
             else:
                 rt[attr]=attrv
-    return rt,content
+    return rt
+
+
+def read_current_metastates(jfn,metainfo=False):
+    content=None
+    items = read_journal(jfn)
+    return read_current_metastates_worker(items,metainfo),content
 
 
 def read_journal(jfn,date_limit=None,state_limit=None):
@@ -1931,7 +1939,16 @@ def append_journal_entry(task,adm,content,metastates={}):
     assert len(metastates) or len(content)
     for k,v in metastates.items():
         assert k in cfg.METASTATES_FLAT,"%s not in metastates"%k
-        assert v in cfg.METASTATES_FLAT[k]
+        if type(cfg.METASTATES_FLAT)==tuple:
+            assert v in cfg.METASTATES_FLAT[k],"%s not in %s"%(v,cfg.METASTATES_FLAT[k])
+        else:
+            inptp,inpstp = cfg.METASTATES_FLAT[k].split('(')
+            inpstp = inpstp.split(')')[0]
+            if inptp=='INPUT':
+                if inpstp=='number': assert re.compile('^([0-9\.]+)$').search(v)
+                else: raise Exception('unknown inpstp %s'%inpstp)
+            else:
+                raise Exception('unknown inptp %s'%inptp)
     tid = task['id']
     jfn = task['jpath']
     if not os.path.exists(jfn): #put a header in it

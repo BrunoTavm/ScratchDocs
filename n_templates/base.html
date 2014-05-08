@@ -65,7 +65,20 @@ $(function() {
         <script type='text/javascript' src='${upr}/assets/js/bootstrap.min.js'></script>
     </body>
 </html>
-<%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False,style='')">
+<%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False,style='',noinput=False)">
+% if type(possible_metastates[k])!=tuple:
+<% inptp = possible_metastates[k].split('(')[1].split(')')[0] %>
+% if noinput:
+${v}\
+% else:
+<input \
+   type="${inptp}" \
+   name="metastate-${tid}-${k}" \
+   value="${v}" \
+   class="metastate-sel" \
+       />
+% endif
+% else:
 <% assert k!='content' %>
 <select \
         class='metastate-sel' \
@@ -79,6 +92,7 @@ $(function() {
   ${(pm in overrides and eval(overrides[pm]) or pm)}</option>
 % endfor
 </select>
+% endif
 </%def>
 <%def name="list_tasks(tasks,header=True,body=True,footer=True,cnt={'cnt':0})">
 % if header:
@@ -89,6 +103,7 @@ $(function() {
     <th>id</th>
     <th>status</th>
     <th>assignee</th>    
+    <th>remaining</th>
     <th>tags</th>
     <th>summary</th>
     <th>parents</th>
@@ -116,6 +131,15 @@ else:
 ${pritag|n}<a href="${upr}/${t['story']}" title="${t['summary']|h}">${t['story']}</a>${prietag|n}</td>
   <td>${t['status']}</td>
   <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
+
+<% tr = float(t.get('total_hours',0)) ; 
+if t.get('metastates'):
+  we = float(t['metastates'].get('work estimate',0))
+else:
+  we = 0
+print tr,we
+%>
+<td class="ralign ${tr>we and 'msg' or ''}">${"%4.1f"%(we-tr)}y</td>
   <td class='tagcln'>${', '.join(t['tags'])}&nbsp;</td>
   <td class='sumcln'
   title="${t['summary']|h}"><a class='textlike' href="${upr}/${t['story']}">${pritag|n}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag|n}</a></td>
