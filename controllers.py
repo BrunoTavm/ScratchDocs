@@ -621,8 +621,16 @@ def metastate_set(request):
     k = request.params.get('k')
     v = request.params.get('v')
     _,tid,msk = k.split('-')
-    t = get_task(tid)
+
     adm = get_admin(request,'unknown')
+    #special case
+    if msk=='work estimate':
+        t = get_task(tid,gethours=True)
+        #print '%s = %s + %s'%(msk,t['total_hours'],v)
+        v = "%4.2f"%(float(t['total_hours'])+float(v))
+    else:
+        t =  get_task(tid,gethours=False)
+
     print 'setting %s.%s = %s'%(tid,msk,v)
     append_journal_entry(t,adm,'',{msk:v})
     return {'status':'ok'}

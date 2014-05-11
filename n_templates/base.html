@@ -65,16 +65,16 @@ $(function() {
         <script type='text/javascript' src='${upr}/assets/js/bootstrap.min.js'></script>
     </body>
 </html>
-<%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False,style='',noinput=False)">
+<%def name="metastate_sel(tid,k,v,colors,possible_metastates,overrides,fullstates,allow_empty=False,style='',noinput=False,total_hours=None)">
 % if type(possible_metastates[k])!=tuple:
 <% inptp = possible_metastates[k].split('(')[1].split(')')[0] %>
 % if noinput:
-${v}\
+${float(v and v or 0)-float(total_hours)}\
 % else:
 <input \
    type="${inptp}" \
    name="metastate-${tid}-${k}" \
-   value="${v}" \
+   value="${'%4.2f'%(float(v and v or 0)-float(total_hours))}" \
    class="metastate-sel" \
        />
 % endif

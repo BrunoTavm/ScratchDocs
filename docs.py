@@ -374,7 +374,7 @@ task_cache={}
 def get_task(number,read=False,exc=True,flush=False,gethours=False):
     """return everything we know about a task"""
     global task_cache
-    tk = '%s-%s-%s'%(number,read,exc)
+    tk = '%s-%s-%s-%s'%(number,read,exc,gethours)
     if tk in task_cache: 
         if flush: del task_cache[tk]
         else: return task_cache[tk]
