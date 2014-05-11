@@ -36,7 +36,7 @@ if 'priority' in upd['tags']:
 <% we = float(upd['states'].get('work estimate',0)) %>
 <% th = float(upd.get('total_hours',0)) %>
 <td class="${th>we and 'msg' or ''}">\
-${upd['total_hours'] and "%4.2f"%upd['total_hours'] or '--'}</td>
+${"%4.2f"%(we-th)}</td>
   % for ms in metastates[metastate_group]:
   <td class="td-center-align">
     ${self.metastate_sel(tid,ms,upd['states'].get(ms),colors,metastates[metastate_group],overrides,upd['fullstates'],allow_empty=True,style='',noinput=True,total_hours=upd.get('total_hours',0))}

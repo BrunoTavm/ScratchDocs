@@ -117,7 +117,7 @@ ${taskmenu()}
                     <% used.append(k) %>
                         <% v = metastates.get(k) %>
                         <label> ${k}: </label>
-                        ${self.metastate_sel(task['story'],k,(v and v.get('value') or ''),colors,possible_metastates[mgroup],overrides,metastates,allow_empty=True,total_hours=task['total_hours'])}
+                        ${self.metastate_sel(task['story'],k,(v and v.get('value') or ''),colors,possible_metastates[mgroup],overrides,metastates,allow_empty=True,total_hours=task.get('total_hours',0))}
                         <br />
 		    % endfor
                     </div><hr />
