@@ -16,8 +16,12 @@ def get_map():
     urlmap(mp, [
 
         (URL_PREFIX+'/', 'controllers#index'),
+
         (URL_PREFIX+'/feed', 'controllers#feed'),
+        (URL_PREFIX+'/feed/fs', 'controllers#feed_fs'),
         (URL_PREFIX+'/feed/{user}', 'controllers#feed'),
+        (URL_PREFIX+'/feed/{user}/fs', 'controllers#feed_fs'),
+
 
         (URL_PREFIX+'/journal', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/groupby/{groupby}', 'controllers#global_journal'),

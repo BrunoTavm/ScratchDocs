@@ -603,8 +603,7 @@ def history(request,task):
     rt = {'op':op,'task':t,'request':request}
     return rt
 
-@render_to('feed_ajax.html')
-def feed(request,user=None):
+def feed_worker(request,user=None):
     if not user: user = get_admin(request,'unknown')
     r = redis.Redis('localhost')
     f = r.get('feed_'+user)
@@ -615,6 +614,14 @@ def feed(request,user=None):
         fe['when'] = datetime.datetime.strptime( fe['when'], "%Y-%m-%dT%H:%M:%S" )
         fe['delta'] = nw - fe['when']
     return {'feed':lf,'gwu':cfg.GITWEB_URL,'docs_repo':cfg.DOCS_REPONAME}
+
+@render_to('feed_ajax.html')
+def feed(request,user=None):
+    return feed_worker(request,user)
+
+@render_to('feed_fs.html')
+def feed_fs(request,user=None):
+    return feed_worker(request,user)
 
 @ajax_response
 def metastate_set(request):
