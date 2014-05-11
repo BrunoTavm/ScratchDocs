@@ -1939,7 +1939,7 @@ def append_journal_entry(task,adm,content,metastates={}):
     assert len(metastates) or len(content)
     for k,v in metastates.items():
         assert k in cfg.METASTATES_FLAT,"%s not in metastates"%k
-        if type(cfg.METASTATES_FLAT)==tuple:
+        if type(cfg.METASTATES_FLAT[k])==tuple:
             assert v in cfg.METASTATES_FLAT[k],"%s not in %s"%(v,cfg.METASTATES_FLAT[k])
         else:
             inptp,inpstp = cfg.METASTATES_FLAT[k].split('(')

@@ -41,7 +41,6 @@ METASTATES={
         },
 
     'merge':{
-        'work estimate':'INPUT(number)',
         'functional review':('needed','doing','failed','passed', 'not availible'),
         'art review':('needed','doing','failed','passed', 'not availible'),
         'code review':('needed','doing','failed','passed','client review', 'not availible'),
