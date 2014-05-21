@@ -17,6 +17,7 @@ import time
 import subprocess
 import shlex
 from dulwich.repo import Repo as DRepo
+import gc
 
 def org_render(ins):
     proc = subprocess.Popen([os.path.join(os.path.dirname(__file__),'orgmode-render.php')],
@@ -471,22 +472,30 @@ def add_notification(whom,about,what):
     meta['notifications'].append({'whom':whom,'about':about,'what':what,'added':datetime.datetime.now().isoformat()})
     savemeta(t['metadata'],meta)
 
-def get_meta_files():
-    cmd = 'find %s -name meta.json -type f'%(cfg.DATADIR)
-    st,op = gso(cmd) ; assert st==0
-    files = [(ln,parse_fn(ln)) for ln in op.split('\n') if ln!='']
-    return files
-    
+def get_meta_files(tid=None):
+    print 'working get_meta_files(%s)'%tid
+    matches = []
+    if tid:
+        matches = [os.path.join(cfg.DATADIR,tid,'meta.json')]
+    else:
+        for root, dirnames, filenames in os.walk(cfg.DATADIR):
+            for filename in filenames:
+                fn = os.path.join(root,filename)
+                if os.path.basename(filename)=='meta.json' and os.path.isfile(fn):
+                    matches.append(fn)
+    matches = [(ln,parse_fn(ln)) for ln in matches]
+    return matches
 
-def process_notifications(args=None,adm='CLI'):
+
+def process_notifications(args=None,adm='CLI',tid=None):
     if not args:
         class Args(object):
             renotify=False
             nonotify=cfg.NONOTIFY
             nocommit=cfg.NOCOMMIT
         args = Args()
-    tfs = get_meta_files()
-    files_touched=[]
+    tfs = get_meta_files(tid=tid)
+    files_touched=[] ; tasks_touched=[]
     participants = get_participants(disabled=True)
     if args.renotify:
         newer_than = datetime.datetime.strptime(args.renotify,'%Y-%m-%d')
@@ -494,7 +503,7 @@ def process_notifications(args=None,adm='CLI'):
         newer_than = None
 
     for meta,s in tfs:
-        m = loadmeta(meta)
+        m = s['meta'] #loadmeta(meta)
         if m.get('notifications'):
             for n in m['notifications']:
                 if n.get('notified') and not args.renotify:
@@ -513,13 +522,16 @@ def process_notifications(args=None,adm='CLI'):
                 n['notified']=datetime.datetime.now().isoformat()
                 savemeta(meta,m)
                 files_touched.append(meta)
+                tasks_touched.append(s['id'])
     if len(files_touched) and not args.nocommit:
         print 'commiting %s touched files.'%(len(files_touched))
         from tasks import pushcommit
-        pushcommit.delay(files_touched,None,adm)
+        for tid in tasks_touched:
+            pushcommit.delay(files_touched,tid,adm)
         cmd = ['cd %s && git add '%cfg.DATADIR+' '.join(files_touched)+' && git commit -m "automatic commit of updated metafiles."']
         if not cfg.NOPUSH: cmd[0]+=' && git push'
         st,op = gso(cmd,shell=True) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
+    gc.collect()
 
 def parse_change(t,body,descr=True):
     ch = body.get('change',[])
@@ -1048,8 +1060,8 @@ def get_changes(show=False,add_notifications=False,feed=False,changes_limit=200)
     for cid,cmsg in commitsi:
 
         #print 'working commit %s / %s'%(cid,len(commitsi))
-        o = R.get_object(cid)
-        commits[cid]['date']=datetime.datetime.fromtimestamp(o.commit_time)
+        O = R.get_object(cid)
+        commits[cid]['date']=datetime.datetime.fromtimestamp(O.commit_time)
         cmd = ["cd %s && git show %s"%(cfg.DATADIR,cid)] # | egrep '^(\-\-\-|\+\+\+)' | egrep
         st,op = gso(cmd,shell=True) ; assert st==0,"%s returned %s"%(cmd,st)
         ops = op.split('\n')
@@ -1061,6 +1073,7 @@ def get_changes(show=False,add_notifications=False,feed=False,changes_limit=200)
                 ulines.append(l)
         commits[cid]['changes']=ulines
 
+        del O
 
 
     pt = PrettyTable(['date','commit','author','message','file','story'])
@@ -1117,6 +1130,9 @@ def get_changes(show=False,add_notifications=False,feed=False,changes_limit=200)
 
     if show and not (add_notifications or feed):
         print pt
+
+    del R
+    gc.collect()
     return commits
 
 
