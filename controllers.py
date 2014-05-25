@@ -48,6 +48,34 @@ def participants(request):
     pts = get_participants(sort=True)
     return {'pts':pts,'request':request}
 
+@render_to('tracking.html')
+def tracking(request,rng):
+    frto = rng.split(':') ; narr=[]
+    for tel in frto:
+        otel = tel
+        if tel=='lastmonth': tel = (datetime.datetime.now()-datetime.timedelta(days=30)).strftime('%Y-%m-%d')
+        if tel=='lastweek': tel = (datetime.datetime.now()-datetime.timedelta(days=7)).strftime('%Y-%m-%d')
+        if tel=='yesterday': tel = (datetime.datetime.now()-datetime.timedelta(days=1)).strftime('%Y-%m-%d')
+        if tel=='today': tel = (datetime.datetime.now()).strftime('%Y-%m-%d')
+        narr.append(tel)
+    frto = narr
+
+    st,op = gso("find %s -type f -iname 'hours.json'"%cfg.DATADIR) ; assert st==0
+    fnames = op.split("\n")
+    sums={} ; tasksums={} ; tdescrs = {}
+    for fn in fnames:
+        tid = os.path.dirname(fn).replace(cfg.DATADIR+'/','')
+        with open(fn,'r') as f: j = json.loads(f.read())
+        matching = filter(lambda x: x[0]>=frto[0] and x[0]<=frto[1],j.items())
+        for dt,data in matching:
+            for person,hrs in data.items():
+                sums[person] = sums.get(person,0)+hrs
+                if person not in tasksums: tasksums[person]={}
+                tasksums[person][tid] = tasksums[person].get(tid,0)+hrs
+                if tid not in tdescrs: tdescrs[tid] = get_task(tid,read=True)['summary']
+    sums = sums.items()
+    sums.sort(lambda x,y: cmp(x[1],y[1]),reverse=True)
+    return {'fr':frto[0],'to':frto[1],'tracked':sums,'tasksums':tasksums,'tdescrs':tdescrs}
 
 @render_to('index.html')
 def iterations(request):
@@ -355,7 +383,7 @@ def task(request,task):
             metastates={}
             append_journal_entry(tj,adm,request.params.get('content-journal'),metastates)
             j = rpr(request,task,journal=True,render_only=True)
-
+        assert request.params.get('id')
         pushcommit.delay(t['path'],request.params.get('id'),adm)
 
 
@@ -373,6 +401,7 @@ def task(request,task):
             parent=None
         rt = add_task(parent=parent,params=o_params,tags=tags)
         redir = '/'+URL_PREFIX+rt['id']
+        assert rt['story_id']
         pushcommit.delay(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)

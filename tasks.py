@@ -8,9 +8,15 @@ import config as cfg
 import subprocess
 initvars(cfg)
 from commands import getstatusoutput as gso
+from tasks import get_changes
     
 celery = Celery('tasks',broker='redis://localhost')
 
+@celery.task
+def notifications(adm,tid):
+    get_changes(show=False,add_notifications=True,changes_limit=1)
+    process_notifications(adm=adm,tid=tid)
+    
 
 @celery.task
 def pushcommit(pth,tid,adm):
@@ -43,13 +49,12 @@ def pushcommit(pth,tid,adm):
         print 'done push'
 
     if not cfg.NONOTIFY:
-        get_changes(show=False,add_notifications=True,changes_limit=1)
-        process_notifications(adm=adm)
+        assert tid
+        notifications.delay(adm=adm,tid=tid)
 
     if not cfg.NOPUSH:
         push()
 
-from tasks import get_changes
 
 @celery.task
 def changes_to_feed():

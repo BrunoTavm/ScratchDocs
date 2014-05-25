@@ -1,0 +1,30 @@
+<%inherit file="/base.html" />
+<%def name="content()">
+<h4>hours tracking for ${fr} - ${to}</h4>
+<table>
+<thead>
+  <tr>
+    <th>person/descr</th>
+    <th>task</th>
+    <th>hours</th>
+    </tr>
+</thead>
+
+% for p,h in tracked:
+<tr class="bold" style='background-color:#bac'>
+  <td><a href="${upr}/assignments/${p}"><b>${p}</b></a></td>
+  <td></td>
+  <td class="ralign">${"%4.2f"%h}</td>
+</tr>
+<% items = tasksums[p].items() ; items.sort(lambda x,y: cmp(x[1],y[1]),reverse=True)%>
+% for tid,h in items:
+<tr>
+  <td>${tdescrs[tid]}</td>
+  <td><a href="${upr}/${tid}">${tid}</a></td>
+  <td class="ralign">${"%4.2f"%h}</td>
+</tr>
+% endfor
+
+% endfor
+</table>
+</%def>
