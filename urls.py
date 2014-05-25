@@ -22,6 +22,7 @@ def get_map():
         (URL_PREFIX+'/feed/{user}', 'controllers#feed'),
         (URL_PREFIX+'/feed/{user}/fs', 'controllers#feed_fs'),
 
+        (URL_PREFIX+'/tracking/{rng}','controllers#tracking'),
 
         (URL_PREFIX+'/journal', 'controllers#global_journal'),
         (URL_PREFIX+'/journal/groupby/{groupby}', 'controllers#global_journal'),
