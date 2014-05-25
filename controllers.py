@@ -663,7 +663,7 @@ def metastate_set(request):
     if msk=='work estimate':
         t = get_task(tid,gethours=True)
         #print '%s = %s + %s'%(msk,t['total_hours'],v)
-        v = "%4.2f"%(float(t['total_hours'])+float(v))
+        v = "%4.2f"%(float(t.get('total_hours',0))+float(v))
     else:
         t =  get_task(tid,gethours=False)
 
