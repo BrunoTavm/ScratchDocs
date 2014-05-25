@@ -383,7 +383,7 @@ def task(request,task):
             metastates={}
             append_journal_entry(tj,adm,request.params.get('content-journal'),metastates)
             j = rpr(request,task,journal=True,render_only=True)
-
+        assert request.params.get('id')
         pushcommit.delay(t['path'],request.params.get('id'),adm)
 
 
@@ -401,6 +401,7 @@ def task(request,task):
             parent=None
         rt = add_task(parent=parent,params=o_params,tags=tags)
         redir = '/'+URL_PREFIX+rt['id']
+        assert rt['story_id']
         pushcommit.delay(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)
