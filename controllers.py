@@ -62,7 +62,7 @@ def tracking(request,rng):
 
     st,op = gso("find %s -type f -iname 'hours.json'"%cfg.DATADIR) ; assert st==0
     fnames = op.split("\n")
-    sums={} ; tasksums={} ; tdescrs = {}
+    sums={} ; tasksums={} ; tdescrs = {} ; testimates = {}
     for fn in fnames:
         tid = os.path.dirname(fn).replace(cfg.DATADIR+'/','')
         with open(fn,'r') as f: j = json.loads(f.read())
@@ -72,10 +72,19 @@ def tracking(request,rng):
                 sums[person] = sums.get(person,0)+hrs
                 if person not in tasksums: tasksums[person]={}
                 tasksums[person][tid] = tasksums[person].get(tid,0)+hrs
-                if tid not in tdescrs: tdescrs[tid] = get_task(tid,read=True)['summary']
+                t = get_task(tid,read=True,gethours=True)
+                if tid not in tdescrs: tdescrs[tid] = t['summary']
+                metastates,content = read_current_metastates(t['jpath'],True)
+
+                if t.get('total_hours') and metastates.get('work estimate'):
+                    remaining_hours = '%4.2f'%(float(metastates.get('work estimate')['value']) - float(t.get('total_hours')))
+                else:
+                    remaining_hours = '--'
+                testimates[tid]=remaining_hours
+
     sums = sums.items()
     sums.sort(lambda x,y: cmp(x[1],y[1]),reverse=True)
-    return {'fr':frto[0],'to':frto[1],'tracked':sums,'tasksums':tasksums,'tdescrs':tdescrs}
+    return {'fr':frto[0],'to':frto[1],'tracked':sums,'tasksums':tasksums,'tdescrs':tdescrs,'testimates':testimates}
 
 @render_to('index.html')
 def iterations(request):
