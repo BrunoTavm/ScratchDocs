@@ -1500,16 +1500,23 @@ def index_assigned(tid=None,dirname='assigned',idxfield='assigned to'):
                 st,op = gso('mkdir %s'%blpath) ; assert st==0
                 acnt+=1
             tpath = os.path.join(blpath,t['id'].replace('/','.'))
-            lncmd = 'ln -s %s %s'%('../../'+fn,tpath)
+            lncmd = 'ln -s %s %s'%(fn,tpath)
             #print lncmd
-            st,op = gso(lncmd) ; assert st==0
+            if not os.path.exists(tpath):
+                st,op = gso(lncmd) ; assert st==0,lncmd
     print 'indexed under %s %s'%(acnt,idxfield)
         
-def index_tasks(tid=None):
-    index_assigned(tid,'creators','created by') #task creator
-    index_assigned(tid) #index task assignment
-    index_assigned(tid,'tagged','tags') #index tagging
-
+def index_tasks(tid=None,reindex_attr=None):
+    dnf = {'creators':'created by',
+           'assigned':'assigned to',
+           'tagged':'tags'}
+    if reindex_attr: assert reindex_attr in dnf.keys()
+    for dn,attr_name in dnf.items():
+        if reindex_attr and reindex_attr!=dn: continue
+        print 'reindexing %s (tid %s)'%(dn,tid)
+        fdn = os.path.join(cfg.DATADIR,dn)
+        st,op = gso('rm -rf %s/*'%fdn); assert st==0
+        index_assigned(tid,dn,attr_name)
 
 def initvars(cfg_ref):
     global commits,commitsfn,commitre,cre,are,sre,dre,cfg
@@ -1531,7 +1538,8 @@ if __name__=='__main__':
     subparsers = parser.add_subparsers(dest='command')
 
     idx = subparsers.add_parser('reindex')
-    
+    idx.add_argument('--reindex-attr',dest='reindex_attr',action='store')
+
     lst = subparsers.add_parser('list')
     lst.add_argument('--assignee',dest='assignee')
     lst.add_argument('--status',dest='status')
@@ -1612,7 +1620,7 @@ if __name__=='__main__':
     if args.command=='list':
         list_stories(assignee=args.assignee,status=args.status,tag=args.tag,recent=args.recent)
     if args.command=='reindex':
-        index_tasks()
+        index_tasks(reindex_attr=args.reindex_attr)
     if args.command=='index':
         makeindex()
     if args.command=='makehtml':
