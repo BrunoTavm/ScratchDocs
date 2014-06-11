@@ -105,7 +105,9 @@ ${float(v and v or 0)-float(total_hours)}\
     <th>id</th>
     <th>status</th>
     <th>assignee</th>    
+% if gethours:
     <th>remaining</th>
+% endif
     <th>tags</th>
     <th>summary</th>
     <th>parents</th>
@@ -139,9 +141,10 @@ if t.get('metastates'):
   we = float(t['metastates'].get('work estimate',0))
 else:
   we = 0
-print tr,we
 %>
+% if gethours:
 <td class="ralign ${tr>we and 'msg' or ''}">${"%4.1f"%(we-tr)}</td>
+% endif
   <td class='tagcln'>${', '.join(t['tags'])}&nbsp;</td>
   <td class='sumcln'
   title="${t['summary']|h}"><a class='textlike' href="${upr}/${t['story']}">${pritag|n}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag|n}</a></td>

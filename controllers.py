@@ -91,9 +91,9 @@ def iterations(request):
     its = get_iterations()
     return {'its':its,'request':request}
 
-def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None,newer_than=None,recent=False):
+def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None,newer_than=None,recent=False,gethours=False):
     fns_list = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag,newer_than=newer_than,recent=recent)
-    in_tasks = [parse_fn(fn,read=True,gethours=True,hoursonlyfor=None,getmeta=True,getmetastates=True) for fn in fns_list]
+    in_tasks = [parse_fn(fn,read=True,gethours=gethours,hoursonlyfor=None,getmeta=True,getmetastates=True) for fn in fns_list]
     tasks={}
     for t in in_tasks:
         tlp = get_parent(t['id'],tl=True)
@@ -130,29 +130,30 @@ def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=Fa
         return rt
     for st in tasks:
         tasks[st].sort(srt,reverse=True)
-    return {'tasks':tasks,'statuses':STATUSES,'request':request}
+    return {'tasks':tasks,'statuses':STATUSES,'request':request,'gethours':gethours}
 
 @render_to('iteration.html') 
-def assignments(request,person):
-    rt= asgn(request,person)
+def assignments(request,person,gethours):
+    if gethours=='False': gethours=False
+    rt= asgn(request,person,gethours=gethours)
     rt['headline']='Assignments for %s'%person
     return rt
 
 @render_to('iteration.html') 
-def created(request,person):
-    rt= asgn(request,created=person)
+def created(request,person,gethours):
+    rt= asgn(request,created=person,gethours=gethours)
     rt['headline']='Created by %s'%person
     return rt
 
 @render_to('iteration.html')
-def assignments_mode(request,person,mode):
+def assignments_mode(request,person,mode,gethours):
     if mode=='notdone': notdone=True
     else: notdone =False
-    rt = asgn(request,person=person,notdone=notdone)
+    rt = asgn(request,person=person,notdone=notdone,gethours=gethours)
     rt['headline']='Assignments for %s, %s'%(person,mode)
     return rt
 
-def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=None,tag=None):
+def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=None,tag=None,gethours=False):
     notdone=False
     headline=''
     if mode=='notdone':
@@ -160,7 +161,7 @@ def assignments_itn_func(request,person=None,iteration=None,mode='normal',query=
         headline+='Current Tasks'
     else:
         headline+=''
-    rt=asgn(request,person=person,notdone=notdone,query=query,tag=tag)
+    rt=asgn(request,person=person,notdone=notdone,query=query,tag=tag,gethours=gethours)
     rt['headline']=headline
     return rt
 
@@ -169,10 +170,11 @@ def assignments_itn(request,person,iteration,mode='normal',tag=None):
     return assignments_itn_func(request,person,iteration,mode,tag=tag)
 
 @render_to('iteration.html')
-def index(request):
+def index(request,gethours=False):
     rt= assignments_itn_func(request
-                                ,get_admin(request,'unknown')
-                                ,mode='notdone')
+                             ,get_admin(request,'unknown')
+                             ,mode='notdone'
+                             ,gethours=gethours)
     return rt
 
 @render_to('iteration.html')
@@ -202,8 +204,8 @@ def storage(request):
     return rt
 
 @render_to('iteration.html')
-def latest(request,max_days=14):
-    rt = asgn(request,recurse=True,recent=True,newer_than=int(max_days))
+def latest(request,max_days=14,gethours=False):
+    rt = asgn(request,recurse=True,recent=True,newer_than=int(max_days),gethours=gethours)
     rt['headline']='Latest created'
     return rt
 

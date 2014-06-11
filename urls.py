@@ -16,6 +16,7 @@ def get_map():
     urlmap(mp, [
 
         (URL_PREFIX+'/', 'controllers#index'),
+        (URL_PREFIX+'/tr', 'controllers#index',{'gethours':True}),
 
         (URL_PREFIX+'/feed', 'controllers#feed'),
         (URL_PREFIX+'/feed/fs', 'controllers#feed_fs'),
@@ -31,15 +32,10 @@ def get_map():
 
         (URL_PREFIX+'/tl', 'controllers#top_level'),
         (URL_PREFIX+'/st', 'controllers#storage'),
-        (URL_PREFIX+'/latest', 'controllers#latest'),
-        (URL_PREFIX+'/latest/{max_days}', 'controllers#latest'),
         (URL_PREFIX+'/iterations', 'controllers#iterations'),
         (URL_PREFIX+'/participants', 'controllers#participants'),
-        (URL_PREFIX+'/assignments/{person}', 'controllers#assignments'),
-        (URL_PREFIX+'/created/{person}', 'controllers#created'),
         (URL_PREFIX+'/tags', 'controllers#tags'),
         (URL_PREFIX+'/tag/{tag}', 'controllers#bytag'),
-        (URL_PREFIX+'/assignments/{person}/{mode}', 'controllers#assignments_mode'),
         (URL_PREFIX+'/s/{task:.*}/log','controllers#history'),
         (URL_PREFIX+'/s/{task:.*}/j','controllers#journal'),
         (URL_PREFIX+'/s/{task:.*}/j/{jid}','controllers#journal_edit'),
@@ -57,6 +53,13 @@ def get_map():
         (URL_PREFIX+'/assets/{r_type}/{r_file}', 'controllers#assets'),
     ])
 
+    for pf,gethours in {'/tr':True,'':False}.items():
+        mp.connect(None,URL_PREFIX+'/assignments/{person}'+pf, controller='controllers',action='assignments',gethours=gethours)
+        mp.connect(None,URL_PREFIX+'/created/{person}'+pf, controller='controllers',action='created',gethours=gethours),
+        mp.connect(None,URL_PREFIX+'/assignments/{person}/{mode}'+pf, controller='controllers',action='assignments_mode',gethours=gethours)
+        mp.connect(None,URL_PREFIX+'/latest'+pf, controller='controllers',action='latest',gethours=gethours),
+        mp.connect(None,URL_PREFIX+'/latest/{max_days}'+pf, controller='controllers',action='latest',gethours=gethours)
+        
     for msabbr,msgroup in METASTATE_URLS.items():
 
         def mcnt(msabbr,mp):
