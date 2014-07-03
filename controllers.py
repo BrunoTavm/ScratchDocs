@@ -699,9 +699,9 @@ def assets(request, r_type=None, r_file=None):
     fname = '/'.join(['sd/assets', r_type, r_file])
 
     if r_type not in map:
-        return HTTPNotFound(fname)
+        return exc.HTTPNotFound(fname)
     if r_file is None:
-        return HTTPNotFound(fname)
+        return exc.HTTPNotFound(fname)
 
     try:
         response = BaseResponse()
@@ -711,3 +711,11 @@ def assets(request, r_type=None, r_file=None):
         return response
     except:
         return exc.HTTPNotFound(fname)
+
+def gantt_tasks(request,tid):
+    #example:
+    #{"id":-1,"name":"Gantt
+    #editor","code":"","level":0,"status":"STATUS_ACTIVE","canWrite":true,"start":1396994400000,"duration":21,"end":1399672799999,"startIsMilestone":true,"endIsMilestone":false,"collapsed":false,"assigs":[],"hasChild":true}
+    t = get_task(tid)
+    ch = get_children(tid,read=False)
+    raise Exception(t,ch)

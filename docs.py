@@ -397,13 +397,13 @@ def get_task(number,read=False,exc=True,flush=False,gethours=False):
     task_cache[tk]=rt
     return rt
 taskre = re.compile('^([\d\/]+)$')
-def get_children(number):
+def get_children(number,read=True):
     assert taskre.search(number),"invalid task %s"%number
     t = get_task(number)
     cmd = 'find -L %s -maxdepth 2 ! -wholename "*.git*" -type f -iname "%s" ! -wholename "%s"'%(os.path.dirname(t['path']),cfg.TASKFN,t['path'])
     st,op = gso(cmd) ; assert st==0,"%s returned %s:\n%s"%(cmd,st,op)
     chfiles = [ch for ch in op.split('\n') if ch!='']
-    tf = [parse_fn(fn,read=True) for fn in chfiles]
+    tf = [parse_fn(fn,read=read) for fn in chfiles]
     return tf
 def get_new_idx(parent=None):
     if parent:
