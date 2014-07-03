@@ -7,3 +7,6 @@
 [submodule "orgile"]
 	path = orgile
 	url = https://github.com/mashdot/orgile
+[submodule "gantt"]
+	path = gantt
+	url = https://github.com/robicch/jQueryGantt

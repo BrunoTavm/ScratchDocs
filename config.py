@@ -1,3 +1,4 @@
+import os
 DATADIR='data'
 SHORTCUT_PREFIX='s'
 OUTDIR='render'
@@ -78,11 +79,16 @@ METASTATES_COLORS={
 METASTATE_URLS = {'q':'merge',
                   'pl':'planning'}
 
+PARTICIPANT_ROLES = {'worker':'worker',
+					 'manager':'Manager',
+                     'stakeholder':'Stakeholder'}
+
 METASTATES_OVERRIDES={
     'merged':"""fullstates.get(k) and fullstates.get(k).get('updated').strftime('%Y-%m-%d %H:%M') or ''""",
     'passed':"""(fullstates.get(k) and 'by '+fullstates.get(k).get('updated by','')) or ''""",
 }
 DIFF_BRANCHES=['staging','master','production'] #display diff links to gitweb for those baseline branches
+GANTT_FILE = os.path.join(DATADIR,'gantt.json')
 from noodles_config import *
 from config_local import *
 import os

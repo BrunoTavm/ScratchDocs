@@ -7,3 +7,4 @@ paste
 celery
 redis
 dulwich
+pyyaml

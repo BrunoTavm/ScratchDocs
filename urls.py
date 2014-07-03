@@ -3,7 +3,7 @@
 filedesc: default url mapping
 '''
 from routes import Mapper
-from config import DEBUG,URL_PREFIX,METASTATE_URLS
+from config import DEBUG,URL_PREFIX,METASTATE_URLS,DATADIR
 from noodles.utils.maputils import urlmap,include
 from routes.route import Route
 import os
@@ -51,6 +51,13 @@ def get_map():
         (URL_PREFIX+'/search','controllers#search'),
         (URL_PREFIX+'/favicon.ico', 'controllers#favicon'),
         (URL_PREFIX+'/assets/{r_type}/{r_file}', 'controllers#assets'),
+
+        (URL_PREFIX+'/gantt/','controllers#gantt'),
+        (URL_PREFIX+'/gantt/{tid:[\-\d]+}','controllers#gantt'),
+        (URL_PREFIX+'/gantt/save','controllers#gantt_save'),
+        (URL_PREFIX+'/gantt/res1.js','controllers#gantt_res1'),
+        (URL_PREFIX+'/gantt/gridEditor.js','controllers#gantt_grid_editor'),
+        (URL_PREFIX+'/gantt/{path_info:.*}', 'noodles.utils.static#index',{'path':os.path.join(DATADIR,'sd','gantt')}),
     ])
 
     for pf,gethours in {'/tr':True,'':False}.items():

@@ -8,7 +8,7 @@ from noodles.http import Response
 from tasks import gso
 from config import STATUSES,RENDER_URL,DATADIR,URL_PREFIX,NOPUSH,NOCOMMIT,METASTATES
 from config_local import WEBAPP_FORCE_IDENTITY
-from noodles.http import Redirect,BaseResponse,Response,ajax_response
+from noodles.http import Redirect,BaseResponse,Response,XResponse,ajax_response
 from webob import exc
 from noodles.templates import render_to
 from docs import initvars
@@ -699,9 +699,9 @@ def assets(request, r_type=None, r_file=None):
     fname = '/'.join(['sd/assets', r_type, r_file])
 
     if r_type not in map:
-        return HTTPNotFound(fname)
+        return exc.HTTPNotFound(fname)
     if r_file is None:
-        return HTTPNotFound(fname)
+        return exc.HTTPNotFound(fname)
 
     try:
         response = BaseResponse()
@@ -711,3 +711,43 @@ def assets(request, r_type=None, r_file=None):
         return response
     except:
         return exc.HTTPNotFound(fname)
+
+def load_gantt():
+    tfile = cfg.GANTT_FILE
+    if not os.path.exists(tfile):
+        with open(os.path.join(cfg.DATADIR,'sd','gantt-data-template.json'),'r') as tplfn:
+            tpl = json.load(tplfn)
+            with open(tfile,'w') as tfp:
+                json.dump(tpl,tfp,indent=True)
+    tasks = open(tfile,'r').read()
+    return tasks
+
+@render_to('gantt-res1.js',content_type='text/javascript')
+def gantt_res1(request):
+    res = [{'id':k,'name':v['Name']} for k,v in get_participants(sort=True)]
+    tasks = load_gantt()
+    return {'roles':json.dumps([{'id':k,'name':v} for k,v in cfg.PARTICIPANT_ROLES.items()],indent=True),
+            'res':json.dumps(res,indent=True),
+            'tasks':tasks,
+            'gpr':'/gantt/'}
+
+@render_to('gantt-grid_editor.js',content_type='text/javascript')
+def gantt_grid_editor(request):
+    return {}
+
+@render_to('gantt.html')
+def gantt(request,tid=None):
+    return {'gpr':'/gantt/',
+            'tid':tid
+        }
+    
+
+def gantt_save(request):
+    data = json.loads(request.params.get('prj'))
+    with open(cfg.GANTT_FILE,'w') as fp:
+        json.dump(data,fp,indent=True)
+
+    return XResponse({'ok':True,
+                      'errorMessages':[],
+                      'project':json.load(open(cfg.GANTT_FILE))
+                  })
