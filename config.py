@@ -45,7 +45,7 @@ METASTATES={
         'art review':('needed','doing','failed','passed', 'not availible'),
         'code review':('needed','doing','failed','passed','client review', 'not availible'),
         'tests passage':('no','building','random fails','integrator','100%'),
-        'merge to staging':('pending','merged','on production'),
+        'merge to staging':('pending','merged','pending to production','on production'),
         },
 
     }
@@ -64,6 +64,7 @@ METASTATES_COLORS={
     'building':'rgb(255, 192, 77)',
     '100%':'#47FF47',
     'pending':'rgb(253, 75, 75)',
+    'pending to production':'orange',
     'merged':'#47FF47',
     'integrator':'rgb(163, 196, 255)',
     '':'white',

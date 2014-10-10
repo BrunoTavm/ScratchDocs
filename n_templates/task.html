@@ -145,7 +145,9 @@ ${taskmenu()}
                     <div class="controls">
                         <ul class="unstyled">
                             % for li in task['links']:
-                            <li>  <input type='checkbox' name="link-${li['anchor']|h}" checked=1 value="${li['url']|h}" />  <a href="${li['url']}">${li['anchor']}</a></li>
+                            <li>  <input type='checkbox' name="link-${li['anchor']|h}" checked=1 value="${li['url']|h}" />  <a href="${li['url']}">${li['anchor']}</a> \
+			      (<a href="https://chart.googleapis.com/chart?chs=200x200&cht=qr&chld=|1&chl=${li['url']|h}">qr</a>)
+			    </li>
                             % endfor
                         </ul>
                     </div>
@@ -198,6 +200,9 @@ ${taskmenu()}
 <% defr = task.get('repobranch')[0].split('/')[1] %>\
 ./automerge.py \
 --from=${defr} \
+% if len(filter(lambda x: x[1].startswith('production'),[r.split('/') for r in task.get('repobranch')])):
+--to=production \
+% endif
 --purge --linters \
 --message='#${task['id']}: automerge.' \
 ${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.get('repobranch')])} \
