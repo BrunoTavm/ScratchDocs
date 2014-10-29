@@ -1886,11 +1886,13 @@ def read_current_metastates(jfn,metainfo=False):
 def read_journal(jfn,date_limit=None,state_limit=None):
     if jfn:
         tid = parse_fn(jfn,read=False,gethours=False,getmeta=False)['story']
+        #print 'parsed'
     else:
         tid = None
     if jfn and os.path.exists(jfn):
         items=[]
         root = orgparse.load(jfn)
+        #print 'orgparsed'
         heading = None ; creator = None ; gotattrs=False ; unstructured='' ; attrs = {}
         for node in root[1:]:
             #print 'NODE',node
@@ -1925,6 +1927,7 @@ def read_journal(jfn,date_limit=None,state_limit=None):
                 'content':unstructured.decode('utf-8'),
                 'rendered_content':org_render(unstructured.decode('utf-8'))}
         items.append(apnd)
+        #print 'appended'
         if date_limit: 
             if type(date_limit)==list:
                 items = [i for i in items if i['created at'].date()>=date_limit[0] and i['created at'].date()<=date_limit[1]]
@@ -1940,10 +1943,23 @@ def read_journal(jfn,date_limit=None,state_limit=None):
     else:
         return []
 
-def get_all_journals():
+def get_all_journals(day=None):
     cmd = 'find %s -name "journal.org" -type f'%cfg.DATADIR
     st,op = gso(cmd) ; assert st==0
-    return [fn for fn in op.split('\n') if fn!='']
+    rt = [fn for fn in op.split('\n') if fn!='']
+    def lastentry(fn):
+        with open(fn) as f:
+            for i, line in enumerate(f):
+                if i == 2:
+                    break
+            else:
+                print('Not 7 lines in file')
+                line = None
+        dtstr = line.split('<')[1].split('>')[0]
+        lastentry = datetime.datetime.strptime(dtstr,date_formats[2])
+        return lastentry
+    rt = filter(lambda fn: not day or lastentry(fn).date()>=day[0],rt)
+    return rt
 
 def render_journal_content(user,content,metastates):
     now = datetime.datetime.now()

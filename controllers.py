@@ -517,11 +517,17 @@ def global_journal(request,creator=None,day=None,groupby=None,state=None):
             daya = datetime.datetime.strptime(day,'%Y-%m-%d').date()
             day = [daya,daya]
 
-    for jfn in get_all_journals():
+    print 'obtaining journals'
+    gaj = get_all_journals(day)
+    print 'obtained; reading %s journals'%len(gaj)
+    for jfn in gaj:
+        #print 'reading journal %s'%jfn
         ji = read_journal(jfn,date_limit=day,state_limit=state)
         if creator: ji = [i for i in ji if i['creator']==creator]
         ai+=ji
+    print 'finished reading. sorting'
     ai.sort(lambda x1,x2: cmp(x1['created at'],x2['created at']))
+    print 'sorted'
     if groupby:
         rt={}
         for i in ai:
@@ -667,7 +673,10 @@ def feed_fs(request,user=None):
 def metastate_set(request):
     k = request.params.get('k')
     v = request.params.get('v')
-    _,tid,msk = k.split('-')
+    spl = k.split('-')
+    tid = spl[1]
+    msk = '-'.join(spl[2:])
+    #_,tid,msk = 
 
     adm = get_admin(request,'unknown')
     #special case

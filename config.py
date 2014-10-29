@@ -48,6 +48,11 @@ METASTATES={
         'merge to staging':('pending','merged','pending to production','on production'),
         },
 
+    'production':{
+        'pre-prod':('pending','updated','tested','failed','passed'),
+        'prod':('pending','updated','tested','failed','passed'),
+        },
+
     }
 METASTATES_FLAT={}
 for ms,dt in METASTATES.items():
@@ -77,7 +82,8 @@ METASTATES_COLORS={
     }
 
 METASTATE_URLS = {'q':'merge',
-                  'pl':'planning'}
+                  'pl':'planning',
+                  'pr':'production',}
 
 METASTATES_OVERRIDES={
     'merged':"""fullstates.get(k) and fullstates.get(k).get('updated').strftime('%Y-%m-%d %H:%M') or ''""",
