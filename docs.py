@@ -1497,13 +1497,17 @@ def index_assigned(tid=None,dirname='assigned',idxfield='assigned to'):
         for myidx in myidxs:
             blpath = os.path.join(asgndir,myidx)
             if not os.path.exists(blpath):
-                st,op = gso('mkdir %s'%blpath) ; assert st==0
+                os.mkdir(blpath) 
+                assert os.path.exists(blpath)
+                # st,op = gso('mkdir %s'%blpath) ; assert st==0
                 acnt+=1
             tpath = os.path.join(blpath,t['id'].replace('/','.'))
             lncmd = 'ln -s %s %s'%(fn,tpath)
             #print lncmd
             if not os.path.exists(tpath):
-                st,op = gso(lncmd) ; assert st==0,lncmd
+                os.symlink(fn,tpath)
+                #st,op = gso(lncmd) ; assert st==0,lncmd
+                assert os.path.exists(tpath)
     print 'indexed under %s %s'%(acnt,idxfield)
         
 def index_tasks(tid=None,reindex_attr=None):

@@ -553,8 +553,9 @@ def queue(request,assignee=None,archive=False,metastate_group='merge'):
 
         if assignee and t['assigned to']!=assignee: continue
 
-        if not archive and t['status'] in cfg.DONESTATES: continue
-        elif archive and t['status'] not in cfg.DONESTATES: continue
+        if metastate_group!='production':
+            if not archive and t['status'] in cfg.DONESTATES: continue
+            elif archive and t['status'] not in cfg.DONESTATES: continue
 
         tid = t['story']
         #print t
