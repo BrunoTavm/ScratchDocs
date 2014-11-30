@@ -83,16 +83,18 @@ def get_ids():
     return [r['key'] for r in Task.view('task/ids')]
 
 def get_new_idx(par=''):
+    print 'getting new idx %s'%par
     par = str(par)
     allids = get_ids()
     agg={}
-    for pth in allidsnewidx:
+    for pth in allids:
         val = pth[-1]
         aggk = '/'.join(map(lambda x:str(x),pth[0:-1]))
         if aggk not in agg: agg[aggk]=-1
         if agg[aggk]<val: agg[aggk]=val
     print par in agg
-    return par+'/'+str(agg[par]+1)
+    print 'returning %s + / + %s'%(par,int(agg[par])+1)
+    return str(par)+'/'+str(int(agg[par])+1)
 
 def get_journals():
     return Task.view('task/journals')

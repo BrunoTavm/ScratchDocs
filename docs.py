@@ -478,44 +478,27 @@ def add_iteration(name,start_date=None,end_date=None):
 
 def add_task(parent=None,params={},force_id=None,tags=[]):
     print 'in add_task'
-    raise NotImplementedError('task addition not impl')
     if parent:
-        print 'is a child task'
-        iterationtasks = dict([(tpfn['story'],tpfn) for tpfn in tf])
-        assert parent in iterationtasks,"%s not in %s"%(parent,iterationtasks)
-        basedir = os.path.dirname(iterationtasks[parent]['path'])
         if force_id:
             newidx = force_id
         else:
-            newidx = get_new_idx(parent=parent)
-        newdir = os.path.join(basedir,newidx)
-        fullid = cfg.STORY_SEPARATOR.join([parent,newidx])
-        newtaskfn = os.path.join(newdir,'task.org')
+            newidx = get_new_idx(parent)
     else:
         print 'is a top level task'
-        basedir = os.path.join(cfg.DATADIR)
         if force_id:
             #make sure we don't have it already
-            tf = [parse_fn(fn)['story'] for fn in get_fns()]
-            assert str(force_id) not in tf,"task %s already exists - %s."%(force_id,get_task(force_id))
             newidx = str(force_id)
         else:
             print 'getting a new index'
             newidx = get_new_idx()
-            print 'done getting a new index'
-        newdir = os.path.join(basedir,newidx)
-        fullid = cfg.STORY_SEPARATOR.join([newidx])
-        newtaskfn = os.path.join(newdir,'task.org')
-    print 'parsing new task fn'
-    newtaskdt = parse_fn(newtaskfn)
-    assert newtaskdt
-    print 'creating new task %s : %s'%(newtaskdt['story'],pfn(newtaskfn))
+    fullid = newidx
+
     if type(params)==dict:
         pars = dict(params)
     else:
         pars = params.__dict__
-    pars['story_id'] = newidx
-    pars['created'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    pars['created_at'] = datetime.datetime.now()
     if 'creator' not in pars:
         pars['creator'] = cfg.CREATOR
     if 'status' not in pars:
@@ -530,23 +513,16 @@ def add_task(parent=None,params={},force_id=None,tags=[]):
     for ai in cfg.ALWAYS_INFORMED:
         if ai not in pars['informed']: pars['informed'].append(ai)
 
-    assert not os.path.exists(newdir),"%s exists"%newdir
-    dn = os.path.dirname(newdir)
-    assert os.path.exists(dn),"%s does not exist."%dn
-    os.mkdir(newdir)
-
-    assert not os.path.exists(newtaskfn)
     pars['tags']=tags
     print 'rendering'
-    render('task',pars,newtaskfn)
-    pars['path']=newtaskfn
-    print 'clearing the cache for tasks'
-    global task_cache,taskfiles_cache
-    task_cache={}
-    taskfiles_cache={}
-    pars['id']=fullid
-    print 'done creating'
-    return pars
+    t = Task()
+    t._id = fullid
+    t.path = fullid.split('/')
+    t.journal=[]
+    for k in pars:
+        setattr(t,k,pars[k])
+    t.save()
+    return t
 
 def makehtml(notasks=False,files=[]):
     #find all the .org files generated

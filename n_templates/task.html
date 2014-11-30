@@ -65,9 +65,9 @@ ${taskmenu()}
     <div style="display:table-row;">
         <div style="display:table-cell;width:50%;">
             <h2 class="task-title">Info</h2>
-                % if hasattr(task,'under'):
-                <h4>under ${task.get('under')}</h4>
-                <input type='hidden' name='under' value="${task.get('under')}" />
+                % if under:
+                <h4>under ${under}</h4>
+                <input type='hidden' name='under' value="${under}" />
                 % endif
                 <input type='hidden' name='id' value="${task._id}" />
 

@@ -15,7 +15,7 @@ from docs import initvars
 import config as cfg
 initvars(cfg)
 from docs import cre,date_formats,parse_attrs,get_all_journals,get_fns,get_parent_descriptions,get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
-from docs import loadmeta,org_render,parsegitdate,read_current_metastates,read_journal,render_journal_content,append_journal_entry,get_journals,get_tags
+from docs import loadmeta,org_render,parsegitdate,read_current_metastates,read_journal,render_journal_content,append_journal_entry,get_journals,get_tags,Task
 from tasks import pushcommit
 import codecs
 import copy
@@ -375,7 +375,8 @@ def task(request,task):
     if len(uns) and not uns.startswith('**'):
         uns='** Details\n'+uns
     assignees=[request.params.get('assignee')]
-    if request.params.get('id'):
+
+    if request.params.get('id') and request.params.get('id')!='None':
         t = get_task(request.params.get('id'))
         assignees.append(t.assignee)
         tid = request.params.get('id')
@@ -413,8 +414,6 @@ def task(request,task):
             parent=None
         rt = add_task(parent=parent,params=o_params,tags=tags)
         redir = '/'+URL_PREFIX+rt._id
-        assert rt['story_id']
-        pushcommit.delay(rt['path'],rt['story_id'],adm)
         print 'redircting to %s'%redir
         rd = Redirect(redir)
         return rd
@@ -424,7 +423,16 @@ def task(request,task):
         ch = get_children(task)
 
     if task=='new':
-        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','status':'TODO','assignee':adm,'creator':adm,'tags':[],'under':under,'jpath':None}
+        t = Task(created_at=None,
+                 summary='',
+                 unstructured='',
+                 status='TODO',
+                 assignee=adm,
+                 creator=adm,
+                 tags=[],
+                 links=[],
+                 branches=[],
+                 journal=[])
         opar=[]
     else:
         t = get_task(task)
@@ -445,9 +453,8 @@ def task(request,task):
     #     remaining_hours = None
     remaining_hours=None
 
-    #Journal
-    tj = get_task(task)
-    jitems = read_journal(t)
+    #journal
+    jitems = t.journal
     return {'task':t,
             'remaining_hours':remaining_hours,
             'total_hours':0,
@@ -465,7 +472,9 @@ def task(request,task):
             'possible_metastates':cfg.METASTATES,
             'colors':cfg.METASTATES_COLORS,
             'overrides':cfg.METASTATES_OVERRIDES,
-            'diff_branches':cfg.DIFF_BRANCHES}
+            'diff_branches':cfg.DIFF_BRANCHES,
+            'under':under,
+    }
 
 @render_to('tags.html')
 def tags(request):
