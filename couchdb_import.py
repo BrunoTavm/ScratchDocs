@@ -1,6 +1,6 @@
 import datetime
 
-from docs import get_fns,initvars,get_task,parse_fn,read_journal
+from docs_old import get_fns,initvars,get_task,parse_fn,read_journal
 from couchdbkit.exceptions import ResourceNotFound
 import config as cfg    
 import sys

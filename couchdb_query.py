@@ -1,7 +1,7 @@
 import datetime
 from couchdbkit import *
 from couchdbkit.designer import push
-from docs import get_fns,initvars,get_task,parse_fn,read_journal
+from docs import initvars
 import config as cfg    
 import sys
 import json
@@ -14,42 +14,18 @@ sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout)
 
 initvars(cfg)
 
-from couchdb import Task,init_conn,push_views
-
-def get_task(tid):
-    return Task.get(tid)
-
-def get_children(tid):
-    ints = [int(tp) for tp in tid.split('/')]
-    sk = ints
-    ek = ints+[{}]
-    tasks = Task.view('task/children',
-                      startkey=sk,
-                      endkey=ek)
-    return [t for t in tasks if t._id!=tid]
-
-def get_parents(tid):
-    ints = [int(tp) for tp in tid.split('/')]
-    keys=[]
-    for l in range(1,len(ints)):
-        keys.append(ints[0:l])    
-    tasks = Task.view('task/children',
-                      keys=keys,
-                      )
-    return tasks
+from couchdb import *
 
 if __name__=='__main__':
     s,d = init_conn()
     
-    #push_views(d)
+    push_views(d)
 
     tid = sys.argv[1]
-
     
-    t = get_task(tid) #Task.view('task/all',key=tid)
+    t = get_task(tid)
     print 'QUERIED TASK:'
     print t._id,t.summary
-
 
     tasks = get_children(tid)
 
@@ -57,9 +33,26 @@ if __name__=='__main__':
     for t in tasks: 
         print t.path,t._id,t.summary,','.join(t.tags)
 
-
     tasks = get_parents(tid)
     print len(tasks),'PARENTS'
     for t in tasks:
         print t.path,t._id,t.summary,','.join(t.tags)
     #print 'done'
+
+    if len(sys.argv)>2:
+        tag = sys.argv[2]
+        tasks = get_by_tag(tag)
+        print len(tasks),'BY TAG %s'%tag
+        for t in tasks: print t.path,t._id,t.summary,','.join(t.tags)
+        
+    if len(sys.argv)>3:
+        rel = sys.argv[3]
+        tasks = get_related(rel)
+        print len(tasks),'BY RELATED %s'%rel
+        for t in tasks: print t.path,t._id,t.summary,t.assignee
+    if len(sys.argv)>4:
+        st = sys.argv[4]
+        tasks = get_by_status(st)
+        print len(tasks),'BY STATUS %s'%st
+        for t in tasks: print t.path,t._id,t.summary,t.status
+    
