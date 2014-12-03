@@ -3,7 +3,7 @@ from jsoncompare import compare
 
 def init_conn():
     #print 'creating server'
-    s = Server()
+    s = Server(uri=cfg.COUCHDB_URI)
     #print 'obtaining db'
     d = s.get_or_create_db("tasks")
     Task.set_db(d)
@@ -100,7 +100,6 @@ def get_children(tid):
     tasks = Task.view('task/children',
                       startkey=sk,
                       endkey=ek,
-                      group=False
     )
     rt= [t for t in tasks if t._id!=tid]
     return rt
