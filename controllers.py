@@ -16,7 +16,6 @@ import config as cfg
 initvars(cfg)
 from docs import cre,date_formats,parse_attrs,get_all_journals,get_fns,get_parent_descriptions,get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
 from docs import loadmeta,org_render,parsegitdate,read_current_metastates,read_journal,render_journal_content,append_journal_entry,get_journals,get_tags,Task
-from tasks import pushcommit
 import codecs
 import copy
 import datetime
@@ -389,7 +388,7 @@ def task(request,task):
                     'informed':informed,
                     'branches':branches}
         print o_params
-        rewrite(tid,o_params,safe=False)
+        rewrite(tid,o_params,safe=False,user=adm)
         t = get_task(tid)
         if request.params.get('content-journal'):
             tj = get_task(task)
@@ -412,7 +411,7 @@ def task(request,task):
             parent = request.params.get('under')
         else:
             parent=None
-        rt = add_task(parent=parent,params=o_params,tags=tags)
+        rt = add_task(parent=parent,params=o_params,tags=tags,user=adm)
         redir = '/'+URL_PREFIX+rt._id
         print 'redircting to %s'%redir
         rd = Redirect(redir)
@@ -522,13 +521,14 @@ def global_journal(request,creator=None,day=None,groupby=None,state=None):
     print 'obtaining journals'
     gaj = get_all_journals(day)
     print 'obtained; reading %s journals'%len(gaj)
-    for jfn in gaj:
-        #print 'reading journal %s'%jfn
-        ji = read_journal(jfn,date_limit=day,state_limit=state)
-        if creator: ji = [i for i in ji if i['creator']==creator]
+    for jt in gaj:
+        if creator: ji = [i for i in jt.journal if i['creator']==creator]
+        else: ji = jt.journal
+        for jii in ji:
+            jii['tid']=jt._id
         ai+=ji
     print 'finished reading. sorting'
-    ai.sort(lambda x1,x2: cmp(x1.created_at,x2.created_at))
+    ai.sort(lambda x1,x2: cmp(x1['created_at'],x2['created_at']))
     print 'sorted'
     if groupby:
         rt={}

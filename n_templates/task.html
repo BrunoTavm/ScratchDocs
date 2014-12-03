@@ -356,4 +356,4 @@ document.getElementById('showtog').onclick = function(ev) {
 }}
 </script>
 </%def>
-<%def name="title()">${task.summary}</%def>
+<%def name="title()">${task and task.summary or ''}</%def>

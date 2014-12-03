@@ -126,7 +126,7 @@ def imp():
                        'attrs':attrs,
                        'created_at':created_at})
         td.journal = je
-        td.save()
+        td.save(notify=False,user='couchdb_import')
 
 if __name__=='__main__':
     s,d = init_conn()

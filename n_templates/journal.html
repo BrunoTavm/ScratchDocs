@@ -54,7 +54,7 @@ ${jk}\
 </h3>
         <ul class="unstyled">
             % for ji in reversed(jg):
-            <li>&lt;${ji['created at']}&gt;
+            <li>&lt;${ji['created_at']}&gt;
             % if not task and groupby!='tid':
                 <a href="${upr}/${ji['tid']}">${ji['tid']}</a>
             % endif
@@ -62,7 +62,7 @@ ${jk}\
                 - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
             % endif
             ${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}<br />
-            ${ji['rendered_content']|n}
+            ${ji['content']|n}
             </li>
             % endfor
         </ul>
