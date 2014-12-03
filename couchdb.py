@@ -1,5 +1,4 @@
 from couchdbkit import *
-import tasks
 from jsoncompare import compare
 
 def init_conn():
@@ -23,6 +22,7 @@ class Task(Document):
         Document.save(self)
         if not notify: return
         if notify:
+            import tasks
             tasks.notifications.apply_async((user,self._id),countdown=5)
         
     def _notify(self,user):

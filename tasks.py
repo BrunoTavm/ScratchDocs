@@ -1,7 +1,7 @@
 from celery import Celery
 from time import sleep
 import logging
-from docs import get_participants
+
 import config as cfg
 from docs import initvars
 import config as cfg
