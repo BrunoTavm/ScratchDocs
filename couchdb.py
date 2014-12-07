@@ -20,7 +20,11 @@ class Task(Document):
     created_at = DateTimeProperty()
 
     def save(self,user=None,notify=True):
-        Document.save(self)
+        try:
+            Document.save(self)
+        except:
+            print 'could not save task %s'%self._id
+            raise
         if not notify: return
         if notify:
             import tasks
@@ -42,15 +46,17 @@ class Task(Document):
         snd = cfg.SENDER
         rcpts = set(self.informed+[self.creator,self.assignee] )-(user and set([user]) or set())
         rems = [participants[r]['E-Mail'] for r in rcpts]
+        to = ', '.join(rems)
+        print 'sending mail to %s'%to
+        for rcpt in rems:
+            msg = sendgrid.Mail(to=rcpt,
+                                subject = subj,
+                                html=html,
+                                text=text,
+                                from_email=snd)
 
-        msg = sendgrid.Mail(to=', '.join(rems),
-                            subject = subj,
-                            html=html,
-                            text=text,
-                            from_email=snd)
-        print 'sending mail'
-        status,res = sg.send(msg)
-        assert status==200,Exception(status,res)
+            status,res = sg.send(msg)
+            assert status==200,Exception(status,res)
         notif = {'notified_at':datetime.datetime.now(),
                  'user':user,
                  'informed':rcpts}
@@ -134,16 +140,16 @@ def get_new_idx(par=''):
     agg={}
     for tid in allids:
         pth = tid.split('/')
-
         val = pth[-1]
         aggk = '/'.join(map(lambda x:str(x),pth[0:-1]))
         if aggk not in agg: agg[aggk]=0
-        if agg[aggk]<val: agg[aggk]=val
+        if int(agg[aggk])<int(val): agg[aggk]=val
         if tid not in aggk: agg[tid]=0
     #raise Exception(agg)
     assert par in agg,"%s not in agg %s"%(par,agg.keys())
     print 'returning %s + / + %s'%(par,int(agg[par])+1)
-    rt= str(par)+'/'+str(int(agg[par])+1)
+    print 'par = "%s" ; agg[par] = "%s"'%(par,agg[par])
+    rt= (par and str(par)+'/'or '')+str(int(agg[par])+1)
     return rt
 
 def get_journals():

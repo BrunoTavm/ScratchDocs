@@ -102,7 +102,8 @@ ${taskmenu()}
                 <div class="control-group">
                     <label for="sel-status" class="control-label">S<b>t</b>atus</label>
                     <div class="controls">
-                        ${self.sel('status',statuses,task['status'],attr='accesskey="t" id="sel-status"')}
+		      <% assert hasattr(task,'status'),"%s has no status"%task._id %>
+                        ${self.sel('status',statuses,task.status,attr='accesskey="t" id="sel-status"')}
                     </div>
                 </div>
 		<hr />

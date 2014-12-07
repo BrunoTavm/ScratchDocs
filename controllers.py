@@ -97,6 +97,7 @@ def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=Fa
     for t in in_tasks:
         print 'getting parent for %s'%t._id
         tlp = get_parent(t._id,tl=True)
+        assert hasattr(t,'status'),"%s with no status"%t._id
         st = t['status']
         #print 'st of %s setting to status of tlp %s: %s'%(t._id,tlp,st) 
         print 'grouping by status'
