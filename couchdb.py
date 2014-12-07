@@ -3,6 +3,7 @@ from jsoncompare import compare
 
 def init_conn():
     #print 'creating server'
+    import config as cfg
     s = Server(uri=cfg.COUCHDB_URI)
     #print 'obtaining db'
     d = s.get_or_create_db("tasks")
