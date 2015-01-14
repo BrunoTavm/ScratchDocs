@@ -61,6 +61,7 @@ ${jk}\
             % if groupby!='creator':
                 - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
             % endif
+
             ${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}<br />
             ${ji['content']|n}
             </li>
