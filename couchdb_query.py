@@ -20,7 +20,8 @@ if __name__=='__main__':
     s,d = init_conn()
     
     push_views(d)
-
+    if len(sys.argv)<2:
+        sys.exit(0)
     tid = sys.argv[1]
     
     t = get_task(tid)

@@ -1,14 +1,16 @@
 from couchdbkit import *
 from jsoncompare import compare
-
+from config import COUCHDB_URI
 def init_conn():
     #print 'creating server'
-    import config as cfg
-    s = Server(uri=cfg.COUCHDB_URI)
+    s = Server(uri=COUCHDB_URI)
     #print 'obtaining db'
     d = s.get_or_create_db("tasks")
     Task.set_db(d)
     return s,d
+
+class JournalEntry(Document):
+    pass
 
 class Task(Document):
     id = StringProperty()
@@ -104,6 +106,7 @@ def get_children(tid):
 
     sk = ints
     ek = ints+[{}]
+    print sk,ek
     tasks = Task.view('task/children',
                       startkey=sk,
                       endkey=ek,
@@ -152,8 +155,16 @@ def get_new_idx(par=''):
     rt= (par and str(par)+'/'or '')+str(int(agg[par])+1)
     return rt
 
-def get_journals():
-    return Task.view('task/journals')
+def get_journals(day=None):
+    if day:
+        if type(day)==list:
+            day = [k.strftime('%Y-%m-%d') for k in day]
+            return Task.view('task/journals_by_day',startkey=day[0],endkey=day[1],classes={None: JournalEntry})
+        else:
+            day = day.strftime('%Y-%m-%d')
+            return Task.view('task/journals_by_day',key=day,classes={None: JournalEntry})
+    else:
+        return Task.view('task/journals')
 
 def get_tags():
     tags = [t['key'] for t in Task.view('task/tag_ids')]

@@ -1397,8 +1397,7 @@ def read_journal(t,date_limit=None,state_limit=None):
     return rt
 
 def get_all_journals(day=None):
-    if day: raise NotImplementedError('day filter specified')
-    return get_journals()
+    return get_journals(day)
 
 def render_journal_content(user,content,metastates):
     now = datetime.datetime.now()

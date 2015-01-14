@@ -523,11 +523,19 @@ def global_journal(request,creator=None,day=None,groupby=None,state=None):
     gaj = get_all_journals(day)
     print 'obtained; reading %s journals'%len(gaj)
     for jt in gaj:
-        if creator: ji = [i for i in jt.journal if i['creator']==creator]
-        else: ji = jt.journal
+        if hasattr(jt,'tid'):
+            ji = [jt]
+            jt = get_task(jt.tid)
+        else:
+            ji = jt.journal
+        if creator: ji = [i for i in ji if i['creator']==creator]
+        if state: 
+            sk,sv = state.split('=')
+            ji = [i for i in ji if dict(i)['attrs'].get(sk)==sv]
         for jii in ji:
             jii['tid']=jt._id
         ai+=ji
+
     print 'finished reading. sorting'
     ai.sort(lambda x1,x2: cmp(x1['created_at'],x2['created_at']))
     print 'sorted'
