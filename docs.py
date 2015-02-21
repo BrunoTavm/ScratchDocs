@@ -215,7 +215,18 @@ def get_fns(assignee=None,created=None,status=None,tag=None,recurse=True,query=N
     if tag:
         trets.append(Task.view('task/tags',key=tag))
     if query:
-        raise NotImplementedError('no fulltext search yet')
+	def intersect(*d):
+	    sets = iter(map(set, d))
+	    result = sets.next()
+	    for s in sets:
+	        result = result.intersection(s)
+	    return result
+
+	qitems = [q.strip().lower() for q in query.split(' ') if len(q.strip())]
+	tretcands = dict([(qi,[r['value'] for r in Task.view('task/index',key=qi)]) for qi in qitems])
+	tretvals = tretcands.values()
+	result = set(tretvals[0]).intersection(*tretvals)
+	trets.append([Task.get(r) for r in result])
     if newer_than:
         raise NotImplementedError('newer_than not impl')
     if recent:
