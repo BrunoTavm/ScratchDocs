@@ -90,6 +90,7 @@ METASTATES_OVERRIDES={
     'passed':"""(fullstates.get(k) and 'by '+fullstates.get(k).get('updated by','')) or ''""",
 }
 DIFF_BRANCHES=['staging','master','production'] #display diff links to gitweb for those baseline branches
+COUCHDB_URI='http://localhost:5984/'
 from noodles_config import *
 from config_local import *
 import os

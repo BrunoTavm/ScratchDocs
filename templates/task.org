@@ -26,9 +26,9 @@ ${tag}:\
   - [[${l['url']}][${l['anchor']}]]
 % endfor
 % endif
-% if points!='?':
-- points :: ${points}
-% endif
+## % if points!='?':
+## - points :: ${points}
+## % endif
 % if repobranch:
 - repobranch
 % for rb in repobranch:

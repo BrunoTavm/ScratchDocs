@@ -15,8 +15,7 @@ from docs import initvars
 import config as cfg
 initvars(cfg)
 from docs import cre,date_formats,parse_attrs,get_all_journals,get_fns,get_parent_descriptions,get_task,get_children,get_iterations,get_participants,rewrite,get_new_idx,add_task,get_participants,get_parent,flush_taskfiles_cache,tasks_validate,get_table_contents
-from docs import index_tasks,loadmeta,org_render,parse_fn,parsegitdate,read_current_metastates,read_journal,render_journal_content,append_journal_entry
-from tasks import pushcommit
+from docs import loadmeta,org_render,parsegitdate,read_current_metastates,read_journal,render_journal_content,append_journal_entry,get_journals,get_tags,Task
 import codecs
 import copy
 import datetime
@@ -72,9 +71,9 @@ def tracking(request,rng):
                 sums[person] = sums.get(person,0)+hrs
                 if person not in tasksums: tasksums[person]={}
                 tasksums[person][tid] = tasksums[person].get(tid,0)+hrs
-                t = get_task(tid,read=True,gethours=True)
+                t = get_task(tid)
                 if tid not in tdescrs: tdescrs[tid] = t['summary']
-                metastates,content = read_current_metastates(t['jpath'],True)
+                metastates,content = read_current_metastates(t,True)
 
                 if t.get('total_hours') and metastates.get('work estimate'):
                     remaining_hours = '%4.2f'%(float(metastates.get('work estimate')['value']) - float(t.get('total_hours')))
@@ -92,26 +91,28 @@ def iterations(request):
     return {'its':its,'request':request}
 
 def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=False,query=None,tag=None,newer_than=None,recent=False,gethours=False):
-    fns_list = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag,newer_than=newer_than,recent=recent)
-    in_tasks = [parse_fn(fn,read=True,gethours=gethours,hoursonlyfor=None,getmeta=True,getmetastates=True) for fn in fns_list]
+    in_tasks = get_fns(assignee=person,created=created,recurse=recurse,query=query,tag=tag,newer_than=newer_than,recent=recent)
     tasks={}
+    print 'got initial ',len(in_tasks),' tasks; cycling'
     for t in in_tasks:
-        tlp = get_parent(t['id'],tl=True)
-        partasks = [stask for stask in in_tasks if stask['id']==tlp]
+        print 'getting parent for %s'%t._id
+        tlp = get_parent(t._id,tl=True)
+        assert hasattr(t,'status'),"%s with no status"%t._id
         st = t['status']
-        #print 'st of %s setting to status of tlp %s: %s'%(t['id'],tlp,st) 
+        #print 'st of %s setting to status of tlp %s: %s'%(t._id,tlp,st) 
+        print 'grouping by status'
         if st not in tasks: tasks[st]=[]
-
-        t['pdescrs']=get_parent_descriptions(t['id'])
 
         showtask=False
         if not notdone: showtask=True
         if str(t['status']) not in cfg.DONESTATES: showtask=True
+        print 'showtask'
         if showtask:
             tasks[st].append(t)
+
     def srt(t1,t2):
-        t1ids = [int(tp) for tp in (t1['id'].split('/'))]
-        t2ids = [int(tp) for tp in (t2['id'].split('/'))]
+        t1ids = [int(tp) for tp in (t1._id.split('/'))]
+        t2ids = [int(tp) for tp in (t2._id.split('/'))]
 
         t1ids.insert(0,int('priority' in t1['tags']))
         t2ids.insert(0,int('priority' in t2['tags']))
@@ -125,9 +126,8 @@ def asgn(request,person=None,created=None,iteration=None,recurse=True,notdone=Fa
             #print 'comparing %s & %s which were extracted from %s, %s'%(t1id,t2id,t1idsc,t2idsc)
             rt= cmp(t1id,t2id)
             if rt!=0: break
-        #print('returning %s for %s <> %s'%(rt,t1idsc,t2idsc))
-        #if 'priority' in t2['tags'] and 'priority' not in t1['tags']: raise Exception(t2idsc,t2['id'])
         return rt
+
     for st in tasks:
         tasks[st].sort(srt,reverse=True)
     return {'tasks':tasks,'statuses':STATUSES,'request':request,'gethours':gethours}
@@ -288,7 +288,7 @@ def iteration_commits(request,iteration,branch):
             agg[tid][repo].append(br)
 
             if tid not in task_data:
-                t = get_task(tid,read=True)
+                t = get_task(tid)
                 task_data[tid]=t
 
             if tid not in lastcommits: lastcommits[tid]=stmp
@@ -331,7 +331,7 @@ def task(request,task):
     adm = get_admin(request,'unknown')
     repos = [r['Name'] for r in get_table_contents(os.path.join(cfg.DATADIR,'repos.org')) if r.get('Name')]
 
-    tags=[] ; links=[] ; informed=[] ; repobranch=[]
+    tags=[] ; links=[] ; informed=[] ; branches=[]
     for k,v in request.params.items():
         if k.startswith('tag-'):
             tn = k.replace('tag-','')
@@ -350,10 +350,10 @@ def task(request,task):
             tn = k.replace('informed-','')
             if tn=='new': continue
             informed.append(tn)
-        if k.startswith('repobranch-'):
-            tn = k.replace('repobranch-','')
+        if k.startswith('branches-'):
+            tn = k.replace('branches-','')
             if tn in ['new-repo','new-branch']: continue
-            repobranch.append(tn)
+            branches.append(tn)
     lna = request.params.get('link-new-anchor')
     lnu = request.params.get('link-new-url')
 
@@ -364,9 +364,9 @@ def task(request,task):
     if inn and inn not in informed:
         informed.append(inn)
 
-    nrb = request.params.get('repobranch-new-branch','')
+    nrb = request.params.get('branches-new-branch','')
     assert '/' not in nrb,"branch name may not contain '/'"
-    if nrb: repobranch.append(request.params.get('repobranch-new-repo')+'/'+nrb)
+    if nrb: branches.append(request.params.get('branches-new-repo')+'/'+nrb)
 
 
     tags = list(set([tag for tag in tags if tag!='']))
@@ -375,27 +375,27 @@ def task(request,task):
     if len(uns) and not uns.startswith('**'):
         uns='** Details\n'+uns
     assignees=[request.params.get('assignee')]
-    if request.params.get('id'):
-        t = get_task(request.params.get('id'),read=True,flush=True)
-        assignees.append(t['assigned to'])
+
+    if request.params.get('id') and request.params.get('id')!='None':
+        t = get_task(request.params.get('id'))
+        assignees.append(t.assignee)
         tid = request.params.get('id')
         o_params = {'summary':request.params.get('summary'),
                     'tags':tags,
                     'status':request.params.get('status'),
                     'assignee':request.params.get('assignee'),
                     'unstructured':uns,
-                    'links':links,'informed':informed,'repobranch':repobranch}
+                    'links':links,
+                    'informed':informed,
+                    'branches':branches}
         print o_params
-        rewrite(tid,o_params,safe=False)
-        t = get_task(tid,flush=True)
-        t = get_task(tid,flush=True) #for the flush
+        rewrite(tid,o_params,safe=False,user=adm)
+        t = get_task(tid)
         if request.params.get('content-journal'):
             tj = get_task(task)
             metastates={}
             append_journal_entry(tj,adm,request.params.get('content-journal'),metastates)
-            j = rpr(request,task,journal=True,render_only=True)
         assert request.params.get('id')
-        pushcommit.delay(t['path'],request.params.get('id'),adm)
 
 
 
@@ -405,15 +405,15 @@ def task(request,task):
                     'assignee':request.params.get('assignee'),
                     'creator':get_admin(request,'unknown'),
                     'unstructured':uns,
-                    'links':links,'informed':informed,'repobranch':repobranch}
+                    'links':links,
+                    'informed':informed,
+                    'branches':branches}
         if request.params.get('under'):
             parent = request.params.get('under')
         else:
             parent=None
-        rt = add_task(parent=parent,params=o_params,tags=tags)
-        redir = '/'+URL_PREFIX+rt['id']
-        assert rt['story_id']
-        pushcommit.delay(rt['path'],rt['story_id'],adm)
+        rt = add_task(parent=parent,params=o_params,tags=tags,user=adm)
+        redir = '/'+URL_PREFIX+rt._id
         print 'redircting to %s'%redir
         rd = Redirect(redir)
         return rd
@@ -423,34 +423,42 @@ def task(request,task):
         ch = get_children(task)
 
     if task=='new':
-        t = {'story':'','id':None,'created at':None,'summary':'','unstructured':'','status':'TODO','assigned to':adm,'created by':adm,'tags':[],'under':under,'jpath':None}
+        t = Task(created_at=None,
+                 summary='',
+                 unstructured='',
+                 status='TODO',
+                 assignee=adm,
+                 creator=adm,
+                 tags=[],
+                 links=[],
+                 branches=[],
+                 journal=[])
         opar=[]
     else:
-        t = get_task(task,read=True,flush=True,gethours=True)
+        t = get_task(task)
         par = task ; parents=[]
         parents = task.split('/')
         opar = []
         for i in xrange(len(parents)-1):
             opar.append('/'.join(parents[:i+1]))
-    parents = [(pid,get_task(pid,read=True)['summary']) for pid in opar]
+    parents = [(pid,get_task(pid)['summary']) for pid in opar]
     prt = [r[0] for r in get_participants(sort=True)]
-    if task!='new': index_tasks(t['id'])
-    metastates,content = read_current_metastates(t['jpath'],True)
+    metastates,content = read_current_metastates(t,True)
 
-    if t.get('total_hours') and metastates.get('work estimate'):
-        remaining_hours = float(metastates.get('work estimate')['value']) - float(t.get('total_hours'))
-    elif t.get('total_hours'):
-        remaining_hours = -1 * float(t.get('total_hours'))
-    else:
-        remaining_hours = None
+    # if t.get('total_hours') and metastates.get('work estimate'):
+    #     remaining_hours = float(metastates.get('work estimate')['value']) - float(t.get('total_hours'))
+    # elif t.get('total_hours'):
+    #     remaining_hours = -1 * float(t.get('total_hours'))
+    # else:
+    #     remaining_hours = None
+    remaining_hours=None
 
-    #Journal
-    tj = get_task(task)
-    jfn = tj['jpath']
-    jitems = read_journal(jfn)
+    #journal
+    jitems = t.journal
     return {'task':t,
             'remaining_hours':remaining_hours,
-            'j':{'%s existing entries'%t['id']:jitems},
+            'total_hours':0,
+            'j':{'%s existing entries'%t._id:jitems},
             'gwu':gwu,
             'url':RENDER_URL,
             'statuses':STATUSES,
@@ -464,20 +472,14 @@ def task(request,task):
             'possible_metastates':cfg.METASTATES,
             'colors':cfg.METASTATES_COLORS,
             'overrides':cfg.METASTATES_OVERRIDES,
-            'diff_branches':cfg.DIFF_BRANCHES}
+            'diff_branches':cfg.DIFF_BRANCHES,
+            'under':under,
+    }
 
 @render_to('tags.html')
 def tags(request):
-    tagdir = os.path.join(cfg.DATADIR,'tagged')
-    w = os.walk(tagdir,followlinks=False)
-    tcnt={}
-    for fn in w:
-        for tag in fn[1]:
-            tw = os.walk(os.path.join(tagdir,tag))
-            for twi in tw:
-                for tid in twi[2]:
-                    tcnt[tag]=tcnt.get(tag,0)+1
-    tags = tcnt.items()
+    tags = get_tags()
+    tags = tags.items()
     tags.sort(lambda x1,x2: cmp(x1[1],x2[1]),reverse=True)
     rt = {'tags':tags}
     return rt
@@ -520,13 +522,22 @@ def global_journal(request,creator=None,day=None,groupby=None,state=None):
     print 'obtaining journals'
     gaj = get_all_journals(day)
     print 'obtained; reading %s journals'%len(gaj)
-    for jfn in gaj:
-        #print 'reading journal %s'%jfn
-        ji = read_journal(jfn,date_limit=day,state_limit=state)
+    for jt in gaj:
+        if hasattr(jt,'tid'):
+            ji = [jt]
+            jt = get_task(jt.tid)
+        else:
+            ji = jt.journal
         if creator: ji = [i for i in ji if i['creator']==creator]
+        if state: 
+            sk,sv = state.split('=')
+            ji = [i for i in ji if dict(i)['attrs'].get(sk)==sv]
+        for jii in ji:
+            jii['tid']=jt._id
         ai+=ji
+
     print 'finished reading. sorting'
-    ai.sort(lambda x1,x2: cmp(x1['created at'],x2['created at']))
+    ai.sort(lambda x1,x2: cmp(x1['created_at'],x2['created_at']))
     print 'sorted'
     if groupby:
         rt={}
@@ -545,22 +556,19 @@ def queue(request,assignee=None,archive=False,metastate_group='merge'):
     if assignee=='me':
         assignee=get_admin(request,'unknown')
     queue={}
-    for jfn in get_all_journals():
-        #print 'working journal %s'%jfn
-        tfn = jfn.replace('journal.org','task.org')
-        #print 'getting %s'%tfn
-        t = parse_fn(tfn,read=True,gethours=True,getmeta=False)
-
-        if assignee and t['assigned to']!=assignee: continue
+    print 'cycling journals'
+    for t in get_journals():
+        if assignee and t.assignee!=assignee: continue
 
         if metastate_group!='production':
             if not archive and t['status'] in cfg.DONESTATES: continue
             elif archive and t['status'] not in cfg.DONESTATES: continue
 
-        tid = t['story']
+        tid = t._id
         #print t
-        assert t.get('status'),"could not get status for %s"%tid
-        cm,content = read_current_metastates(jfn,True)
+        assert t.status,"could not get status for %s"%tid
+        #print 'reading metastates'
+        cm,content = read_current_metastates(t,True)
 
         #skip this task if has no metastates relevant to us
         relevant_metastates=False
@@ -569,36 +577,41 @@ def queue(request,assignee=None,archive=False,metastate_group='merge'):
                 relevant_metastates=True
                 break
         if not relevant_metastates: continue
-
-        jitems = read_journal(jfn)
+        print 'reading journal'
+        jitems = read_journal(t)
         lupd = sorted(cm.values(),lambda x1,x2: cmp(x1['updated'],x2['updated']),reverse=True)
         if len(lupd): lupd=lupd[0]['updated']
         else: lupd=None
         #any journal update takes precedence
         if len(jitems):
-            jlupd = jitems[-1]['created at']
+            try:
+                jlupd = jitems[-1]['created_at']
+            except:
+                raise Exception(jitems[-1])
             if not lupd or jlupd >=lupd:
                 lupd = jlupd
-        assert t.get('total_hours')!='None'
+        #assert t.get('total_hours')!='None'
+        print 'adding to queue'
         queue[tid]={'states':dict([(cmk,cmv['value']) for cmk,cmv in cm.items()]),
-                    'total_hours':t.get('total_hours',0),
+                    #'total_hours':t.get('total_hours',0),
                     'fullstates':cm,
                     'last updated':lupd,
                     'status':t['status'],
                     'summary':t['summary'],
                     'last entry':content,
                     'tags':t['tags'],
-                    'assignee':t['assigned to'],
-                    'merge':[l['url'] for l in t.get('links',[]) if l['anchor']=='merge doc'],
-                    'job':[l['url'] for l in t.get('links',[]) if l['anchor']=='job'],
-                    'specs':[l['url'] for l in t.get('links',[]) if l['anchor']=='specs']}
-        
+                    'assignee':t.assignee,
+                    'merge':[l['url'] for l in t.links if l['anchor']=='merge doc'],
+                    'job':[l['url'] for l in t.links if l['anchor']=='job'],
+                    'specs':[l['url'] for l in t.links if l['anchor']=='specs']}
+    print 'done. itemizing'
     queue = queue.items()
+    print 'sorting'
     queue.sort(lambda x1,x2: cmp((x1[1]['last updated'] and x1[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1)),(x2[1]['last updated'] and x2[1]['last updated'] or datetime.datetime(year=1970,day=1,month=1))),reverse=True)
 
 
     metastate_url_prefix = dict (zip(cfg.METASTATE_URLS.values(),cfg.METASTATE_URLS.keys()))[metastate_group]
-
+    print 'rendering'
     return {'queue':queue,
             'metastate_group':metastate_group,
             'metastate_url_prefix':metastate_url_prefix,
@@ -632,9 +645,8 @@ def journal_edit(request,task,jid):
 @render_to('journal.html')
 def journal(request,task):
     t = get_task(task)
-    jfn = t['jpath']
-    jitems = read_journal(jfn)
-    return {'task':t,'j':{'%s existing entries'%t['id']:jitems},'metastates':METASTATES}
+    jitems = read_journal(t)
+    return {'task':t,'j':{'%s existing entries'%t._id:jitems},'metastates':METASTATES}
 
 @render_to('task_history.html')
 def history(request,task):
@@ -682,11 +694,11 @@ def metastate_set(request):
     adm = get_admin(request,'unknown')
     #special case
     if msk=='work estimate':
-        t = get_task(tid,gethours=True)
+        t = get_task(tid)
         #print '%s = %s + %s'%(msk,t['total_hours'],v)
-        v = "%4.2f"%(float(t.get('total_hours',0))+float(v))
+        #v = "%4.2f"%(float(t.get('total_hours',0))+float(v))
     else:
-        t =  get_task(tid,gethours=False)
+        t =  get_task(tid)
 
     print 'setting %s.%s = %s'%(tid,msk,v)
     append_journal_entry(t,adm,'',{msk:v})

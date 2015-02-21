@@ -12,16 +12,16 @@ selected=1 \
 </%def>
 <%def name="taskmenu()">
 %if parents:
-% if '/' in task['story']:
-    <a href="${upr}/${"/".join(task['story'].split('/')[0:-1])}" accesskey="u"><b>U</b>p &#8593; </a>
+% if '/' in task._id:
+    <a href="${upr}/${"/".join(task._id.split('/')[0:-1])}" accesskey="u"><b>U</b>p &#8593; </a>
 % endif	
 &nbsp;&nbsp;---&nbsp;&nbsp;
 % for pid,psum in parents:
 <a title="${pid}" href="${upr}/${pid}">${psum}</a> &#8250;
 % endfor    
 %endif
-% if task['id']:
-<h2 class="task-title">Task ${task['story']} - ${task['summary']}
+% if task._id:
+<h2 class="task-title">Task ${task._id} - ${task['summary']}
 <input class="btn btn-primary " type='button' value='reload' accesskey='r' onclick="location.reload()" />
 </h2> 
 <div style="text-align:center">
@@ -33,21 +33,21 @@ ${"%4.2f h remaining"%remaining_hours}\
     %if task['summary'] != '':
         <input class="btn btn-primary " type='submit' value='Update' accesskey='a' />
         <span class="divider-vertical"></span>
-        <input class="btn btn-default custom-link" type='button' accesskey='s' value='Subtask' data-link="${upr}/s/new/${task['story']}" accesskey='n' />    
+        <input class="btn btn-default custom-link" type='button' accesskey='s' value='Subtask' data-link="${upr}/s/new/${task._id}" accesskey='n' />    
         <span class="divider-vertical"></span>
-        <input class="btn btn-default custom-link" type='button' value='History' data-link="${upr}/${task['story']}/log" />       
+        <input class="btn btn-default custom-link" type='button' value='History' data-link="${upr}/${task._id}/log" />       
     %else:
-        <input class="btn btn-default custom-link" type='submit' value='Summary' data-link="${upr}/${task['story']}" />
+        <input class="btn btn-default custom-link" type='submit' value='Summary' data-link="${upr}/${task._id}" />
     %endif
 </div>
 % endif
 <ul class="nav nav-pills">
-% if task['story']:
-    <!-- <li><a href="${upr}/${task['story']}" accesskey="m">su<b>m</b>mary</a></li>
-    <li><a href="${upr}/${task['story']}/log" accesskey='i'>h<b>i</b>story</a></li>
-    <li><a href="${upr}/${task['story']}/j" accesskey='j'><b>j</b>ournal</a></li>
+% if task._id:
+    <!-- <li><a href="${upr}/${task._id}" accesskey="m">su<b>m</b>mary</a></li>
+    <li><a href="${upr}/${task._id}/log" accesskey='i'>h<b>i</b>story</a></li>
+    <li><a href="${upr}/${task._id}/j" accesskey='j'><b>j</b>ournal</a></li>
     <li class="divider-vertical"></li>
-    <li><a href="${upr}/s/new/${task['story']}" accesskey='s'><b>s</b>ubtask</a></li>
+    <li><a href="${upr}/s/new/${task._id}" accesskey='s'><b>s</b>ubtask</a></li>
     -->
 % endif
 </ul>
@@ -65,17 +65,17 @@ ${taskmenu()}
     <div style="display:table-row;">
         <div style="display:table-cell;width:50%;">
             <h2 class="task-title">Info</h2>
-                % if task.get('under'):
-                <h4>under ${task.get('under')}</h4>
-                <input type='hidden' name='under' value="${task.get('under')}" />
+                % if under:
+                <h4>under ${under}</h4>
+                <input type='hidden' name='under' value="${under}" />
                 % endif
-                <input type='hidden' name='id' value="${task['story']}" />
+                <input type='hidden' name='id' value="${task._id}" />
 
 
                 <div class="control-group">
                     <label for="summary" class="control-label">Created</label>
                     <div class="controls" style="line-height: 30px;">
-                         ${task['created at']}
+                         ${task.created_at}
                     </div>
                 </div>
 
@@ -102,11 +102,12 @@ ${taskmenu()}
                 <div class="control-group">
                     <label for="sel-status" class="control-label">S<b>t</b>atus</label>
                     <div class="controls">
-                        ${self.sel('status',statuses,task['status'],attr='accesskey="t" id="sel-status"')}
+		      <% assert hasattr(task,'status'),"%s has no status"%task._id %>
+                        ${self.sel('status',statuses,task.status,attr='accesskey="t" id="sel-status"')}
                     </div>
                 </div>
 		<hr />
-            % if task['id']:
+            % if task._id:
                 <div class="control-group">
                   <% used = [] %>
                     % for mgroup,ms in possible_metastates.items():
@@ -117,7 +118,15 @@ ${taskmenu()}
                     <% used.append(k) %>
                         <% v = metastates.get(k) %>
                         <label> ${k}: </label>
-                        ${self.metastate_sel(task['story'],k,(v and v.get('value') or ''),colors,possible_metastates[mgroup],overrides,metastates,allow_empty=True,total_hours=task.get('total_hours',0))}
+                        ${self.metastate_sel(task._id,
+			                     k,
+			                     (v and v.get('value') or ''),
+			colors,
+			possible_metastates[mgroup],
+			overrides,
+			metastates,
+			allow_empty=True,
+			total_hours=0)}
                         <br />
 		    % endfor
                     </div><hr />
@@ -127,24 +136,24 @@ ${taskmenu()}
                 <div class="control-group">
                     <label class="control-label">Assignee</label>
                     <div class="controls">
-                        <a href="${upr}/assignments/${task['assigned to']}">${task['assigned to']}</a> &nbsp;
-                        change to ${self.sel('assignee',participants,task['assigned to'])}
+                        <a href="${upr}/assignments/${task.assignee}">${task.assignee}</a> &nbsp;
+                        change to ${self.sel('assignee',participants,task.assignee)}
                     </div>
                 </div>
 
                 <div class="control-group">
                     <label class="control-label">Creator</label>
                     <div class="controls" style="line-height: 30px;">
-                        <a href="${upr}/assignments/${task['created by']}">${task['created by']}</a>
+                        <a href="${upr}/assignments/${task.creator}">${task.creator}</a>
                     </div>
                 </div>
 
-            % if task.get('links'):
+            % if task.links:
                 <div class="control-group">
                     <label class="control-label">Links</label>
                     <div class="controls">
                         <ul class="unstyled">
-                            % for li in task['links']:
+                            % for li in task.links:
                             <li>  <input type='checkbox' name="link-${li['anchor']|h}" checked=1 value="${li['url']|h}" />  <a href="${li['url']}">${li['anchor']}</a> \
 			      (<a href="https://chart.googleapis.com/chart?chs=200x200&cht=qr&chld=|1&chl=${li['url']|h}">qr</a>)
 			    </li>
@@ -154,12 +163,12 @@ ${taskmenu()}
                 </div>
             % endif
 
-            % if task.get('informed'):
+            % if hasattr(task,'informed') and task.informed:
                 <div class="control-group">
                     <label class="control-label">Informed</label>
                     <div class="controls">
                         <ul class="unstyled">
-                            % for inf in task['informed']:
+                            % for inf in task.informed:
                             <li><input type="checkbox" name="informed-${inf|h}" checked=1 value=1 /><a href="${upr}/assignments/${inf}">${inf}</a></li>
                             % endfor
                         </ul>
@@ -167,7 +176,7 @@ ${taskmenu()}
                 </div>
             % endif
 
-            % if task.get('repobranch'):
+            % if task.branches:
                 <div class="control-group">
                     <label class="control-label">Repo/Branch</label>
                     <div class="controls" style="width: 80%;"> 
@@ -179,10 +188,10 @@ ${taskmenu()}
                                 <th>${db}</th>
                                 % endfor
                             </tr></thead>
-                            % for br in task.get('repobranch'):
+                            % for br in task.branches:
                             <tr>
                                 <% r,b = br.split('/') %>
-                                <td><input type='checkbox' name="repobranch-${br|h}" value="1" checked=1 /></td>
+                                <td><input type='checkbox' name="branches-${br|h}" value="1" checked=1 /></td>
                                 <td><a href="${gwu}?p=${r}.git;a=shortlog;h=refs/heads/${b}">${r}/${b}</a></td>
                                 % for db in diff_branches:
                                 <td><a href="${gwu}?p=${r}.git;a=commitdiff;h=refs/heads/${b};hp=${db}">${db}</a></td>
@@ -197,15 +206,15 @@ ${taskmenu()}
                     <label class="control-label">Automerge</label>
                     <div class="controls" style="width: 80%;">
 <pre>
-<% defr = task.get('repobranch')[0].split('/')[1] %>\
+<% defr = task.branches[0].split('/')[1] %>\
 ./automerge.py \
 --from=${defr} \
-% if len(filter(lambda x: x[1].startswith('production'),[r.split('/') for r in task.get('repobranch')])):
+% if len(filter(lambda x: x[1].startswith('production'),[r.split('/') for r in task.branches])):
 --to=production \
 % endif
 --purge --linters \
---message='#${task['id']}: automerge.' \
-${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.get('repobranch')])} \
+--message='#${task._id}: automerge.' \
+${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.branches])} \
 </pre>
                     </div>
                 </div>
@@ -231,16 +240,16 @@ ${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.g
                 <div class="control-group">
                     <label class="control-label">Repo/Branch</label>
                     <div class="controls" >
-                       ${sel('repobranch-new-repo',repos,'')} / <input type='text' name='repobranch-new-branch' />
+                       ${sel('branches-new-repo',repos,'')} / <input type='text' name='branches-new-branch' />
                     </div>
                 </div>                                
                 
                 
                  
-                <textarea id='content' class='content' name='unstructured'>${task['unstructured'].decode('utf-8')}</textarea>
+                <textarea id='content' class='content' name='unstructured'>${task.unstructured}</textarea>
                 <div id='contentwrapper'>
                 </div>
-                % if task['id']:
+                % if task._id:
                     <input class="btn btn-primary pull-right" type='submit' value='Update' accesskey='a' style="position: relative;right: 2%;" />
                 % else:
                     <input class="btn btn-primary pull-right" type='submit' value='Create' accesskey='a' name='create' style="position: relative;right: 2%;"/>
@@ -250,10 +259,10 @@ ${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.g
 
         </div>
         <div style="display:table-cell;border-left:1px solid silver;padding-left: 20px;">
-            % if task['id']:
+            % if task._id:
                 <h2 class="task-title">Journal</h2>
                 <div class='journal'>
-                    <!-- <form class="form-horizontal" method='post'>  action="${upr}/s/${task['id']}/j/new" -->
+                    <!-- <form class="form-horizontal" method='post'>  action="${upr}/s/${task._id}/j/new" -->
                         <h4>Add comment</h4>
                         <textarea class='content' name='content-journal' style="width:100%;"></textarea>
                         <input accesskey='a' type='submit' class="btn btn-primary pull-right" />
@@ -262,7 +271,7 @@ ${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.g
                     % for jk,jg in j.items():
                         % for ji in reversed(jg):
                         <div class="message">
-                            <span class="message-time">${ji['created at']};</span>
+                            <span class="message-time">${ji['created_at']};</span>
                             <span class="message-author"><a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a></span>
                             % if ji['attrs'].items():
                                 <span class="message-status">
@@ -271,7 +280,7 @@ ${' '.join([(rb.split('/')[1]!=defr and rb or rb.split('/')[0]) for rb in task.g
                                 </span>
                             % endif
                             <span class="message-text">
-                                ${ji['rendered_content']|n}
+                                ${ji['content']|n}
                             </span>
                         </div>
                         % endfor
@@ -288,30 +297,30 @@ ${self.list_tasks(children)}
 % endif
 
 
-% if task.get('person_hours'):
-<h3>Time tracking</h3>
-<table class="table table-striped table-bordered table-hover">
-    <thead>
-        <tr>
-          <th>person</th>
-          <td>last tracked</th>
-          <td>hours</th>
-        </tr>
-    </thead>
-    <tbody>
-    % for ph in task['person_hours']:
-        <tr>
-            <td>${ph[0]}</td>
-            <td>${ph[1]['last_tracked']}</td>
-            <td class='ralign'>${"%4.1f"%ph[1]['hours']}</td>
-        </tr>
-    % endfor
-    </tbody>
-</table>
-% endif
+## % if task.get('person_hours'):
+## <h3>Time tracking</h3>
+## <table class="table table-striped table-bordered table-hover">
+##     <thead>
+##         <tr>
+##           <th>person</th>
+##           <td>last tracked</th>
+##           <td>hours</th>
+##         </tr>
+##     </thead>
+##     <tbody>
+##     % for ph in task['person_hours']:
+##         <tr>
+##             <td>${ph[0]}</td>
+##             <td>${ph[1]['last_tracked']}</td>
+##             <td class='ralign'>${"%4.1f"%ph[1]['hours']}</td>
+##         </tr>
+##     % endfor
+##     </tbody>
+## </table>
+## % endif
 
-## <h3>Render</h3>
-## <iframe class='rndr' src=""></iframe>
+<h3>Render</h3>
+<iframe class='rndr' src=""></iframe>
 
 <script type='text/javascript'>
 window.onload = function() {
@@ -348,4 +357,4 @@ document.getElementById('showtog').onclick = function(ev) {
 }}
 </script>
 </%def>
-<%def name="title()">${task and task['story'] or ''}${task and task.get('summary') and ' - '+task.get('summary') or ''}</%def>
+<%def name="title()">${task and task.summary or ''}</%def>

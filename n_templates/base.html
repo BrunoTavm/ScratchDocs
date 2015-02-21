@@ -131,31 +131,32 @@ else:
   prietag=''
 %>
 <tr class='${classname}'>
-  <td>${t['created at'].date()}</td>
+  <td>${t.created_at.date()}</td>
   <td>
-${pritag|n}<a href="${upr}/${t['story']}" title="${t['summary']|h}">${t['story']}</a>${prietag|n}</td>
+${pritag|n}<a href="${upr}/${t._id}" title="${t['summary']|h}">${t._id}</a>${prietag|n}</td>
   <td>${t['status']}</td>
-  <td><a href="${upr}/assignments/${t['assigned to']}">${t['assigned to']}</a></td>
+  <td><a href="${upr}/assignments/${t.assignee}">${t.assignee}</a></td>
 
-<% tr = float(t.get('total_hours',0)) ; 
-if t.get('metastates'):
-  we = float(t['metastates'].get('work estimate',0))
-else:
-  we = 0
+<% 
+# tr = float(t.get('total_hours',0)) ; 
+# if t.get('metastates'):
+#   we = float(t['metastates'].get('work estimate',0))
+# else:
+#   we = 0
 %>
 % if gethours:
 <td class="ralign ${tr>we and 'msg' or ''}">${"%4.1f"%(we-tr)}</td>
 % endif
   <td class='tagcln'>${', '.join(t['tags'])}&nbsp;</td>
   <td class='sumcln'
-  title="${t['summary']|h}"><a class='textlike' href="${upr}/${t['story']}">${pritag|n}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag|n}</a></td>
+  title="${t['summary']|h}"><a class='textlike' href="${upr}/${t._id}">${pritag|n}${len(t['summary'])<40 and  t['summary'] or t['summary'][0:40]+'..'}${prietag|n}</a></td>
   <td style='text-align:right'>
 <% mlen = 30 %>
-% if t.get('pdescrs'):
-% for pid,psum in t['pdescrs']:
-<a title="${psum}" href="${upr}/${pid}">${(len(psum)<=mlen and psum or (psum[0:mlen]+'..'))}</a> &#8250;
-% endfor
-% endif
+## % if t.get('pdescrs'):
+## % for pid,psum in t['pdescrs']:
+## <a title="${psum}" href="${upr}/${pid}">${(len(psum)<=mlen and psum or (psum[0:mlen]+'..'))}</a> &#8250;
+## % endfor
+## % endif
 &nbsp;
 </td>
 
