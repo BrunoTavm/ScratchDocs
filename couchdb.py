@@ -102,17 +102,10 @@ def get_task(tid):
 
 def get_children(tid):
 
-    ints = [int(tp) for tp in tid.split('/')]
-
-    sk = ints
-    ek = ints+[{}]
-    print sk,ek
-    tasks = Task.view('task/children',
-                      startkey=sk,
-                      endkey=ek,
-    )
-    rt= [t for t in tasks if t._id!=tid]
-    return rt
+    onelch = [Task.get(t['value']) for t in Task.view('task/children2',key=tid)]
+    for chtid in onelch:
+        onelch+=get_children(chtid._id)
+    return onelch
 
 def get_parents(tid):
     ints = [int(tp) for tp in tid.split('/')]
