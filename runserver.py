@@ -10,4 +10,4 @@ if not NO_GEVENT_MONKEYPATCH:
 from noodles.app import startapp
 
 if __name__ == '__main__':
-    startapp()
+    startapp(host='0.0.0.0')
