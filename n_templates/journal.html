@@ -51,22 +51,54 @@
 % else:
 ${jk}\
 % endif
+<% from couchdb import Task %>
 </h3>
-        <ul class="unstyled">
+<table>
+<thead style='background-color:#cdb'>
+<tr>
+	<th>entry date</th>
+	<th>entry by</th>
+	<th>task id</th>
+	<th>entry</th>
+	<th>c</th>
+	<th>creator</th>
+	<th>assignee</th>
+	<th>parent(s)</th>
+	<th>task summary</th>
+	<th>task tags</th>
+</tr>
+</thead>
             % for ji in reversed(jg):
-            <li>&lt;${ji['created_at']}&gt;
+            <% t = Task.get(ji['tid']) %>
+            <tr>
+
+	    <td style='font-size:60%'>${ji['created_at']}</td>
+
+            <td>
+            % if groupby!='creator':
+                <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a>
+            % endif
+            </td>
+	    <td style='text-align:right'>
             % if not task and groupby!='tid':
                 <a href="${upr}/${ji['tid']}">${ji['tid']}</a>
             % endif
-            % if groupby!='creator':
-                - <a href="${upr}/assignments/${ji['creator']}">${ji['creator']}</a> - 
-            % endif
-
-            ${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}<br />
-            ${ji['content']|n}
-            </li>
+            </td>
+            <td style='font-size:60%'>${'; '.join([u'%s = %s'%(k,v) for k,v in ji['attrs'].items()])}</td>
+            <td>${ji['content']|n}</td>
+            <td><a href="${upr}/assignments/${t.assignee}">${t.assignee}</a></td>
+            <td><a href="${upr}/assignments/${t.creator}">${t.creator}</a></td>
+            <td style='font-size:60%;text-align:right;'>
+<% l = len(t._id.split('/')) %>
+% for pt in [Task.get('/'.join(t._id.split('/')[0:i])) for i in range(1,l)]:
+<a href="/${t._id.split('/')[0:i]}">${pt.summary}</a> &#8250;
+% endfor
+            </td>
+	    <td>${t['summary']}</td>
+	    <td style='font-size:60%;text-align:right'>${",".join(["<a href='%s/tag/%s'>%s</a>"%(upr,tag,tag) for tag in t.tags])|n}</td>
+            </tr>
             % endfor
-        </ul>
+</table>
     % endfor
     </div>
 </%def>
